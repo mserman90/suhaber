@@ -30,7 +30,6 @@ from app.translator import (
     is_genuinely_turkish
 )
 from app.portal import generate_newspaper_portal_html
-from app.podcast import generate_daily_podcast
 import re
 
 def main():
@@ -242,32 +241,12 @@ def main():
     (dist_dir / "feed.json").write_text(json.dumps(json_data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'feed.json'}")
 
-    # 4. Generate Daily Podcast & Podcast RSS Feed (podcast.xml)
-    podcast_info = None
-    enable_podcast_env = os.getenv("ENABLE_PODCAST", "").strip().lower()
-    enable_podcast = enable_podcast_env in ("true", "1", "yes") if enable_podcast_env else True
-
-    try:
-        podcast_info = generate_daily_podcast(items, dist_dir, public_url, enable_generation=enable_podcast)
-    except Exception as pe:
-        print(f"[!] Podcast üretimi sırasında hata: {pe}")
-
-    # 5. Generate Modern Newspaper Theme Portal in dist/index.html with Podcast Player
-    portal_html = generate_newspaper_portal_html(items, now_str, rss_self, atom_self, json_self, podcast_info=podcast_info)
+    # 4. Generate Modern Newspaper Theme Portal in dist/index.html
+    portal_html = generate_newspaper_portal_html(items, now_str, rss_self, atom_self, json_self)
     (dist_dir / "index.html").write_text(portal_html, encoding="utf-8")
-    print(f"[+] Üretildi: {dist_dir / 'index.html'} ('Su Haber Bülteni' Modern Gazete Portalı & Podcast)")
+    print(f"[+] Üretildi: {dist_dir / 'index.html'} ('Su Haber Bülteni' Modern Gazete Portalı)")
 
-    # 6. Dispatch Daily Podcast to WhatsApp Group (Yalnızca sabah bülteninde veya zorlandığında)
-    if enable_podcast and podcast_info and podcast_info.get("latest_episode"):
-        try:
-            from app.whatsapp import send_daily_podcast_to_whatsapp
-            send_daily_podcast_to_whatsapp(podcast_info, items, public_url)
-        except Exception as we:
-            print(f"[!] WhatsApp paylaşımı sırasında hata: {we}")
-    elif not enable_podcast:
-        print("[*] Gün içi periyodik tarama: WhatsApp bülten gönderimi atlandı (Yalnızca sabah 10:00 bülteninde iletilir).")
-
-    print("[*] Tüm gazete portalı, podcast ve yayın dosyaları başarıyla hazırlandı!")
+    print("[*] Tüm gazete portalı ve yayın dosyaları başarıyla hazırlandı!")
 
 if __name__ == "__main__":
     main()

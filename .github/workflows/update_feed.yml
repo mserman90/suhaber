@@ -2,16 +2,11 @@ name: Update RSS Feed & Deploy to GitHub Pages
 
 on:
   schedule:
-    # Her sabah Türkiye saati ile 10:00'da (07:00 UTC) günlük podcast ve bülten yayını
+    # Her sabah Türkiye saati ile 10:00'da (07:00 UTC) günlük bülten yayını
     - cron: "0 7 * * *"
     # Gün içi periyodik haber taramaları
     - cron: "13,43 * * * *"
   workflow_dispatch:
-    inputs:
-      force_podcast:
-        description: 'Podcast ve WhatsApp bültenini çalıştır'
-        type: boolean
-        default: true
   push:
     branches:
       - main
@@ -42,36 +37,21 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Restore Podcast Episodes Audio Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            data/episodes/
-          key: podcast-episodes-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            podcast-episodes-${{ runner.os }}-
-
       - name: Generate Static RSS Feed & Portal
         env:
           INOREADER_URL: "https://www.inoreader.com/stream/user/1006125058/tag/SU/view/html?cs=m"
           PUBLIC_BASE_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
-          ENABLE_PODCAST: ${{ (github.event.schedule == '0 7 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_podcast == 'true')) && 'true' || 'false' }}
-          GREEN_API_INSTANCE_ID: ${{ secrets.GREEN_API_INSTANCE_ID }}
-          GREEN_API_TOKEN: ${{ secrets.GREEN_API_TOKEN }}
-          GREEN_API_URL: ${{ secrets.GREEN_API_URL }}
-          WHATSAPP_CHAT_ID: ${{ secrets.WHATSAPP_CHAT_ID }}
-          WHATSAPP_WEBHOOK_URL: ${{ secrets.WHATSAPP_WEBHOOK_URL }}
         run: |
           python export_static.py
 
       - name: Commit & Push Updated Data to Repository
-        if: github.event.schedule == '0 7 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.force_podcast == 'true')
+        if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/feed_items.db data/podcast_episodes.json data/episodes/*.mp3 data/whatsapp_history.json data/sygm_last_report_url.txt data/sygm_sync_history.json || true
+          git add data/feed_items.db data/sygm_last_report_url.txt data/sygm_sync_history.json || true
           if ! git diff --cached --quiet; then
-            git commit -m "chore(data): sync sqlite & podcast metadata [skip ci]"
+            git commit -m "chore(data): sync sqlite database [skip ci]"
             git pull --rebase origin main || true
             git push origin main || echo "Git push skipped"
           else

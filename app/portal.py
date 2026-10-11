@@ -10,7 +10,7 @@ def clean_html_tags(text: str) -> str:
     clean = re.sub(r'<[^>]+>', ' ', text)
     return " ".join(clean.split())
 
-def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: str, rss_url: str, atom_url: str, json_url: str, podcast_info: Dict[str, Any] = None) -> str:
+def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: str, rss_url: str, atom_url: str, json_url: str) -> str:
     today_str = datetime.now(timezone.utc).strftime("%d.%m.%Y")
     
     # Günün Sözü (Su Yönetimi Öğütleri)
@@ -19,31 +19,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
     quote_author = html.escape(daily_quote.get("author", "Su Yönetimi Rehberi"))
     quote_cat = html.escape(daily_quote.get("category", "Su Yönetimi"))
     
-    # Manşet Haberi Altında Gösterilecek Podcast Barı
-    podcast_hero_html = ""
-    if podcast_info and podcast_info.get("latest_episode"):
-        ep = podcast_info["latest_episode"]
-        audio_url = ep.get("audio_url") or podcast_info.get("latest_audio_url")
-        podcast_rss = podcast_info.get("podcast_rss_url") or f"{rss_url.rsplit('/', 1)[0]}/podcast.xml"
-        podcast_hero_html = f"""
-                <div class="hero-podcast-bar" onclick="event.stopPropagation();">
-                    <div class="hero-podcast-label">
-                        <span class="hero-podcast-badge">🎙️ SESLİ MANŞET</span>
-                        <span>Haberin Sesli Özeti (Podcast):</span>
-                    </div>
-                    <audio controls preload="none" class="hero-podcast-player">
-                        <source src="{audio_url}" type="audio/mpeg">
-                        Tarayıcınız ses oynatmayı desteklemiyor.
-                    </audio>
-                    <a href="{audio_url}" target="_blank" download class="hero-podcast-btn" title="Manşet Ses Dosyasını İndir">
-                        ▶️ Dinle / İndir
-                    </a>
-                    <a href="{podcast_rss}" target="_blank" class="hero-podcast-rss-link" title="Podcast RSS Akışı">
-                        📡 Podcast RSS
-                    </a>
-                </div>
-        """
-    
+
     # Manşet Önceliği: Türkiye su haberlerini her zaman en başa (manşete) al
     # Güncellik (recency) esastır: Yeni haberler güncellik azalışı (time-decay) sayesinde eski haberleri geride bırakır.
     now_ts = int(datetime.now(timezone.utc).timestamp())
@@ -273,7 +249,6 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
                 <h2 class="hero-title">{html.escape(h['title_tr'])}</h2>
                 {f'<h4 class="hero-title-en">Orijinal Başlık: {html.escape(h["title_en"])}</h4>' if (h.get('title_en') and h['title_en'] != h['title_tr']) else ''}
                 <p class="hero-summary">{html.escape(h['summary_tr'][:320])}...</p>
-                {podcast_hero_html}
                 <div class="hero-footer">
                     <button class="btn-hero-read">Tam Haberi ve Analizi Oku &rarr;</button>
                     <span class="hero-hint">{hero_hint}</span>
@@ -907,83 +882,6 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
             color: var(--ink-light);
         }}
 
-        /* Headline Podcast Link Bar (Manşet Haberi Altı) */
-        .hero-podcast-bar {{
-            background: rgba(14, 165, 233, 0.08);
-            border: 1px solid rgba(14, 165, 233, 0.25);
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            transition: background 0.2s ease, border-color 0.2s ease;
-        }}
-        [data-theme="dark"] .hero-podcast-bar {{
-            background: rgba(14, 165, 233, 0.12);
-            border-color: rgba(56, 189, 248, 0.3);
-        }}
-        .hero-podcast-bar:hover {{
-            border-color: rgba(14, 165, 233, 0.5);
-        }}
-        .hero-podcast-label {{
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12.5px;
-            font-weight: 700;
-            color: var(--newspaper-navy);
-            letter-spacing: 0.3px;
-        }}
-        [data-theme="dark"] .hero-podcast-label {{
-            color: #38bdf8;
-        }}
-        .hero-podcast-badge {{
-            background: #0284c7;
-            color: white;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 3px 8px;
-            border-radius: 4px;
-            letter-spacing: 0.5px;
-        }}
-        .hero-podcast-player {{
-            flex: 1;
-            min-width: 200px;
-            height: 36px;
-            outline: none;
-        }}
-        .hero-podcast-btn {{
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            background: #0284c7;
-            color: white !important;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 7px 14px;
-            border-radius: 4px;
-            text-decoration: none;
-            transition: background 0.15s ease;
-            white-space: nowrap;
-        }}
-        .hero-podcast-btn:hover {{
-            background: #0369a1;
-            text-decoration: none;
-        }}
-        .hero-podcast-rss-link {{
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--ink-muted);
-            text-decoration: none;
-            white-space: nowrap;
-        }}
-        .hero-podcast-rss-link:hover {{
-            color: #0284c7;
-            text-decoration: underline;
-        }}
-
         /* Turkey Water News Dedicated Priority Section */
         .turkey-priority-section {{
             background: var(--paper-card);
@@ -1451,126 +1349,6 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
             width: 100%;
         }}
         .btn-copy-rss:hover {{ background: #15803d; }}
-
-        /* Podcast Banner Card */
-        .podcast-banner-card {{
-            background: linear-gradient(135deg, #0b2545 0%, #134074 100%);
-            color: #ffffff;
-            border-radius: 12px;
-            padding: 20px 24px;
-            margin-bottom: 28px;
-            box-shadow: 0 8px 24px rgba(11, 37, 69, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }}
-        [data-theme="dark"] .podcast-banner-card {{
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border-color: #334155;
-        }}
-        .podcast-banner-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-            padding-bottom: 12px;
-        }}
-        .podcast-badge-group {{
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }}
-        .podcast-pill {{
-            background: #38bdf8;
-            color: #0b1a30;
-            font-size: 11px;
-            font-weight: 800;
-            padding: 4px 10px;
-            border-radius: 4px;
-            letter-spacing: 0.5px;
-        }}
-        .podcast-time-pill {{
-            background: rgba(255, 255, 255, 0.15);
-            font-size: 11px;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }}
-        .podcast-rss-quick {{
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-        }}
-        .podcast-rss-quick code {{
-            background: rgba(0, 0, 0, 0.3);
-            padding: 3px 8px;
-            border-radius: 4px;
-            color: #7dd3fc;
-            font-family: monospace;
-            font-size: 11px;
-        }}
-        .btn-copy-podcast-sm {{
-            background: #0284c7;
-            color: white;
-            border: none;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            font-weight: 600;
-        }}
-        .btn-copy-podcast-sm:hover {{ background: #0369a1; }}
-        .podcast-banner-body {{
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 24px;
-            align-items: center;
-        }}
-        @media (max-width: 860px) {{
-            .podcast-banner-body {{ grid-template-columns: 1fr; }}
-        }}
-        .podcast-title {{
-            margin: 0 0 6px 0;
-            font-size: 1.2rem;
-            color: #ffffff;
-            font-family: 'Playfair Display', serif;
-        }}
-        .podcast-desc {{
-            margin: 0;
-            font-size: 13px;
-            color: #cbd5e1;
-            line-height: 1.5;
-        }}
-        .portal-audio-player {{
-            width: 100%;
-            height: 40px;
-            border-radius: 6px;
-            outline: none;
-        }}
-        .podcast-player-footer {{
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            margin-top: 8px;
-        }}
-        .podcast-player-footer a {{
-            color: #7dd3fc;
-            text-decoration: none;
-            font-weight: 600;
-        }}
-        .podcast-player-footer a:hover {{ text-decoration: underline; }}
-        .sidebar-podcast-box {{
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            border-radius: 6px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }}
-        [data-theme="dark"] .sidebar-podcast-box {{
-            background: #0f172a;
-            border-color: #0369a1;
-        }}
 
         /* Modal / Article Reading Window */
         .modal-backdrop {{
