@@ -234,3 +234,70 @@ def get_daily_water_quote(dt: datetime = None) -> Dict[str, str]:
     index = (day_of_year + (year * 7)) % len(WATER_MANAGEMENT_QUOTES)
     
     return WATER_MANAGEMENT_QUOTES[index]
+
+
+AGRICULTURE_MANAGEMENT_QUOTES = [
+    {
+        "quote": "Milli ekonominin temeli tarımdır. Üreten ve toprağını koruyan çiftçi, milletin refahının en güçlü teminatıdır.",
+        "author": "Mustafa Kemal Atatürk",
+        "category": "Milli Tarım"
+    },
+    {
+        "quote": "Hassas tarım ve akıllı sensörler bir lüks değil; girdi maliyetlerini düşüren ve toprağı koruyan çağdaş bir zorunluluktur.",
+        "author": "Akıllı Tarım Teknolojileri",
+        "category": "Tarım Teknolojileri"
+    },
+    {
+        "quote": "Yerli tohumculuk ve genetik çeşitliliğin korunması, iklim krizine karşı Türkiye'nin en dirençli gıda güvenliği kalkanıdır.",
+        "author": "Tohum Islahı ve Biyoçeşitlilik Masası",
+        "category": "Tohum Güvenliği"
+    },
+    {
+        "quote": "Toprak organik maddesini zenginleştirmek, tarlayı kuraklığa karşı doğal bir su deposuna ve bereket merkezine dönüştürür.",
+        "author": "Onarıcı Tarım ve Toprak Sağlığı",
+        "category": "Toprak Sağlığı"
+    },
+    {
+        "quote": "Dengeli ve toprak analizine dayalı gübreleme hem çiftçinin cebini korur hem de yeraltı sularının nitratla kirlenmesini önler.",
+        "author": "Bitki Besleme ve Toprak Verimliliği",
+        "category": "Gübreleme"
+    },
+    {
+        "quote": "Güçlü kooperatifleşme ve lisanslı depoculuk, küçük üreticinin emeğini piyasa dalgalanmalarına karşı koruyan en sağlam sigortadır.",
+        "author": "Tarımsal Pazarlama ve Kooperatifçilik",
+        "category": "Tarım Ekonomisi"
+    },
+    {
+        "quote": "Meraların korunması ve ıslahı yapılmadan, yerli ve sürdürülebilir bir hayvancılık politikası başarıya ulaşamaz.",
+        "author": "Mera Islahı ve Hayvancılık Vizyonu",
+        "category": "Hayvancılık"
+    },
+    {
+        "quote": "Biyolojik mücadele ve entegre zararlı yönetimi, hem ihracatta kalıntı sorununu çözer hem de ekosistemi korur.",
+        "author": "Bitki Sağlığı ve Biyolojik Mücadele",
+        "category": "Bitki Koruma"
+    },
+    {
+        "quote": "Gıda güvenliği ulusal bağımsızlığın temelidir; tarlasını ekmeyen ülke geleceğini başka ülkelerin kararlarına teslim eder.",
+        "author": "Stratejik Gıda Egemenliği Doktrini",
+        "category": "Gıda Güvenliği"
+    },
+    {
+        "quote": "Jeotermal seracılık ve modern örtüaltı üretimi, yılın 12 ayı kesintisiz ve yüksek katma değerli tarımsal üretimin kapısıdır.",
+        "author": "Modern Örtüaltı ve Seracılık Vizyonu",
+        "category": "Seracılık"
+    }
+]
+
+def get_daily_agriculture_quote(dt: datetime = None) -> Dict[str, str]:
+    """
+    Belirtilen tarihe (varsayılan: bugün UTC) göre Tarım Bülteni 'Günün Sözü'nü deterministik olarak döndürür.
+    """
+    if dt is None:
+        dt = datetime.now(timezone.utc)
+    
+    day_of_year = dt.timetuple().tm_yday
+    year = dt.year
+    index = (day_of_year + (year * 11)) % len(AGRICULTURE_MANAGEMENT_QUOTES)
+    
+    return AGRICULTURE_MANAGEMENT_QUOTES[index]

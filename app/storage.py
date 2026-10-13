@@ -36,7 +36,7 @@ class Storage:
                     category_tr TEXT
                 )
             """)
-            for col in ["title_tr", "summary_tr", "category_tr", "is_turkey", "is_academic"]:
+            for col in ["title_tr", "summary_tr", "category_tr", "is_turkey", "is_academic", "channel"]:
                 try:
                     cursor.execute(f"ALTER TABLE items ADD COLUMN {col} TEXT")
                 except sqlite3.OperationalError:
@@ -52,7 +52,7 @@ class Storage:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_pub_date_ts ON items (pub_date_ts DESC)")
             conn.commit()
 
-    def save_items(self, items: List[Dict[str, Any]]) -> int:
+    def save_items(self, items: List[Dict[str, Any]], default_channel: str = "water") -> int:
         """
         Saves or updates items. Returns count of newly inserted items.
         Keeps original pub_date and first_seen_ts for existing items.
@@ -65,7 +65,7 @@ class Storage:
             for it in items:
                 guid = it["guid"]
                 cursor.execute(
-                    "SELECT guid, pub_date, pub_date_ts, first_seen_ts, title_tr, summary_tr, category_tr, image_url, is_turkey, is_academic FROM items WHERE guid = ?",
+                    "SELECT guid, pub_date, pub_date_ts, first_seen_ts, title_tr, summary_tr, category_tr, image_url, is_turkey, is_academic, channel FROM items WHERE guid = ?",
                     (guid,)
                 )
                 existing = cursor.fetchone()
@@ -74,6 +74,9 @@ class Storage:
                 summary_tr = it.get("summary_tr") or (existing["summary_tr"] if existing else None)
                 category_tr = it.get("category_tr") or (existing["category_tr"] if existing else None)
                 
+                # Determine channel
+                ch_val = it.get("channel") or (existing["channel"] if existing and "channel" in existing.keys() and existing["channel"] else default_channel)
+
                 # Determine image URL: prefer new valid image, keep existing resolved image if new is empty/camo
                 img_url = (it.get("image_url") or "").strip()
                 if existing and existing["image_url"]:
@@ -104,7 +107,8 @@ class Storage:
                             summary_tr = ?,
                             category_tr = ?,
                             is_turkey = ?,
-                            is_academic = ?
+                            is_academic = ?,
+                            channel = ?
                         WHERE guid = ?
                     """, (
                         it["title"],
@@ -119,6 +123,7 @@ class Storage:
                         category_tr,
                         is_turkey_val,
                         is_academic_val,
+                        ch_val,
                         guid
                     ))
                 else:
@@ -134,8 +139,8 @@ class Storage:
                             guid, title, link, author, source_feed,
                             description, image_url, pub_date, pub_date_ts,
                             first_seen_ts, raw_date_str,
-                            title_tr, summary_tr, category_tr, is_turkey, is_academic
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         guid,
                         it["title"],
@@ -152,25 +157,38 @@ class Storage:
                         summary_tr,
                         category_tr,
                         is_turkey_val,
-                        is_academic_val
+                        is_academic_val,
+                        ch_val
                     ))
 
             conn.commit()
 
         return new_count
 
-    def update_item_translation(self, guid: str, title_tr: str, summary_tr: str, category_tr: str, is_turkey: int = 0, is_academic: int = 0):
+    def update_item_translation(self, guid: str, title_tr: str, summary_tr: str, category_tr: str, is_turkey: int = 0, is_academic: int = 0, channel: Optional[str] = None):
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE items SET
-                    title_tr = ?,
-                    summary_tr = ?,
-                    category_tr = ?,
-                    is_turkey = ?,
-                    is_academic = ?
-                WHERE guid = ?
-            """, (title_tr, summary_tr, category_tr, int(is_turkey), int(is_academic), guid))
+            if channel:
+                cursor.execute("""
+                    UPDATE items SET
+                        title_tr = ?,
+                        summary_tr = ?,
+                        category_tr = ?,
+                        is_turkey = ?,
+                        is_academic = ?,
+                        channel = ?
+                    WHERE guid = ?
+                """, (title_tr, summary_tr, category_tr, int(is_turkey), int(is_academic), channel, guid))
+            else:
+                cursor.execute("""
+                    UPDATE items SET
+                        title_tr = ?,
+                        summary_tr = ?,
+                        category_tr = ?,
+                        is_turkey = ?,
+                        is_academic = ?
+                    WHERE guid = ?
+                """, (title_tr, summary_tr, category_tr, int(is_turkey), int(is_academic), guid))
             conn.commit()
 
     def update_item_image(self, guid: str, image_url: str):
@@ -183,91 +201,175 @@ class Storage:
             """, (image_url, guid))
             conn.commit()
 
-    def get_items(self, limit: int = 150) -> List[Dict[str, Any]]:
+    def get_items(self, limit: int = 150, channel: Optional[str] = "water") -> List[Dict[str, Any]]:
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT guid, title, link, author, source_feed,
-                       description, image_url, pub_date, pub_date_ts,
-                       first_seen_ts, raw_date_str,
-                       title_tr, summary_tr, category_tr, is_turkey, is_academic
-                FROM items
-                ORDER BY pub_date_ts DESC, first_seen_ts DESC
-                LIMIT ?
-            """, (limit,))
-            rows = cursor.fetchall()
-            items_list = []
-            seen_guids = set()
-            for r in rows:
-                d = dict(r)
-                raw_tr = d.get("is_turkey")
-                d["is_turkey"] = 1 if (str(raw_tr).strip() in ["1", "True", "true"] or raw_tr == 1) else 0
-                raw_acad = d.get("is_academic")
-                d["is_academic"] = 1 if (str(raw_acad).strip() in ["1", "True", "true"] or raw_acad == 1) else 0
-                items_list.append(d)
-                seen_guids.add(d["guid"])
 
-            # Türkiye haberlerinin her zaman portal ve manşet için çekilmesini garanti et
-            cursor.execute("""
-                SELECT guid, title, link, author, source_feed,
-                       description, image_url, pub_date, pub_date_ts,
-                       first_seen_ts, raw_date_str,
-                       title_tr, summary_tr, category_tr, is_turkey, is_academic
-                FROM items
-                WHERE is_turkey = 1 OR category_tr = 'Türkiye' OR guid LIKE 'tr_water:%'
-                ORDER BY pub_date_ts DESC, first_seen_ts DESC
-                LIMIT 35
-            """)
-            for tr_r in cursor.fetchall():
-                d = dict(tr_r)
-                if d["guid"] not in seen_guids:
-                    d["is_turkey"] = 1
+            if channel == "agriculture":
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE channel = 'agriculture' OR channel = 'both' OR guid LIKE 'tr_agri:%' OR guid LIKE 'academic_agri:%' OR guid LIKE 'global_agri:%'
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT ?
+                """, (limit,))
+                rows = cursor.fetchall()
+                items_list = []
+                seen_guids = set()
+                for r in rows:
+                    d = dict(r)
+                    raw_tr = d.get("is_turkey")
+                    d["is_turkey"] = 1 if (str(raw_tr).strip() in ["1", "True", "true"] or raw_tr == 1) else 0
                     raw_acad = d.get("is_academic")
                     d["is_academic"] = 1 if (str(raw_acad).strip() in ["1", "True", "true"] or raw_acad == 1) else 0
                     items_list.append(d)
                     seen_guids.add(d["guid"])
 
-            # Akademik su yönetimi yayınlarının her zaman portalda yer almasını garanti et
-            cursor.execute("""
-                SELECT guid, title, link, author, source_feed,
-                       description, image_url, pub_date, pub_date_ts,
-                       first_seen_ts, raw_date_str,
-                       title_tr, summary_tr, category_tr, is_turkey, is_academic
-                FROM items
-                WHERE is_academic = 1 OR guid LIKE 'academic:%' OR source_feed LIKE '%🎓%'
-                ORDER BY pub_date_ts DESC, first_seen_ts DESC
-                LIMIT 40
-            """)
-            for acad_r in cursor.fetchall():
-                d = dict(acad_r)
-                if d["guid"] not in seen_guids:
-                    d["is_academic"] = 1
+                # Türkiye tarım haberlerinin yer almasını garanti et
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE (channel = 'agriculture' OR channel = 'both' OR guid LIKE 'tr_agri:%')
+                      AND (is_turkey = 1 OR guid LIKE 'tr_agri:%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT 35
+                """)
+                for tr_r in cursor.fetchall():
+                    d = dict(tr_r)
+                    if d["guid"] not in seen_guids:
+                        d["is_turkey"] = 1
+                        raw_acad = d.get("is_academic")
+                        d["is_academic"] = 1 if (str(raw_acad).strip() in ["1", "True", "true"] or raw_acad == 1) else 0
+                        items_list.append(d)
+                        seen_guids.add(d["guid"])
+
+                # Akademik tarım yayınlarını ekle
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE (channel = 'agriculture' OR channel = 'both' OR guid LIKE 'academic_agri:%')
+                      AND (is_academic = 1 OR guid LIKE 'academic_agri:%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT 40
+                """)
+                for acad_r in cursor.fetchall():
+                    d = dict(acad_r)
+                    if d["guid"] not in seen_guids:
+                        d["is_academic"] = 1
+                        raw_tr = d.get("is_turkey")
+                        d["is_turkey"] = 1 if (str(raw_tr).strip() in ["1", "True", "true"] or raw_tr == 1) else 0
+                        items_list.append(d)
+                        seen_guids.add(d["guid"])
+
+                return items_list
+
+            else:
+                # Default water channel
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE (channel = 'water' OR channel = 'both' OR channel IS NULL OR channel = '')
+                       OR (guid LIKE 'tr_water:%' OR guid LIKE 'academic:%' OR guid LIKE 'sygm:%' OR guid LIKE 'inoreader:%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT ?
+                """, (limit,))
+                rows = cursor.fetchall()
+                items_list = []
+                seen_guids = set()
+                for r in rows:
+                    d = dict(r)
                     raw_tr = d.get("is_turkey")
                     d["is_turkey"] = 1 if (str(raw_tr).strip() in ["1", "True", "true"] or raw_tr == 1) else 0
+                    raw_acad = d.get("is_academic")
+                    d["is_academic"] = 1 if (str(raw_acad).strip() in ["1", "True", "true"] or raw_acad == 1) else 0
                     items_list.append(d)
                     seen_guids.add(d["guid"])
 
-            return items_list
+                # Türkiye su haberlerinin her zaman portal ve manşet için çekilmesini garanti et
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE (channel = 'water' OR channel = 'both' OR channel IS NULL OR channel = '')
+                      AND (is_turkey = 1 OR category_tr = 'Türkiye' OR guid LIKE 'tr_water:%' OR guid LIKE 'sygm:%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT 35
+                """)
+                for tr_r in cursor.fetchall():
+                    d = dict(tr_r)
+                    if d["guid"] not in seen_guids:
+                        d["is_turkey"] = 1
+                        raw_acad = d.get("is_academic")
+                        d["is_academic"] = 1 if (str(raw_acad).strip() in ["1", "True", "true"] or raw_acad == 1) else 0
+                        items_list.append(d)
+                        seen_guids.add(d["guid"])
 
-    def count_items(self) -> int:
+                # Akademik su yönetimi yayınlarının her zaman portalda yer almasını garanti et
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE (channel = 'water' OR channel = 'both' OR channel IS NULL OR channel = '')
+                      AND (is_academic = 1 OR guid LIKE 'academic:%' OR source_feed LIKE '%🎓%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT 40
+                """)
+                for acad_r in cursor.fetchall():
+                    d = dict(acad_r)
+                    if d["guid"] not in seen_guids:
+                        d["is_academic"] = 1
+                        raw_tr = d.get("is_turkey")
+                        d["is_turkey"] = 1 if (str(raw_tr).strip() in ["1", "True", "true"] or raw_tr == 1) else 0
+                        items_list.append(d)
+                        seen_guids.add(d["guid"])
+
+                return items_list
+
+    def prune_items(self, max_items_per_channel: int = 350):
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM items")
-            return cursor.fetchone()[0]
-
-    def prune_items(self, max_items: int = 350):
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
+            # Prune water
             cursor.execute("""
                 DELETE FROM items
-                WHERE (is_academic != 1 AND is_turkey != 1 AND guid NOT LIKE 'academic:%' AND guid NOT LIKE 'tr_water:%')
+                WHERE (channel = 'water' OR channel IS NULL OR channel = '')
+                  AND (is_academic != 1 AND is_turkey != 1 AND guid NOT LIKE 'academic:%' AND guid NOT LIKE 'tr_water:%' AND guid NOT LIKE 'sygm:%')
                   AND guid NOT IN (
                     SELECT guid FROM items
-                    WHERE (is_academic != 1 AND is_turkey != 1 AND guid NOT LIKE 'academic:%' AND guid NOT LIKE 'tr_water:%')
+                    WHERE (channel = 'water' OR channel IS NULL OR channel = '')
+                      AND (is_academic != 1 AND is_turkey != 1 AND guid NOT LIKE 'academic:%' AND guid NOT LIKE 'tr_water:%' AND guid NOT LIKE 'sygm:%')
                     ORDER BY pub_date_ts DESC, first_seen_ts DESC
                     LIMIT ?
                 )
-            """, (max_items,))
+            """, (max_items_per_channel,))
+            # Prune agriculture
+            cursor.execute("""
+                DELETE FROM items
+                WHERE channel = 'agriculture'
+                  AND (is_academic != 1 AND is_turkey != 1 AND guid NOT LIKE 'academic_agri:%' AND guid NOT LIKE 'tr_agri:%')
+                  AND guid NOT IN (
+                    SELECT guid FROM items
+                    WHERE channel = 'agriculture'
+                      AND (is_academic != 1 AND is_turkey != 1 AND guid NOT LIKE 'academic_agri:%' AND guid NOT LIKE 'tr_agri:%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT ?
+                )
+            """, (max_items_per_channel,))
             conn.commit()
 
     def set_meta(self, key: str, value: str):

@@ -328,6 +328,77 @@ def categorize_article(title: str, text: str = "") -> str:
 
     return "Su Kaynakları"
 
+def categorize_agriculture_article(title: str, text: str = "") -> str:
+    """
+    Tarım, hayvancılık, teknoloji, tohum ve destek haberleri için
+    otomatik Türkçe kategori belirler.
+    """
+    combined = (title + " " + (text or "")).lower()
+    t_lower = (title or "").lower()
+
+    # 1. Akademik Yayınlar
+    if any(p in combined for p in ["🎓", "sciencedirect", "mdpi", "springer", "dergipark", "frontiers", "wiley", "ziraat fakültesi", "agronomy"]):
+        return "Akademik Yayınlar"
+
+    # 2. Tarım Teknolojileri & Akıllı Tarım
+    teknoloji_pat = r'\b(precision|smart farm\w*|drone|agritech|sensor\w*|ai|artificial intelligence|yapay zeka|robot\w*|otomasyon|mekanizasyon|traktör|biçerdöver|dijital tarım|akıllı tarım|teknoloji|sulama sistem\w*)\b'
+    if re.search(teknoloji_pat, t_lower) or re.search(teknoloji_pat, combined):
+        return "Tarım Teknolojileri"
+
+    # 3. Hayvancılık & Süt Sektörü
+    hayvan_pat = r'\b(hayvan\w*|büyükbaş|küçükbaş|süt|besi|et|damızlık|koyun|keçi|sığır|inek|manda|kanatlı|tavuk|kümes|yumurta|arıcılık|bal|yem|mera|çoban|livestock|dairy|cattle|poultry)\b'
+    if re.search(hayvan_pat, t_lower) or re.search(hayvan_pat, combined):
+        return "Hayvancılık & Süt"
+
+    # 4. Tohum, Gübre & Bitki Koruma
+    tohum_pat = r'\b(tohum\w*|gübre\w*|fertiliz\w*|seed\w*|azot|fosfor|potas\w*|kompost|zirai ilaç|pestisit|bitki koruma|hastalık|zararlı|biyolojik mücadele|fide|fidan)\b'
+    if re.search(tohum_pat, t_lower) or re.search(tohum_pat, combined):
+        return "Tohum & Gübre"
+
+    # 5. Tarımsal Destekler & Piyasalar
+    destek_pat = r'\b(destek\w*|prim|mazot|hibe|tmo|toprak mahsulleri|alım fiyat\w*|kredi|fiyat\w*|tarım kredi|sübvansiyon|borsa|ihracat|ithalat|tahıl koridoru|maliyet|piyasa|subsid\w*|price\w*)\b'
+    if re.search(destek_pat, t_lower) or re.search(destek_pat, combined):
+        return "Tarımsal Destekler"
+
+    # 6. Küresel Tarım & Gıda Güvenliği
+    kuresel_pat = r'\b(fao|gıda güvenli\w*|dünya gıda|food security|global food|küresel|ihracat|ithalat|kuraklık|iklim krizi|tahıl arzı)\b'
+    if re.search(kuresel_pat, t_lower) or re.search(kuresel_pat, combined):
+        return "Küresel Tarım"
+
+    # 7. Varsayılan: Bitkisel Üretim & Hasat
+    return "Bitkisel Üretim"
+
+def generate_agriculture_editorial_summary(title_tr: str, category: str, source_feed: str, real_body_tr: str = "") -> str:
+    """
+    Tarım bülteni için kurumsal ve tarafsız Türkçe editöryal özet üretir.
+    (Resmi bakanlık/bülten ifadesi içermez).
+    """
+    if real_body_tr and is_genuinely_turkish(real_body_tr) and len(real_body_tr) > 30 and not real_body_tr.lower().startswith("kaynak:"):
+        if len(real_body_tr) > 320:
+            dot_pos = real_body_tr.rfind('.', 180, 320)
+            if dot_pos != -1:
+                return real_body_tr[:dot_pos+1]
+            return real_body_tr[:320] + "..."
+        return real_body_tr
+
+    src = source_feed if source_feed else "tarım ve sektör araştırma kaynakları"
+    src_clean = re.sub(r'\b(Publication:\s*|Journal of\s*)', '', src, flags=re.IGNORECASE).strip()
+
+    if category == "Akademik Yayınlar" or "🎓" in src:
+        return f"{title_tr}. Ziraat, bitki bilimi ve tarımsal verimlilik alanındaki bu hakemli araştırma; sürdürülebilir üretim metodolojileri ve saha deneylerini içermektedir. Tam metin ve analizler {src_clean} üzerinden incelenebilir."
+    elif category == "Tarım Teknolojileri":
+        return f"{title_tr}. Bu gelişme; akıllı tarım uygulamaları, hassas sensörler, insansız hava araçları ve tarımsal otomasyon sistemlerinin üretim verimliliği üzerindeki katkılarını ele almaktadır. Kaynak: {src_clean}."
+    elif category == "Hayvancılık & Süt":
+        return f"{title_tr}. Hayvancılık sektörü, süt ve et verimliliği, damızlık ıslahı ve kaliteli yem yönetimine dair güncel sektörel veriler ve analizler {src_clean} bünyesinde yer almaktadır."
+    elif category == "Tohum & Gübre":
+        return f"{title_tr}. Tohumculuk teknolojileri, yerli ve hibrit tohum çeşitleri, dengeli gübreleme ve çevre dostu bitki besleme uygulamalarına ilişkin araştırma ve saha sonuçları {src_clean} tarafından aktarılmıştır."
+    elif category == "Tarımsal Destekler":
+        return f"{title_tr}. Tarımsal üretim desteklemeleri, girdi maliyetleri, taban fiyat politikaları ve piyasa dinamiklerine dair güncel gelişmeler ve sektörel değerlendirmeler."
+    elif category == "Küresel Tarım":
+        return f"{title_tr}. Uluslararası tarım piyasaları, küresel tahıl dengeleri ve gıda arz güvenliğine ilişkin son veriler ve analizler {src_clean} kaynağından derlenmiştir."
+    else:  # Bitkisel Üretim
+        return f"{title_tr}. Türkiye ve dünya genelinde tarla bitkileri, meyve-sebze rekolteleri, hasat dönemleri ve bitkisel üretim dinamiklerine dair güncel saha verileri ve piyasa özetleri."
+
 def needs_translation(it: Dict) -> bool:
     """Determines whether an article requires translation or repair."""
     title = (it.get("title") or "").strip()

@@ -10,59 +10,115 @@ def clean_html_tags(text: str) -> str:
     clean = re.sub(r'<[^>]+>', ' ', text)
     return " ".join(clean.split())
 
-def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: str, rss_url: str, atom_url: str, json_url: str) -> str:
+def generate_newspaper_portal_html(
+    items: List[Dict[str, Any]],
+    last_updated: str,
+    rss_url: str,
+    atom_url: str,
+    json_url: str,
+    channel: str = "water",
+    water_count: int = 0,
+    agri_count: int = 0
+) -> str:
     today_str = datetime.now(timezone.utc).strftime("%d.%m.%Y")
+    is_agri = (channel == "agriculture")
+    portal_name = "TARIM HABER BÜLTENİ" if is_agri else "SU HABER BÜLTENİ"
+    portal_sub_name = (
+        "Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi"
+        if is_agri else
+        "Türkiye ve Dünya Su, Sulama ve Çevre Araştırmaları Gazetesi"
+    )
+    portal_motto = (
+        '"Milli ekonominin temeli tarımdır." &mdash; Mustafa Kemal Atatürk'
+        if is_agri else
+        '"Geleceğin dünyasında en stratejik güç sudur."'
+    )
+    portal_title_tag = (
+        "Tarım Haber Bülteni — Türkiye ve Dünya Tarım, Hayvancılık & Akıllı Tarım Gazetesi"
+        if is_agri else
+        "Su Haber Bülteni — Türkiye ve Dünya Su & Sulama Gazetesi"
+    )
     
-    # Günün Sözü (Su Yönetimi Öğütleri)
-    daily_quote = get_daily_water_quote()
-    quote_text = html.escape(daily_quote.get("quote", ""))
-    quote_author = html.escape(daily_quote.get("author", "Su Yönetimi Rehberi"))
-    quote_cat = html.escape(daily_quote.get("category", "Su Yönetimi"))
-    
+    # Günün Sözü (Su / Tarım Yönetimi Öğütleri)
+    if is_agri:
+        from app.quotes import get_daily_agriculture_quote
+        daily_quote = get_daily_agriculture_quote()
+        quote_text = html.escape(daily_quote.get("quote", ""))
+        quote_author = html.escape(daily_quote.get("author", "Milli Tarım Rehberi"))
+        quote_cat = html.escape(daily_quote.get("category", "Tarım"))
+    else:
+        daily_quote = get_daily_water_quote()
+        quote_text = html.escape(daily_quote.get("quote", ""))
+        quote_author = html.escape(daily_quote.get("author", "Su Yönetimi Rehberi"))
+        quote_cat = html.escape(daily_quote.get("category", "Su Yönetimi"))
 
-    # Manşet Önceliği: Türkiye su haberlerini her zaman en başa (manşete) al
-    # Güncellik (recency) esastır: Yeni haberler güncellik azalışı (time-decay) sayesinde eski haberleri geride bırakır.
     now_ts = int(datetime.now(timezone.utc).timestamp())
 
-    def turkey_headline_sort_key(x):
-        guid = x.get("guid", "")
-        source = x.get("source_feed", "")
-        title = (x.get("title_tr", "") + " " + x.get("title", "")).lower()
+    if is_agri:
+        def headline_sort_key(x):
+            guid = x.get("guid", "")
+            source = x.get("source_feed", "")
+            title = (x.get("title_tr", "") + " " + x.get("title", "")).lower()
 
-        # Alakasız yabancı göl/nehir haberlerini ele
-        if any(bad in title for bad in ["colorado", "utah", "california", "arizona", "nevada", "mississippi", "salt lake"]):
-            return (-999999999, 0)
+            if any(bad in title for bad in ["colorado", "california", "texas", "brazil"]):
+                return (-999999999, 0)
 
-        is_tr = bool(
-            guid.startswith("tr_water:")
-            or guid.startswith("sygm:")
-            or "🇹🇷" in source
-            or x.get("is_turkey")
-            or x.get("category_tr") == "Türkiye"
-        )
-        if not is_tr:
-            return (-999999999, 0)
+            is_tr = bool(
+                guid.startswith("tr_agri:")
+                or "🌾" in source
+                or "🇹🇷" in source
+                or x.get("is_turkey")
+                or x.get("category_tr") == "Türkiye"
+            )
+            if not is_tr:
+                return (-999999999, 0)
 
-        pub_ts = int(x.get("pub_date_ts") or 0)
-        # Gün farkı hesabı (time decay)
-        age_days = max(0.0, (now_ts - pub_ts) / 86400.0) if pub_ts > 0 else 5.0
+            pub_ts = int(x.get("pub_date_ts") or 0)
+            age_days = max(0.0, (now_ts - pub_ts) / 86400.0) if pub_ts > 0 else 5.0
 
-        quality = 1000.0
-        # Temel su & kuraklık kavramları için ek puan
-        if any(k in title for k in ["baraj", "doluluk", "sulama", "su yönetimi", "kuraklık", "dsi", "su krizi", "su verimliliği", "göl", "akarsu"]):
-            quality += 300.0
-        # Su kesintisi / rutin ihale / personel haberlerinin manşete çıkmasını engelle
-        if any(k in title for k in ["kesinti", "ihale", "personel", "kadro", "voleybol", "futbol"]):
-            quality -= 800.0
+            quality = 1000.0
+            if any(k in title for k in ["çiftçi", "hasat", "üretim", "tohum", "gübre", "destek", "buğday", "tarım"]):
+                quality += 300.0
+            if any(k in title for k in ["personel", "kadro", "voleybol", "futbol"]):
+                quality -= 800.0
 
-        # Her geçen gün için 500 puan düşür (Eski haberler bugünkü yeni haberin önüne geçemez)
-        final_score = quality - (age_days * 500.0)
-        return (final_score, pub_ts)
+            final_score = quality - (age_days * 500.0)
+            return (final_score, pub_ts)
+    else:
+        def headline_sort_key(x):
+            guid = x.get("guid", "")
+            source = x.get("source_feed", "")
+            title = (x.get("title_tr", "") + " " + x.get("title", "")).lower()
+
+            if any(bad in title for bad in ["colorado", "utah", "california", "arizona", "nevada", "mississippi", "salt lake"]):
+                return (-999999999, 0)
+
+            is_tr = bool(
+                guid.startswith("tr_water:")
+                or guid.startswith("sygm:")
+                or "🇹🇷" in source
+                or x.get("is_turkey")
+                or x.get("category_tr") == "Türkiye"
+            )
+            if not is_tr:
+                return (-999999999, 0)
+
+            pub_ts = int(x.get("pub_date_ts") or 0)
+            age_days = max(0.0, (now_ts - pub_ts) / 86400.0) if pub_ts > 0 else 5.0
+
+            quality = 1000.0
+            if any(k in title for k in ["baraj", "doluluk", "sulama", "su yönetimi", "kuraklık", "dsi", "su krizi", "su verimliliği", "göl", "akarsu"]):
+                quality += 300.0
+            if any(k in title for k in ["kesinti", "ihale", "personel", "kadro", "voleybol", "futbol"]):
+                quality -= 800.0
+
+            final_score = quality - (age_days * 500.0)
+            return (final_score, pub_ts)
 
     # Sort items by date
     raw_sorted = sorted(items, key=lambda x: x.get("pub_date_ts", 0), reverse=True)
-    tr_candidates = [it for it in raw_sorted if turkey_headline_sort_key(it)[0] > -500000]
-    tr_sorted = sorted(tr_candidates, key=turkey_headline_sort_key, reverse=True)
+    tr_candidates = [it for it in raw_sorted if headline_sort_key(it)[0] > -500000]
+    tr_sorted = sorted(tr_candidates, key=headline_sort_key, reverse=True)
     if tr_sorted:
         turkey_hero = tr_sorted[0]
         items_sorted = [turkey_hero] + [it for it in raw_sorted if it.get("guid") != turkey_hero.get("guid")]
@@ -74,44 +130,50 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
     secondary_items = items_sorted[1:4] if len(items_sorted) > 1 else []
     remaining_items = items_sorted[4:] if len(items_sorted) > 4 else []
 
-    # Fallback water images for articles without image
-    default_water_images = [
-        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80", # Agricultural field with water
-        "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&q=80", # River / valley
-        "https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&q=80", # Water drop
-        "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=800&q=80", # Waves / reservoir
-        "https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=800&q=80", # Irrigation canal
-    ]
-
-    CATEGORY_SLUGS = {
-        "Akademik Yayınlar": "akademik",
-        "Tarımsal Sulama": "sulama",
-        "Su Teknolojileri": "teknoloji",
-        "Su Arıtma & Kalite": "teknoloji",
-        "Su Kaynakları": "kaynak",
-        "İklim & Kuraklık": "iklim",
-        "Su Politikaları": "politika",
-    }
+    if is_agri:
+        CATEGORY_SLUGS = {
+            "Akademik Yayınlar": "akademik",
+            "Tarım Teknolojileri": "teknoloji",
+            "Hayvancılık & Süt": "hayvancilik",
+            "Tohum & Gübre": "tohum",
+            "Tarımsal Destekler": "destek",
+            "Küresel Tarım": "kuresel",
+            "Bitkisel Üretim": "bitkisel",
+        }
+    else:
+        CATEGORY_SLUGS = {
+            "Akademik Yayınlar": "akademik",
+            "Tarımsal Sulama": "sulama",
+            "Su Teknolojileri": "teknoloji",
+            "Su Arıtma & Kalite": "teknoloji",
+            "Su Kaynakları": "kaynak",
+            "İklim & Kuraklık": "iklim",
+            "Su Politikaları": "politika",
+        }
 
     # JSON payload for modal dialogs
     import json
     from app.image_enricher import resolve_article_image
-    from app.translator import categorize_article
     portal_data = []
     for idx, it in enumerate(items_sorted):
         img = it.get("image_url")
         if not img or "inoreader.com/camo" in img:
-            img = resolve_article_image(it, idx)
+            img = resolve_article_image(it, idx, channel=channel)
         title_tr = it.get("title_tr") or it.get("title")
         summary_tr = it.get("summary_tr") or "Detaylar ilgili bilimsel araştırma ve haber bülteninde yer almaktadır."
-        source = it.get("source_feed") or it.get("author") or "Bilimsel Araştırma"
-        is_turkey = bool(it.get("is_turkey") or it.get("category_tr") == "Türkiye" or "🇹🇷" in source)
-        is_academic = bool(it.get("is_academic") or it.get("guid", "").startswith("academic:") or "🎓" in source)
+        source = it.get("source_feed") or it.get("author") or ("Tarımsal Araştırma" if is_agri else "Bilimsel Araştırma")
+        is_turkey = bool(it.get("is_turkey") or it.get("category_tr") == "Türkiye" or "🇹🇷" in source or "🌾" in source)
+        is_academic = bool(it.get("is_academic") or it.get("guid", "").startswith("academic:") or it.get("guid", "").startswith("academic_agri:") or "🎓" in source)
         cat_raw = it.get("category_tr")
         if not cat_raw or cat_raw == "Türkiye":
-            cat_raw = categorize_article(title_tr, summary_tr)
-        category = cat_raw or "Su Kaynakları"
-        slug = CATEGORY_SLUGS.get(category, "kaynak")
+            if is_agri:
+                from app.translator import categorize_agriculture_article
+                cat_raw = categorize_agriculture_article(title_tr, summary_tr)
+            else:
+                from app.translator import categorize_article
+                cat_raw = categorize_article(title_tr, summary_tr)
+        category = cat_raw or ("Bitkisel Üretim" if is_agri else "Su Kaynakları")
+        slug = CATEGORY_SLUGS.get(category, "bitkisel" if is_agri else "kaynak")
         portal_data.append({
             "id": idx,
             "title_tr": title_tr,
@@ -232,8 +294,12 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
     if portal_data:
         h = portal_data[0]
         is_tr_hero = bool(h.get("is_turkey") or h.get("category") == "Türkiye")
-        badge_title = "⭐ GÜNÜN MANŞETİ &bull; 🇹🇷 TÜRKİYE SU GÜNDEMİ" if is_tr_hero else f"⭐ GÜNÜN MANŞETİ &bull; {html.escape(h['category'])}"
-        hero_hint = "📰 Ulusal &amp; Yerel Basın &bull; Güncel Su Araştırmaları" if is_tr_hero else "ScienceDirect / ASCE / IWMI Akademik Veritabanı Kaynağı"
+        if is_agri:
+            badge_title = "⭐ GÜNÜN MANŞETİ &bull; 🇹🇷 TÜRKİYE TARIM GÜNDEMİ" if is_tr_hero else f"⭐ GÜNÜN MANŞETİ &bull; {html.escape(h['category'])}"
+            hero_hint = "📰 Ulusal &amp; Tarım Basını &bull; Güncel Tarım ve Üretim Raporları" if is_tr_hero else "ScienceDirect / MDPI / FAO Tarımsal Veritabanı Kaynağı"
+        else:
+            badge_title = "⭐ GÜNÜN MANŞETİ &bull; 🇹🇷 TÜRKİYE SU GÜNDEMİ" if is_tr_hero else f"⭐ GÜNÜN MANŞETİ &bull; {html.escape(h['category'])}"
+            hero_hint = "📰 Ulusal &amp; Yerel Basın &bull; Güncel Su Araştırmaları" if is_tr_hero else "ScienceDirect / ASCE / IWMI Akademik Veritabanı Kaynağı"
         hero_html = f"""
         <section class="main-headline-banner" id="heroSection" onclick="openArticleModal({h['id']})" data-slug="{h['slug']}">
             <div class="hero-image-col" style="background-image: url('{html.escape(h['image'])}');">
@@ -257,18 +323,168 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
         </section>
         """
 
+    # Channel-specific texts, stats, tabs and navigation pills
+    water_active_cls = "active" if not is_agri else ""
+    agri_active_cls = "active" if is_agri else ""
+    water_badge_count = f'<span class="channel-tab-badge">{water_count}</span>' if water_count > 0 else ''
+    agri_badge_count = f'<span class="channel-tab-badge">{agri_count}</span>' if agri_count > 0 else ''
+
+    channel_tabs_html = f"""
+    <div class="channel-switcher-container">
+        <div class="channel-switcher-inner">
+            <a href="index.html" class="channel-tab-btn {water_active_cls}" title="Su Haber Bülteni (Ana Sayfa)">
+                <span class="channel-tab-icon">💧</span>
+                <span class="channel-tab-name">SU HABER BÜLTENİ</span>
+                {water_badge_count}
+            </a>
+            <a href="tarim.html" class="channel-tab-btn {agri_active_cls}" title="Tarım Haber Bülteni">
+                <span class="channel-tab-icon">🌾</span>
+                <span class="channel-tab-name">TARIM HABER BÜLTENİ</span>
+                {agri_badge_count}
+            </a>
+        </div>
+    </div>
+    """
+
+    if is_agri:
+        top_stat_html = (
+            '<a href="https://data.worldbank.org/indicator/NV.AGR.TOTL.ZS?locations=TR" '
+            'target="_blank" rel="noopener noreferrer" class="top-stat-link" '
+            'title="Hesaplama Kaynağı: Dünya Bankası ve TÜİK Tarımsal Üretim İstatistikleri">'
+            '🌾 Tarımsal GSYH: ~68.5 Milyar $ <span class="ext-link-icon">↗</span></a>'
+        )
+        category_pills_html = """
+                <button type="button" class="cat-btn active" data-slug="all" onclick="filterCategory('all')">Tümü</button>
+                <button type="button" class="cat-btn" data-slug="bitkisel" onclick="filterCategory('bitkisel')">🌱 Bitkisel Üretim</button>
+                <button type="button" class="cat-btn" data-slug="teknoloji" onclick="filterCategory('teknoloji')">🚜 Tarım Teknolojileri</button>
+                <button type="button" class="cat-btn" data-slug="hayvancilik" onclick="filterCategory('hayvancilik')">🐄 Hayvancılık &amp; Süt</button>
+                <button type="button" class="cat-btn" data-slug="tohum" onclick="filterCategory('tohum')">🌾 Tohum &amp; Gübre</button>
+                <button type="button" class="cat-btn" data-slug="destek" onclick="filterCategory('destek')">📊 Tarımsal Destekler</button>
+                <button type="button" class="cat-btn" data-slug="kuresel" onclick="filterCategory('kuresel')">🌍 Küresel Tarım</button>
+                <button type="button" class="cat-btn" data-slug="akademik" onclick="filterCategory('akademik')">🎓 Akademik Yayınlar</button>
+        """.strip()
+        section_title = "🌾 Son Tarım Haberleri, Raporlar &amp; Araştırmalar"
+        empty_icon = "🌾"
+        sidebar_stats_html = """
+                <div class="sidebar-card">
+                    <h4 class="sidebar-title">Rakamlarla Tarım Durumu</h4>
+                    <div class="stat-row">
+                        <span>Tarımın İstihdamdaki Payı</span>
+                        <span class="stat-value">%15.8</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>İşlenen Tarım Alanı</span>
+                        <span class="stat-value">23.8 Milyon Ha</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Tarımsal İhracat Hacmi</span>
+                        <span class="stat-value">~31 Milyar $</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Örtüaltı Tarım Alanı</span>
+                        <span class="stat-value">830 Bin Dekar</span>
+                    </div>
+                </div>
+        """.strip()
+        sidebar_sources_html = """
+                <div class="sidebar-card">
+                    <h4 class="sidebar-title">Taranan Tarımsal Kaynaklar</h4>
+                    <ul style="font-size:12px; color:var(--ink-muted); padding-left:18px; line-height:1.8;">
+                        <li>ScienceDirect: Field Crops &amp; Agronomy</li>
+                        <li>MDPI: Agronomy &amp; Agriculture Journal</li>
+                        <li>Springer: Precision Agriculture &amp; Food Security</li>
+                        <li>FAO: Food &amp; Agriculture Organization</li>
+                        <li>DergiPark: Ulusal Tarım Bilimleri Dergileri</li>
+                    </ul>
+                </div>
+        """.strip()
+        category_titles_js = """
+            'all': '🌾 Son Tarım Haberleri, Raporlar &amp; Araştırmalar',
+            'bitkisel': '🌱 Bitkisel Üretim &amp; Hasat Gelişmeleri',
+            'teknoloji': '🚜 Akıllı Tarım &amp; Tarım Teknolojileri',
+            'hayvancilik': '🐄 Hayvancılık &amp; Süt Sektörü',
+            'tohum': '🌾 Tohum, Gübre &amp; Bitki Besleme',
+            'destek': '📊 Tarımsal Destekler &amp; Ekonomi',
+            'kuresel': '🌍 Küresel Tarım Piyasaları &amp; Raporlar',
+            'akademik': '🎓 Hakemli Tarım &amp; Agronomi Araştırmaları'
+        """.strip()
+        footer_sub_text = "Bitkisel üretim, tarım teknolojileri, hayvancılık, tohumculuk ve hakemli tarım dergilerinden derlenen günlük dijital tarım gazetesi."
+        live_feed_file = "feed_tarim.json"
+    else:
+        top_stat_html = (
+            '<a href="https://www.wri.org/applications/aqueduct/water-risk-atlas/" '
+            'target="_blank" rel="noopener noreferrer" class="top-stat-link" '
+            'title="Hesaplama Kaynağı: WRI (World Resources Institute) Aqueduct Su Riski ve Stresi Atlası">'
+            '💧 Türkiye Su Stresi: %64.2 <span class="ext-link-icon">↗</span></a>'
+        )
+        category_pills_html = """
+                <button type="button" class="cat-btn active" data-slug="all" onclick="filterCategory('all')">Tümü</button>
+                <button type="button" class="cat-btn" data-slug="akademik" onclick="filterCategory('akademik')">🎓 Akademik Yayınlar</button>
+                <button type="button" class="cat-btn" data-slug="sulama" onclick="filterCategory('sulama')">🌾 Tarımsal Sulama</button>
+                <button type="button" class="cat-btn" data-slug="teknoloji" onclick="filterCategory('teknoloji')">🔬 Su Teknolojileri</button>
+                <button type="button" class="cat-btn" data-slug="kaynak" onclick="filterCategory('kaynak')">💧 Su Kaynakları</button>
+                <button type="button" class="cat-btn" data-slug="iklim" onclick="filterCategory('iklim')">🌍 İklim &amp; Kuraklık</button>
+                <button type="button" class="cat-btn" data-slug="politika" onclick="filterCategory('politika')">⚖️ Su Politikaları</button>
+        """.strip()
+        section_title = "🌊 Son Bilimsel Araştırmalar &amp; Raporlar"
+        empty_icon = "💧"
+        sidebar_stats_html = """
+                <div class="sidebar-card">
+                    <h4 class="sidebar-title">Rakamlarla Su Durumu</h4>
+                    <div class="stat-row">
+                        <span>Tarımsal Su Kullanım Payı</span>
+                        <span class="stat-value">%73</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Damla Sulamada Tasarruf</span>
+                        <span class="stat-value">+%45</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Kuraklık Tehdidi Altındaki Nüfus</span>
+                        <span class="stat-value">2.3 Milyar</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Yıllık Geri Dönüşüm Hedefi</span>
+                        <span class="stat-value">%25 Artış</span>
+                    </div>
+                </div>
+        """.strip()
+        sidebar_sources_html = """
+                <div class="sidebar-card">
+                    <h4 class="sidebar-title">Taranan Bilimsel Kaynaklar</h4>
+                    <ul style="font-size:12px; color:var(--ink-muted); padding-left:18px; line-height:1.8;">
+                        <li>ScienceDirect: Agricultural Water Management</li>
+                        <li>ASCE: Journal of Water Resources Planning</li>
+                        <li>IWMI: International Water Management Institute</li>
+                        <li>Limnologica: Ecology of Inland Waters</li>
+                        <li>Water Finance &amp; Management Bülteni</li>
+                    </ul>
+                </div>
+        """.strip()
+        category_titles_js = """
+            'all': '🌊 Son Bilimsel Araştırmalar &amp; Raporlar',
+            'akademik': '🎓 Yeni Yayınlanan Su Yönetimi Hakemli Akademik Makaleleri',
+            'sulama': '🌾 Tarımsal Sulama Araştırmaları',
+            'teknoloji': '🔬 Su Teknolojileri &amp; İnovasyon',
+            'kaynak': '💧 Su Kaynakları &amp; Havza Yönetimi',
+            'iklim': '🌍 İklim &amp; Kuraklık Araştırmaları',
+            'politika': '⚖️ Su Politikaları &amp; Yönetişim'
+        """.strip()
+        footer_sub_text = "Akademik araştırmalar, hakemli dergiler ve küresel su kurumlarından derlenen günlük dijital su gazetesi."
+        live_feed_file = "feed.json"
+
     return f"""<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Su Haber Bülteni - Türkiye ve Dünya Su & Sulama Gazetesi</title>
+    <title>{portal_title_tag}</title>
     
     <!-- Meta tags for SEO & Feed Readers -->
-    <meta name="description" content="Türkiye ve Dünya genelindeki su kaynakları, tarımsal sulama teknolojileri, hidroloji ve çevre araştırmalarından derlenen modern gazete temalı haber portalı.">
-    <link rel="alternate" type="application/rss+xml" title="Su Haber Bülteni (RSS 2.0)" href="{rss_url}">
-    <link rel="alternate" type="application/atom+xml" title="Su Haber Bülteni (Atom)" href="{atom_url}">
-    <link rel="alternate" type="application/feed+json" title="Su Haber Bülteni (JSON)" href="{json_url}">
+    <meta name="description" content="{portal_sub_name} araştırmalarından derlenen modern gazete temalı haber portalı.">
+    <link rel="alternate" type="application/rss+xml" title="{portal_name} (RSS 2.0)" href="{rss_url}">
+    <link rel="alternate" type="application/atom+xml" title="{portal_name} (Atom)" href="{atom_url}">
+    <link rel="alternate" type="application/feed+json" title="{portal_name} (JSON)" href="{json_url}">
 
     <!-- Google Fonts for Editorial Newspaper Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -498,6 +714,66 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
         [data-theme="dark"] .top-theme-toggle-btn {{
             background: rgba(255, 255, 255, 0.08);
             border-color: rgba(255, 255, 255, 0.18);
+        }}
+
+        /* Channel Switcher Tabs Bar */
+        .channel-switcher-container {{
+            background: var(--paper-bg);
+            border-bottom: 1px solid var(--border-line);
+            padding: 8px 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }}
+        .channel-switcher-inner {{
+            max-width: 1240px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }}
+        .channel-tab-btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 20px;
+            border-radius: 30px;
+            font-size: 13.5px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            color: var(--cat-btn-color);
+            background: var(--cat-btn-bg);
+            border: 1px solid var(--cat-btn-border);
+            transition: all 0.2s ease;
+            user-select: none;
+        }}
+        .channel-tab-btn:hover {{
+            background: var(--cat-btn-hover);
+            transform: translateY(-1px);
+        }}
+        .channel-tab-btn.active {{
+            background: var(--newspaper-navy) !important;
+            color: #ffffff !important;
+            border-color: var(--newspaper-navy) !important;
+            box-shadow: 0 2px 10px rgba(11, 37, 69, 0.25);
+        }}
+        .channel-tab-badge {{
+            background: rgba(0, 0, 0, 0.08);
+            color: var(--ink-dark);
+            font-size: 11px;
+            font-weight: 800;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }}
+        .channel-tab-btn.active .channel-tab-badge {{
+            background: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+        }}
+        [data-theme="dark"] .channel-tab-badge {{
+            background: rgba(255, 255, 255, 0.12);
+            color: #e2e8f0;
         }}
 
 
@@ -1531,7 +1807,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
         <div class="top-bar-inner">
             <div class="top-bar-left">
                 <span>🗓️ {today_str}</span>
-                <a href="https://www.wri.org/applications/aqueduct/water-risk-atlas/" target="_blank" rel="noopener noreferrer" class="top-stat-link" title="Hesaplama Kaynağı: WRI (World Resources Institute) Aqueduct Su Riski ve Stresi Atlası">💧 Türkiye Su Stresi: %64.2 <span class="ext-link-icon">↗</span></a>
+                {top_stat_html}
             </div>
             <div class="top-bar-ticker">
                 <div class="ticker-marquee" title="Akışı durdurmak için imleci üzerine getirebilirsiniz">
@@ -1551,11 +1827,14 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
         </div>
     </div>
 
+    <!-- Channel Switcher Tabs -->
+    {channel_tabs_html}
+
     <!-- Masthead -->
     <header class="newspaper-header">
-        <div class="newspaper-motto">"Geleceğin dünyasında en stratejik güç sudur."</div>
-        <h1 class="newspaper-logo">SU HABER BÜLTENİ</h1>
-        <div class="newspaper-sub-logo">Türkiye ve Dünya Su, Sulama ve Çevre Araştırmaları Gazetesi</div>
+        <div class="newspaper-motto">{portal_motto}</div>
+        <h1 class="newspaper-logo">{portal_name}</h1>
+        <div class="newspaper-sub-logo">{portal_sub_name}</div>
         <div class="masthead-divider"></div>
     </header>
 
@@ -1563,13 +1842,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
     <nav class="category-nav-bar" id="categoryNavBar">
         <div class="nav-inner">
             <div class="category-pills" id="categoryPills">
-                <button type="button" class="cat-btn active" data-slug="all" onclick="filterCategory('all')">Tümü</button>
-                <button type="button" class="cat-btn" data-slug="akademik" onclick="filterCategory('akademik')">🎓 Akademik Yayınlar</button>
-                <button type="button" class="cat-btn" data-slug="sulama" onclick="filterCategory('sulama')">🌾 Tarımsal Sulama</button>
-                <button type="button" class="cat-btn" data-slug="teknoloji" onclick="filterCategory('teknoloji')">🔬 Su Teknolojileri</button>
-                <button type="button" class="cat-btn" data-slug="kaynak" onclick="filterCategory('kaynak')">💧 Su Kaynakları</button>
-                <button type="button" class="cat-btn" data-slug="iklim" onclick="filterCategory('iklim')">🌍 İklim &amp; Kuraklık</button>
-                <button type="button" class="cat-btn" data-slug="politika" onclick="filterCategory('politika')">⚖️ Su Politikaları</button>
+                {category_pills_html}
             </div>
         </div>
     </nav>
@@ -1592,14 +1865,14 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
             <!-- Left Main Column: News Grid -->
             <div class="main-articles-col">
                 <div class="section-headline" id="mainNewsSection">
-                    <h3 id="sectionTitle">🌊 Son Bilimsel Araştırmalar &amp; Raporlar</h3>
+                    <h3 id="sectionTitle">{section_title}</h3>
                     <span id="sectionCount">Toplam <strong>{len(items)}</strong> makale</span>
                 </div>
                 
                 <div class="articles-news-grid" id="newsGrid">
                     <!-- Empty State Box -->
                     <div id="noResultsState" class="empty-results-box" style="display: none;">
-                        <div class="empty-icon">💧</div>
+                        <div class="empty-icon">{empty_icon}</div>
                         <h3 id="emptyTitle">Bu kategoride henüz haber bulunmuyor</h3>
                         <p id="emptyDesc">Seçilen kriterlerle eşleşen makale bulunamadı. Yeni bültenler taranmaya devam etmektedir.</p>
                         <button type="button" class="btn-reset-filter" onclick="filterCategory('all')">Tüm Haberleri Göster</button>
@@ -1612,7 +1885,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
             <!-- Right Sidebar: Editorial & Infographics -->
             <aside class="newspaper-sidebar">
                 
-                <!-- Günün Sözü (Su Yönetimi Öğütleri) -->
+                <!-- Günün Sözü (Su / Tarım Yönetimi Öğütleri) -->
                 <div class="sidebar-card">
                     <h4 class="sidebar-title">Günün Sözü</h4>
                     <div class="editorial-quote">
@@ -1621,27 +1894,8 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
                     <div class="editorial-author">&mdash; {quote_author} &bull; <span style="font-weight:normal; color:var(--ink-light);">{quote_cat}</span></div>
                 </div>
 
-                <!-- Water Stats Infographic -->
-                <div class="sidebar-card">
-                    <h4 class="sidebar-title">Rakamlarla Su Durumu</h4>
-                    <div class="stat-row">
-                        <span>Tarımsal Su Kullanım Payı</span>
-                        <span class="stat-value">%73</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>Damla Sulamada Tasarruf</span>
-                        <span class="stat-value">+%45</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>Kuraklık Tehdidi Altındaki Nüfus</span>
-                        <span class="stat-value">2.3 Milyar</span>
-                    </div>
-                    <div class="stat-row">
-                        <span>Yıllık Geri Dönüşüm Hedefi</span>
-                        <span class="stat-value">%25 Artış</span>
-                    </div>
-                </div>
-
+                <!-- Stats Infographic -->
+                {sidebar_stats_html}
 
                 <!-- Live RSS Subscription Card -->
                 <div class="sidebar-card sidebar-rss-box">
@@ -1657,17 +1911,8 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
                     </div>
                 </div>
 
-                <!-- Scientific Sources -->
-                <div class="sidebar-card">
-                    <h4 class="sidebar-title">Taranan Bilimsel Kaynaklar</h4>
-                    <ul style="font-size:12px; color:var(--ink-muted); padding-left:18px; line-height:1.8;">
-                        <li>ScienceDirect: Agricultural Water Management</li>
-                        <li>ASCE: Journal of Water Resources Planning</li>
-                        <li>IWMI: International Water Management Institute</li>
-                        <li>Limnologica: Ecology of Inland Waters</li>
-                        <li>Water Finance &amp; Management Bülteni</li>
-                    </ul>
-                </div>
+                <!-- Sources Card -->
+                {sidebar_sources_html}
 
             </aside>
         </div>
@@ -1678,7 +1923,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
     <div class="modal-backdrop" id="articleModal" onclick="closeArticleModal(event)">
         <div class="modal-window" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <span id="modalHeaderCategory">BİLİMSEL YAYIN &bull; SU HABER BÜLTENİ</span>
+                <span id="modalHeaderCategory">BİLİMSEL YAYIN &bull; {portal_name}</span>
                 <button class="btn-close-modal" onclick="closeArticleModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -1710,8 +1955,8 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
     <!-- Newspaper Footer -->
     <footer class="newspaper-footer">
         <div class="footer-inner">
-            <h4>SU HABER BÜLTENİ</h4>
-            <p>Akademik araştırmalar, hakemli dergiler ve küresel su kurumlarından derlenen günlük dijital su gazetesi.</p>
+            <h4>{portal_name}</h4>
+            <p>{footer_sub_text}</p>
             <p style="font-size:11.5px; opacity:0.75;">
                 Otomasyon: GitHub Actions ile 30 dakikada bir güncellenir &bull; Son Güncelleme: {last_updated} &bull; Depo: mserman90/suhaberportali
             </p>
@@ -1728,13 +1973,13 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
 
             if (it.is_academic) {{
                 document.getElementById('modalBadge').innerText = '🎓 ' + it.category;
-                document.getElementById('modalHeaderCategory').innerText = '🎓 HAKEMLİ AKADEMİK YAYIN &bull; ' + it.category.toUpperCase() + ' &bull; SU YÖNETİMİ';
+                document.getElementById('modalHeaderCategory').innerText = '🎓 HAKEMLİ AKADEMİK YAYIN &bull; ' + it.category.toUpperCase();
             }} else if (it.is_turkey) {{
                 document.getElementById('modalBadge').innerText = '🇹🇷 ' + it.category;
-                document.getElementById('modalHeaderCategory').innerText = 'TÜRKİYE SU BÜLTENİ &bull; ' + it.category.toUpperCase() + ' &bull; SU HABER BÜLTENİ';
+                document.getElementById('modalHeaderCategory').innerText = 'TÜRKİYE BÜLTENİ &bull; ' + it.category.toUpperCase();
             }} else {{
                 document.getElementById('modalBadge').innerText = it.category;
-                document.getElementById('modalHeaderCategory').innerText = it.category.toUpperCase() + ' &bull; SU HABER BÜLTENİ';
+                document.getElementById('modalHeaderCategory').innerText = it.category.toUpperCase() + ' &bull; {portal_name}';
             }}
             document.getElementById('modalTitleTr').innerText = it.title_tr;
             const titleEnEl = document.getElementById('modalTitleEn');
@@ -1745,7 +1990,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
                 titleEnEl.style.display = 'none';
             }}
             document.getElementById('modalDate').innerText = '📅 ' + it.date;
-            document.getElementById('modalSource').innerText = (it.source && (it.source.startsWith('📰') || it.source.startsWith('🎓') || it.source.startsWith('🇹🇷') || it.source.startsWith('📡'))) ? it.source : '📰 ' + (it.source || 'Basın');
+            document.getElementById('modalSource').innerText = (it.source && (it.source.startsWith('📰') || it.source.startsWith('🎓') || it.source.startsWith('🇹🇷') || it.source.startsWith('📡') || it.source.startsWith('🌾'))) ? it.source : '📰 ' + (it.source || 'Basın');
             document.getElementById('modalAuthor').innerText = it.author ? '✍️ ' + it.author : '✍️ Basın Bülteni';
             
             const imgEl = document.getElementById('modalImg');
@@ -1777,13 +2022,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
         let currentSlug = 'all';
 
         const CATEGORY_TITLES = {{
-            'all': '🌊 Son Bilimsel Araştırmalar &amp; Raporlar',
-            'akademik': '🎓 Yeni Yayınlanan Su Yönetimi Hakemli Akademik Makaleleri',
-            'sulama': '🌾 Tarımsal Sulama Araştırmaları',
-            'teknoloji': '🔬 Su Teknolojileri &amp; İnovasyon',
-            'kaynak': '💧 Su Kaynakları &amp; Havza Yönetimi',
-            'iklim': '🌍 İklim &amp; Kuraklık Araştırmaları',
-            'politika': '⚖️ Su Politikaları &amp; Yönetişim'
+            {category_titles_js}
         }};
 
         function filterCategory(slug) {{
@@ -1986,7 +2225,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
 
             async function checkLiveFeed() {{
                 try {{
-                    const res = await fetch('feed.json?_=' + Date.now(), {{ cache: 'no-store' }});
+                    const res = await fetch('{live_feed_file}?_=' + Date.now(), {{ cache: 'no-store' }});
                     if (!res.ok) return;
                     const feed = await res.json();
                     const items = feed.items || [];
@@ -1995,7 +2234,7 @@ def generate_newspaper_portal_html(items: List[Dict[str, Any]], last_updated: st
                     const latest = items[0];
                     const latestTitle = latest.title || latest.id || '';
                     if (latestTitle && knownTopTitle && latestTitle !== knownTopTitle) {{
-                        console.log('[Canlı Akış] Yeni su haberleri tespit edildi, ticker güncelleniyor...');
+                        console.log('[Canlı Akış] Yeni haberler tespit edildi, ticker güncelleniyor...');
                         knownTopTitle = latestTitle;
 
                         // Update continuous ticker track seamlessly

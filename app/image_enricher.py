@@ -71,6 +71,43 @@ THEMATIC_IMAGES = {
         "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=900&q=80",  # Remote sensing earth observation
         "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=900&q=80",  # Water quality laboratory testing
         "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=900&q=80",  # Environmental engineering testing
+    ],
+    # Tarım Kategorileri
+    "Bitkisel Üretim": [
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&q=80",  # Golden wheat field
+        "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?w=900&q=80",  # Lush vegetable rows
+        "https://images.unsplash.com/photo-1592417817098-8f3d69109853?w=900&q=80",  # Harvested grains
+        "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=900&q=80",  # Modern greenhouse crops
+        "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=900&q=80",  # Farmer holding rich soil
+    ],
+    "Tarım Teknolojileri": [
+        "https://images.unsplash.com/photo-1586771107445-d3ca888129ff?w=900&q=80",  # Modern tractor / pivot
+        "https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=900&q=80",  # Agricultural drone monitoring
+        "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=900&q=80",  # Agritech sensor & tablet
+        "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=900&q=80",  # High-tech greenhouse automation
+        "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=900&q=80",  # Smart climate greenhouse
+    ],
+    "Hayvancılık & Süt": [
+        "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=900&q=80",  # Dairy cows grazing
+        "https://images.unsplash.com/photo-1527153857715-3908f2ae5e81?w=900&q=80",  # Cattle pasture
+        "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=900&q=80",  # Free-range livestock
+        "https://images.unsplash.com/photo-1484557052118-f32bd25b45b5?w=900&q=80",  # Sheep meadow
+    ],
+    "Tohum & Gübre": [
+        "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=900&q=80",  # Sprouting seedling in hand
+        "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=900&q=80",  # Soil fertilizer & seeds
+        "https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=900&q=80",  # Plant genetics nursery
+        "https://images.unsplash.com/photo-1605000797499-95a51c5269ae?w=900&q=80",  # Rich dark humus compost
+    ],
+    "Tarımsal Destekler": [
+        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=900&q=80",  # Agricultural economic finance
+        "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&q=80",  # Policy & grant contract
+        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=900&q=80",  # Agricultural cooperative
+    ],
+    "Küresel Tarım": [
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=900&q=80",  # Global grain satellite view
+        "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=80",  # FAO summit conference
+        "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=900&q=80",  # Global food logistics
     ]
 }
 
@@ -132,7 +169,7 @@ def fetch_og_image(url: str, timeout: int = 5) -> Optional[str]:
 
     return None
 
-def get_thematic_image(title: str, category: str, seed_index: int = 0) -> str:
+def get_thematic_image(title: str, category: str, seed_index: int = 0, default_channel: str = "water") -> str:
     """Selects a topic-matched high-definition photograph based on title keywords and category."""
     title_lower = (title or "").lower()
 
@@ -149,11 +186,18 @@ def get_thematic_image(title: str, category: str, seed_index: int = 0) -> str:
         category = "İklim & Kuraklık"
     elif re.search(r'\b(politika|yasa|bakanlık|anlaşma|mevzuat|zirve|forum|diplomasi|hukuk)\b', title_lower):
         category = "Su Politikaları"
+    elif re.search(r'\b(traktör|drone|hassas tarım|akıllı tarım|sensör|otomasyon)\b', title_lower):
+        category = "Tarım Teknolojileri"
+    elif re.search(r'\b(inek|sığır|koyun|keçi|süt|besi|hayvancılık|yem)\b', title_lower):
+        category = "Hayvancılık & Süt"
+    elif re.search(r'\b(tohum|gübre|bitki besleme|fide|hibrit)\b', title_lower):
+        category = "Tohum & Gübre"
 
-    pool = THEMATIC_IMAGES.get(category, THEMATIC_IMAGES["Su Kaynakları"])
+    fallback = THEMATIC_IMAGES["Bitkisel Üretim"] if default_channel == "agriculture" else THEMATIC_IMAGES["Su Kaynakları"]
+    pool = THEMATIC_IMAGES.get(category, fallback)
     return pool[seed_index % len(pool)]
 
-def resolve_article_image(item: Dict[str, Any], index: int = 0) -> str:
+def resolve_article_image(item: Dict[str, Any], index: int = 0, channel: str = "water") -> str:
     """
     Resolves the best available image URL for an article:
     1. Unwraps Inoreader camo proxy URLs.
@@ -163,7 +207,7 @@ def resolve_article_image(item: Dict[str, Any], index: int = 0) -> str:
     raw_img = (item.get("image_url") or "").strip()
     link = (item.get("link") or "").strip()
     title = item.get("title_tr") or item.get("title") or ""
-    category = item.get("category_tr") or "Su Kaynakları"
+    category = item.get("category_tr") or ("Bitkisel Üretim" if channel == "agriculture" else "Su Kaynakları")
     if item.get("is_academic"):
         category = "Akademik Yayınlar"
 
@@ -184,4 +228,4 @@ def resolve_article_image(item: Dict[str, Any], index: int = 0) -> str:
         return raw_img
 
     # 4. Fallback to topic-matched thematic image
-    return get_thematic_image(title, category, index)
+    return get_thematic_image(title, category, index, default_channel=channel)
