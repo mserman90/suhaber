@@ -28,14 +28,21 @@ from app.agriculture_scraper import (
     scrape_global_agritech_news,
     scrape_academic_agriculture_publications
 )
+from app.livestock_scraper import (
+    scrape_turkey_livestock_news,
+    scrape_global_livestock_tech_news,
+    scrape_academic_livestock_publications
+)
 from app.feed import generate_rss_2_xml, generate_atom_xml, generate_json_feed
 from app.translator import (
     batch_translate_articles,
     categorize_article,
     categorize_agriculture_article,
+    categorize_livestock_article,
     translate_to_turkish,
     generate_turkish_editorial_summary,
     generate_agriculture_editorial_summary,
+    generate_livestock_editorial_summary,
     is_genuinely_turkish
 )
 from app.image_enricher import resolve_article_image
@@ -59,9 +66,23 @@ FOREIGN_AGRI_PAT = re.compile(
     re.IGNORECASE
 )
 
+TURKEY_LIVESTOCK_PAT = re.compile(
+    r"\b(türkiye|türk hayvancılık|besici|süt üretici|et ve süt kurumu|kırmızı et|çiğ süt|damızlık|küçükbaş|büyükbaş|koyun|keçi|sığır|dana|tosun|karkas|yem fiyat|silaj|mera|veteriner|aşı|şap|kanatlı|tavukçuluk|yumurta|anadolu)\b",
+    re.IGNORECASE
+)
+FOREIGN_LIVESTOCK_PAT = re.compile(
+    r"\b(colorado|california|texas|brazil|australia|new zealand|ireland|wisconsin|midwest)\b",
+    re.IGNORECASE
+)
+
 def format_feed_items(items, channel="water"):
     rss_items = []
-    default_cat = "Bitkisel Üretim" if channel == "agriculture" else "Su Kaynakları"
+    if channel == "livestock":
+        default_cat = "Hayvancılık & Besicilik"
+    elif channel == "agriculture":
+        default_cat = "Bitkisel Üretim"
+    else:
+        default_cat = "Su Kaynakları"
     for it in items:
         r_item = dict(it)
         title_tr = it.get("title_tr") or it["title"]
@@ -139,6 +160,25 @@ def main():
     storage.save_items(turkey_agri_items, default_channel="agriculture")
     storage.save_items(global_agri_items, default_channel="agriculture")
     storage.save_items(academic_agri_items, default_channel="agriculture")
+
+    # ==========================================
+    # 3. HAYVANCILIK HABERLERİ TARAMA (LIVESTOCK CHANNEL)
+    # ==========================================
+    print("[*] Türkiye hayvancılık haberleri taranıyor...")
+    turkey_livestock_items = scrape_turkey_livestock_news(limit=25)
+    print(f"[+] Çekilen güncel Türkiye hayvancılık haberi sayısı: {len(turkey_livestock_items)}")
+
+    print("[*] Küresel akıllı hayvancılık teknolojileri haberleri taranıyor...")
+    global_livestock_items = scrape_global_livestock_tech_news(limit=20)
+    print(f"[+] Çekilen küresel livestock haber sayısı: {len(global_livestock_items)}")
+
+    print("[*] Yeni yayınlanan hakemli zootekni & veterinerlik akademik yayınları taranıyor...")
+    academic_livestock_items = scrape_academic_livestock_publications(limit_per_query=10, max_total=30)
+    print(f"[+] Çekilen güncel akademik hayvancılık yayını sayısı: {len(academic_livestock_items)}")
+
+    storage.save_items(turkey_livestock_items, default_channel="livestock")
+    storage.save_items(global_livestock_items, default_channel="livestock")
+    storage.save_items(academic_livestock_items, default_channel="livestock")
 
     # Veritabanı temizliği
     storage.prune_items(config.MAX_STORED_ITEMS)
@@ -320,7 +360,94 @@ def main():
         print(f"[+] Tarım Manşeti belirlendi: {top_agri_tr.get('title_tr')} (Tarih: {top_agri_tr.get('pub_date')})")
 
     # ==========================================
-    # 5. DOSYA VE BESLEME ÜRETİMLERİ
+    # 5. HAYVANCILIK KANALINI İŞLEME (LIVESTOCK ITEMS)
+    # ==========================================
+    livestock_items = storage.get_items(limit=200, channel="livestock")
+    print(f"[+] Hayvancılık kanalı toplam veritabanı kaydı: {len(livestock_items)}")
+    livestock_items = batch_translate_articles(livestock_items)
+
+    for idx, it in enumerate(livestock_items):
+        title_tr = it.get("title_tr")
+        if not title_tr or not is_genuinely_turkish(title_tr):
+            title_tr = translate_to_turkish(it["title"])
+        it["title_tr"] = title_tr
+
+        source = it.get("source_feed") or ""
+        desc = it.get("description") or ""
+        full_text = title_tr + " " + it.get("title", "") + " " + desc + " " + source
+
+        is_academic = 1 if (it.get("is_academic") or it.get("guid", "").startswith("academic_livestock:") or "🎓" in source) else 0
+        it["is_academic"] = is_academic
+
+        is_tr_scraped = bool(it.get("guid", "").startswith("tr_livestock:") or "🇹🇷" in source or "🐄" in source)
+        is_tr_match = bool(TURKEY_LIVESTOCK_PAT.search(full_text) and not FOREIGN_LIVESTOCK_PAT.search(full_text))
+        is_turkey = 1 if (is_tr_scraped or is_tr_match) else 0
+        it["is_turkey"] = is_turkey
+
+        category_tr = it.get("category_tr")
+        if is_turkey:
+            category_tr = "Türkiye"
+        elif not category_tr or category_tr == "Türkiye":
+            category_tr = categorize_livestock_article(title_tr + " " + it["title"], desc)
+        it["category_tr"] = category_tr
+
+        summary_tr = it.get("summary_tr")
+        if not summary_tr or not is_genuinely_turkish(summary_tr):
+            summary_tr = generate_livestock_editorial_summary(title_tr, category_tr, source, "")
+        it["summary_tr"] = summary_tr
+
+        storage.update_item_translation(
+            it["guid"],
+            title_tr,
+            summary_tr,
+            category_tr,
+            is_turkey,
+            is_academic,
+            channel="livestock"
+        )
+        resolved_img = resolve_article_image(it, idx, channel="livestock")
+        it["image_url"] = resolved_img
+        storage.update_item_image(it["guid"], resolved_img)
+
+    def turkey_livestock_headline_sort_key(x):
+        guid = x.get("guid", "")
+        source = x.get("source_feed", "")
+        title = (x.get("title_tr", "") + " " + x.get("title", "")).lower()
+
+        if any(bad in title for bad in ["colorado", "california", "texas", "brazil", "australia"]):
+            return (-999999999, 0)
+
+        is_tr = bool(
+            guid.startswith("tr_livestock:")
+            or "🐄" in source
+            or "🇹🇷" in source
+            or x.get("is_turkey")
+            or x.get("category_tr") == "Türkiye"
+        )
+        if not is_tr:
+            return (-999999999, 0)
+
+        pub_ts = int(x.get("pub_date_ts") or 0)
+        age_days = max(0.0, (now_ts - pub_ts) / 86400.0) if pub_ts > 0 else 5.0
+
+        quality = 1000.0
+        if any(k in title for k in ["süt", "besi", "et ve süt kurumu", "yem", "damızlık", "kırmızı et", "küçükbaş", "büyükbaş", "hayvancılık"]):
+            quality += 300.0
+        if any(k in title for k in ["personel", "kadro", "voleybol", "futbol"]):
+            quality -= 800.0
+
+        final_score = quality - (age_days * 500.0)
+        return (final_score, pub_ts)
+
+    tr_livestock_candidates = [it for it in livestock_items if turkey_livestock_headline_sort_key(it)[0] > -500000]
+    tr_livestock_sorted = sorted(tr_livestock_candidates, key=turkey_livestock_headline_sort_key, reverse=True)
+    if tr_livestock_sorted:
+        top_livestock_tr = tr_livestock_sorted[0]
+        livestock_items = [top_livestock_tr] + [it for it in livestock_items if it.get("guid") != top_livestock_tr.get("guid")]
+        print(f"[+] Hayvancılık Manşeti belirlendi: {top_livestock_tr.get('title_tr')} (Tarih: {top_livestock_tr.get('pub_date')})")
+
+    # ==========================================
+    # 6. DOSYA VE BESLEME ÜRETİMLERİ
     # ==========================================
     public_url = config.PUBLIC_BASE_URL or "https://mserman90.github.io/suhaberportali"
     now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
@@ -375,7 +502,8 @@ def main():
         json_water_self,
         channel="water",
         water_count=len(water_items),
-        agri_count=len(agri_items)
+        agri_count=len(agri_items),
+        livestock_count=len(livestock_items)
     )
     (dist_dir / "index.html").write_text(portal_html, encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'index.html'} ('Su Haber Bülteni' Modern Gazete Portalı)")
@@ -430,12 +558,70 @@ def main():
         json_agri_self,
         channel="agriculture",
         water_count=len(water_items),
-        agri_count=len(agri_items)
+        agri_count=len(agri_items),
+        livestock_count=len(livestock_items)
     )
     (dist_dir / "tarim.html").write_text(tarim_portal_html, encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'tarim.html'} ('Tarım Haber Bülteni' Modern Gazete Portalı)")
 
-    print("[*] Tüm çok kanallı gazete portalları ve yayın akışları başarıyla tamamlandı!")
+    # --- C) HAYVANCILIK BÜLTENİ BESLEMELERİ & PORTALI ---
+    rss_livestock_self = f"{public_url}/rss_hayvancilik.xml"
+    atom_livestock_self = f"{public_url}/atom_hayvancilik.xml"
+    json_livestock_self = f"{public_url}/feed_hayvancilik.json"
+
+    livestock_rss_items = format_feed_items(livestock_items, channel="livestock")
+
+    # 1. Hayvancılık RSS 2.0
+    rss_livestock_content = generate_rss_2_xml(
+        feed_title="Hayvancılık Bülteni - Süt & Et Endüstrisi Gazetesi",
+        feed_description="Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi",
+        feed_link=f"{public_url}/hayvancilik.html",
+        self_rss_url=rss_livestock_self,
+        items=livestock_rss_items,
+        language="tr"
+    )
+    (dist_dir / "rss_hayvancilik.xml").write_text(rss_livestock_content, encoding="utf-8")
+    print(f"[+] Üretildi: {dist_dir / 'rss_hayvancilik.xml'}")
+
+    # 2. Hayvancılık Atom 1.0
+    atom_livestock_content = generate_atom_xml(
+        feed_title="Hayvancılık Bülteni",
+        feed_description="Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi",
+        feed_link=f"{public_url}/hayvancilik.html",
+        self_atom_url=atom_livestock_self,
+        items=livestock_rss_items
+    )
+    (dist_dir / "atom_hayvancilik.xml").write_text(atom_livestock_content, encoding="utf-8")
+    print(f"[+] Üretildi: {dist_dir / 'atom_hayvancilik.xml'}")
+
+    # 3. Hayvancılık JSON Feed
+    json_livestock_data = generate_json_feed(
+        feed_title="Hayvancılık Bülteni",
+        feed_description="Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi",
+        feed_link=f"{public_url}/hayvancilik.html",
+        self_json_url=json_livestock_self,
+        items=livestock_rss_items
+    )
+    (dist_dir / "feed_hayvancilik.json").write_text(json.dumps(json_livestock_data, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[+] Üretildi: {dist_dir / 'feed_hayvancilik.json'}")
+
+    # 4. Hayvancılık Portalı (hayvancilik.html)
+    hayvancilik_portal_html = generate_newspaper_portal_html(
+        livestock_items,
+        now_str,
+        rss_livestock_self,
+        atom_livestock_self,
+        json_livestock_self,
+        channel="livestock",
+        water_count=len(water_items),
+        agri_count=len(agri_items),
+        livestock_count=len(livestock_items)
+    )
+    (dist_dir / "hayvancilik.html").write_text(hayvancilik_portal_html, encoding="utf-8")
+    print(f"[+] Üretildi: {dist_dir / 'hayvancilik.html'} ('Hayvancılık Bülteni' Modern Gazete Portalı)")
+
+    print("[*] Tüm 3 kanallı gazete portalları (Su, Tarım, Hayvancılık) ve yayın akışları başarıyla tamamlandı!")
 
 if __name__ == "__main__":
     main()
+

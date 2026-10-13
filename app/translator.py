@@ -399,6 +399,88 @@ def generate_agriculture_editorial_summary(title_tr: str, category: str, source_
     else:  # Bitkisel Üretim
         return f"{title_tr}. Türkiye ve dünya genelinde tarla bitkileri, meyve-sebze rekolteleri, hasat dönemleri ve bitkisel üretim dinamiklerine dair güncel saha verileri ve piyasa özetleri."
 
+def categorize_livestock_article(title: str, text: str = "") -> str:
+    """
+    Hayvancılık, süt, et, yem, hayvan sağlığı ve zootekni haberleri için
+    otomatik Türkçe kategori belirler.
+    """
+    combined = (title + " " + (text or "")).lower()
+    t_lower = (title or "").lower()
+
+    # 1. Akademik Yayınlar
+    if any(p in combined for p in ["🎓", "sciencedirect", "mdpi", "frontiers", "veteriner fakültesi", "zootekni", "animals", "ruminant", "dergipark"]):
+        return "Akademik Yayınlar"
+
+    # 2. Hayvancılık Teknolojileri & Akıllı Çiftlik
+    if any(k in t_lower or k in combined for k in ["robot", "sensör", "otomasyon", "akıllı", "rfid", "sağım robotu", "precision livestock", "yazılım"]):
+        return "Hayvancılık Teknolojileri"
+
+    # 3. Hayvan Sağlığı & Biyogüvenlik
+    if any(k in t_lower or k in combined for k in ["aşı", "şap", "çiçek", "salgın", "hastalık", "veteriner", "biyogüvenlik", "ilaç", "antibiyotik", "tedavi"]):
+        return "Hayvan Sağlığı & Biyogüvenlik"
+
+    # 4. Süt & Mandıra
+    if any(k in t_lower or k in combined for k in ["çiğ süt", "mandıra", "süt üreticileri", "sağım", "süt fiyatı", "peynir", "süt tozu", "soğuk zincir"]):
+        return "Süt & Mandıra"
+
+    # 5. Besi & Kırmızı Et
+    if any(k in t_lower or k in combined for k in ["besi", "kırmızı et", "karkas", "kesim", "dana", "tosun", "et ve süt kurumu", "et fiyatı"]):
+        return "Besi & Kırmızı Et"
+
+    # 6. Yem & Besleme
+    if any(k in t_lower or k in combined for k in ["yem", "silaj", "arpa", "küspe", "saman", "kaba yem", "rasyon", "karma yem"]):
+        return "Yem & Besleme"
+
+    # 7. Küçükbaş Hayvancılık
+    if any(k in t_lower or k in combined for k in ["küçükbaş", "koyun", "keçi", "kuzu", "mera", "çoban"]):
+        return "Küçükbaş Hayvancılık"
+
+    # 8. Kanatlı Sektörü
+    if any(k in t_lower or k in combined for k in ["tavuk", "kanatlı", "yumurta", "broyler", "kümes", "piliç"]):
+        return "Kanatlı Sektörü"
+
+    # 9. Destek & Fiyat Politikaları
+    if any(k in t_lower or k in combined for k in ["destek", "hibe", "fiyat", "prim", "maliyet", "ithalat", "ihracat", "teşvik"]):
+        return "Destek & Fiyat Politikaları"
+
+    return "Hayvancılık & Besicilik"
+
+def generate_livestock_editorial_summary(title_tr: str, category: str, source_feed: str, real_body_tr: str = "") -> str:
+    """
+    Hayvancılık bülteni için kurumsal ve tarafsız Türkçe editöryal özet üretir.
+    (Resmi bakanlık/bülten ifadesi içermez).
+    """
+    if real_body_tr and is_genuinely_turkish(real_body_tr) and len(real_body_tr) > 30 and not real_body_tr.lower().startswith("kaynak:"):
+        if len(real_body_tr) > 320:
+            dot_pos = real_body_tr.rfind('.', 180, 320)
+            if dot_pos != -1:
+                return real_body_tr[:dot_pos+1]
+            return real_body_tr[:320] + "..."
+        return real_body_tr
+
+    src = source_feed if source_feed else "hayvancılık sektörü ve araştırma kaynakları"
+    src_clean = re.sub(r'\b(Publication:\s*|Journal of\s*)', '', src, flags=re.IGNORECASE).strip()
+
+    if category == "Akademik Yayınlar" or "🎓" in src:
+        return f"{title_tr}. Zootekni, hayvan besleme, genetik ıslah ve sürü sağlığı alanındaki bu hakemli araştırma; bilimsel saha bulguları ve modern çiftlik deneylerini içermektedir. Ayrıntılar {src_clean} üzerinden takip edilebilir."
+    elif category == "Hayvancılık Teknolojileri":
+        return f"{title_tr}. Hassas hayvancılık, otomatik sağım robotları, sürü takip sensörleri ve akıllı barınak iklimlendirme sistemlerinin çiftlik verimliliğine etkileri {src_clean} tarafından aktarılmıştır."
+    elif category == "Süt & Mandıra":
+        return f"{title_tr}. Çiğ süt üretimi, soğuk zincir kalitesi, mandıracılık teknolojileri ve süt piyasası dinamiklerine dair güncel sektörel veriler ve saha raporları."
+    elif category == "Besi & Kırmızı Et":
+        return f"{title_tr}. Kırmızı et üretimi, besi performansı, karkas kalitesi ve piyasa arz dengelerine ilişkin son piyasa göstergeleri ve değerlendirmeler {src_clean} bünyesinde yer almaktadır."
+    elif category == "Yem & Besleme":
+        return f"{title_tr}. Karma yem ve kaba yem maliyetleri, silaj kalitesi, rasyon optimizasyonu ve hayvan besleme teknolojilerine dair sektörel gelişmeler."
+    elif category == "Hayvan Sağlığı & Biyogüvenlik":
+        return f"{title_tr}. Sürü sağlığı, aşılama programları, koruyucu veteriner hekimlik ve çiftlik biyogüvenlik standartlarına dair güncel sektörel ve bilimsel bilgiler."
+    elif category == "Küçükbaş Hayvancılık":
+        return f"{title_tr}. Anadolu koyun ve keçi yetiştiriciliği, mera yönetimi, kuzu eti ve sütü verimliliğine ilişkin saha gelişmeleri ve yetiştirici raporları."
+    elif category == "Kanatlı Sektörü":
+        return f"{title_tr}. Etlik piliç ve yumurta tavukçuluğu, kümes biyolojisi, ihracat verileri ve kanatlı endüstrisindeki son gelişmeler."
+    else:  # Destek & Fiyat Politikaları
+        return f"{title_tr}. Hayvancılık sektörü destekleme primleri, et ve süt piyasası müdahaleleri, damızlık teşvikleri ve girdi maliyetleri analizleri."
+
+
 def needs_translation(it: Dict) -> bool:
     """Determines whether an article requires translation or repair."""
     title = (it.get("title") or "").strip()

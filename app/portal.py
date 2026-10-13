@@ -18,29 +18,37 @@ def generate_newspaper_portal_html(
     json_url: str,
     channel: str = "water",
     water_count: int = 0,
-    agri_count: int = 0
+    agri_count: int = 0,
+    livestock_count: int = 0
 ) -> str:
     today_str = datetime.now(timezone.utc).strftime("%d.%m.%Y")
     is_agri = (channel == "agriculture")
-    portal_name = "TARIM HABER BÜLTENİ" if is_agri else "SU HABER BÜLTENİ"
-    portal_sub_name = (
-        "Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi"
-        if is_agri else
-        "Türkiye ve Dünya Su, Sulama ve Çevre Araştırmaları Gazetesi"
-    )
-    portal_motto = (
-        '"Milli ekonominin temeli tarımdır." &mdash; Mustafa Kemal Atatürk'
-        if is_agri else
-        '"Geleceğin dünyasında en stratejik güç sudur."'
-    )
-    portal_title_tag = (
-        "Tarım Haber Bülteni — Türkiye ve Dünya Tarım, Hayvancılık & Akıllı Tarım Gazetesi"
-        if is_agri else
-        "Su Haber Bülteni — Türkiye ve Dünya Su & Sulama Gazetesi"
-    )
+    is_livestock = (channel == "livestock")
+
+    if is_livestock:
+        portal_name = "HAYVANCILIK BÜLTENİ"
+        portal_sub_name = "Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi"
+        portal_motto = '"Köylünün refahı ve milletin gıdası, güçlü ve yerli hayvancılıkla mümkündür."'
+        portal_title_tag = "Hayvancılık Bülteni — Türkiye ve Dünya Hayvancılık & Süt Endüstrisi Gazetesi"
+    elif is_agri:
+        portal_name = "TARIM HABER BÜLTENİ"
+        portal_sub_name = "Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi"
+        portal_motto = '"Milli ekonominin temeli tarımdır." &mdash; Mustafa Kemal Atatürk'
+        portal_title_tag = "Tarım Haber Bülteni — Türkiye ve Dünya Tarım, Hayvancılık & Akıllı Tarım Gazetesi"
+    else:
+        portal_name = "SU HABER BÜLTENİ"
+        portal_sub_name = "Türkiye ve Dünya Su, Sulama ve Çevre Araştırmaları Gazetesi"
+        portal_motto = '"Geleceğin dünyasında en stratejik güç sudur."'
+        portal_title_tag = "Su Haber Bülteni — Türkiye ve Dünya Su & Sulama Gazetesi"
     
-    # Günün Sözü (Su / Tarım Yönetimi Öğütleri)
-    if is_agri:
+    # Günün Sözü (Su / Tarım / Hayvancılık Yönetimi Öğütleri)
+    if is_livestock:
+        from app.quotes import get_daily_livestock_quote
+        daily_quote = get_daily_livestock_quote()
+        quote_text = html.escape(daily_quote.get("quote", ""))
+        quote_author = html.escape(daily_quote.get("author", "Milli Hayvancılık Rehberi"))
+        quote_cat = html.escape(daily_quote.get("category", "Hayvancılık"))
+    elif is_agri:
         from app.quotes import get_daily_agriculture_quote
         daily_quote = get_daily_agriculture_quote()
         quote_text = html.escape(daily_quote.get("quote", ""))
@@ -54,7 +62,37 @@ def generate_newspaper_portal_html(
 
     now_ts = int(datetime.now(timezone.utc).timestamp())
 
-    if is_agri:
+    if is_livestock:
+        def headline_sort_key(x):
+            guid = x.get("guid", "")
+            source = x.get("source_feed", "")
+            title = (x.get("title_tr", "") + " " + x.get("title", "")).lower()
+
+            if any(bad in title for bad in ["colorado", "california", "texas", "brazil", "australia"]):
+                return (-999999999, 0)
+
+            is_tr = bool(
+                guid.startswith("tr_livestock:")
+                or "🐄" in source
+                or "🇹🇷" in source
+                or x.get("is_turkey")
+                or x.get("category_tr") == "Türkiye"
+            )
+            if not is_tr:
+                return (-999999999, 0)
+
+            pub_ts = int(x.get("pub_date_ts") or 0)
+            age_days = max(0.0, (now_ts - pub_ts) / 86400.0) if pub_ts > 0 else 5.0
+
+            quality = 1000.0
+            if any(k in title for k in ["süt", "besi", "et ve süt kurumu", "yem", "damızlık", "kırmızı et", "küçükbaş", "büyükbaş", "hayvancılık"]):
+                quality += 300.0
+            if any(k in title for k in ["personel", "kadro", "voleybol", "futbol"]):
+                quality -= 800.0
+
+            final_score = quality - (age_days * 500.0)
+            return (final_score, pub_ts)
+    elif is_agri:
         def headline_sort_key(x):
             guid = x.get("guid", "")
             source = x.get("source_feed", "")
@@ -130,7 +168,20 @@ def generate_newspaper_portal_html(
     secondary_items = items_sorted[1:4] if len(items_sorted) > 1 else []
     remaining_items = items_sorted[4:] if len(items_sorted) > 4 else []
 
-    if is_agri:
+    if is_livestock:
+        CATEGORY_SLUGS = {
+            "Akademik Yayınlar": "akademik",
+            "Hayvancılık Teknolojileri": "teknoloji",
+            "Süt & Mandıra": "sut",
+            "Besi & Kırmızı Et": "besi",
+            "Yem & Besleme": "yem",
+            "Hayvan Sağlığı & Biyogüvenlik": "saglik",
+            "Küçükbaş Hayvancılık": "kucukbas",
+            "Kanatlı Sektörü": "kanatli",
+            "Destek & Fiyat Politikaları": "destek",
+            "Hayvancılık & Besicilik": "besicilik",
+        }
+    elif is_agri:
         CATEGORY_SLUGS = {
             "Akademik Yayınlar": "akademik",
             "Tarım Teknolojileri": "teknoloji",
@@ -161,19 +212,24 @@ def generate_newspaper_portal_html(
             img = resolve_article_image(it, idx, channel=channel)
         title_tr = it.get("title_tr") or it.get("title")
         summary_tr = it.get("summary_tr") or "Detaylar ilgili bilimsel araştırma ve haber bülteninde yer almaktadır."
-        source = it.get("source_feed") or it.get("author") or ("Tarımsal Araştırma" if is_agri else "Bilimsel Araştırma")
-        is_turkey = bool(it.get("is_turkey") or it.get("category_tr") == "Türkiye" or "🇹🇷" in source or "🌾" in source)
-        is_academic = bool(it.get("is_academic") or it.get("guid", "").startswith("academic:") or it.get("guid", "").startswith("academic_agri:") or "🎓" in source)
+        source = it.get("source_feed") or it.get("author") or ("Hayvancılık Araştırma" if is_livestock else ("Tarımsal Araştırma" if is_agri else "Bilimsel Araştırma"))
+        is_turkey = bool(it.get("is_turkey") or it.get("category_tr") == "Türkiye" or "🇹🇷" in source or "🌾" in source or "🐄" in source)
+        is_academic = bool(it.get("is_academic") or it.get("guid", "").startswith("academic:") or it.get("guid", "").startswith("academic_agri:") or it.get("guid", "").startswith("academic_livestock:") or "🎓" in source)
         cat_raw = it.get("category_tr")
         if not cat_raw or cat_raw == "Türkiye":
-            if is_agri:
+            if is_livestock:
+                from app.translator import categorize_livestock_article
+                cat_raw = categorize_livestock_article(title_tr, summary_tr)
+            elif is_agri:
                 from app.translator import categorize_agriculture_article
                 cat_raw = categorize_agriculture_article(title_tr, summary_tr)
             else:
                 from app.translator import categorize_article
                 cat_raw = categorize_article(title_tr, summary_tr)
-        category = cat_raw or ("Bitkisel Üretim" if is_agri else "Su Kaynakları")
-        slug = CATEGORY_SLUGS.get(category, "bitkisel" if is_agri else "kaynak")
+        default_cat_name = "Hayvancılık & Besicilik" if is_livestock else ("Bitkisel Üretim" if is_agri else "Su Kaynakları")
+        default_slug_name = "besicilik" if is_livestock else ("bitkisel" if is_agri else "kaynak")
+        category = cat_raw or default_cat_name
+        slug = CATEGORY_SLUGS.get(category, default_slug_name)
         portal_data.append({
             "id": idx,
             "title_tr": title_tr,
@@ -294,7 +350,10 @@ def generate_newspaper_portal_html(
     if portal_data:
         h = portal_data[0]
         is_tr_hero = bool(h.get("is_turkey") or h.get("category") == "Türkiye")
-        if is_agri:
+        if is_livestock:
+            badge_title = "⭐ GÜNÜN MANŞETİ &bull; 🇹🇷 TÜRKİYE HAYVANCILIK GÜNDEMİ" if is_tr_hero else f"⭐ GÜNÜN MANŞETİ &bull; {html.escape(h['category'])}"
+            hero_hint = "📰 Ulusal &amp; Sektörel Basın &bull; Güncel Hayvancılık, Süt ve Et Raporları" if is_tr_hero else "ScienceDirect / MDPI / FAO Hayvancılık Veritabanı Kaynağı"
+        elif is_agri:
             badge_title = "⭐ GÜNÜN MANŞETİ &bull; 🇹🇷 TÜRKİYE TARIM GÜNDEMİ" if is_tr_hero else f"⭐ GÜNÜN MANŞETİ &bull; {html.escape(h['category'])}"
             hero_hint = "📰 Ulusal &amp; Tarım Basını &bull; Güncel Tarım ve Üretim Raporları" if is_tr_hero else "ScienceDirect / MDPI / FAO Tarımsal Veritabanı Kaynağı"
         else:
@@ -324,10 +383,13 @@ def generate_newspaper_portal_html(
         """
 
     # Channel-specific texts, stats, tabs and navigation pills
-    water_active_cls = "active" if not is_agri else ""
+    water_active_cls = "active" if (not is_agri and not is_livestock) else ""
     agri_active_cls = "active" if is_agri else ""
+    livestock_active_cls = "active" if is_livestock else ""
+    
     water_badge_count = f'<span class="channel-tab-badge">{water_count}</span>' if water_count > 0 else ''
     agri_badge_count = f'<span class="channel-tab-badge">{agri_count}</span>' if agri_count > 0 else ''
+    livestock_badge_count = f'<span class="channel-tab-badge">{livestock_count}</span>' if livestock_count > 0 else ''
 
     channel_tabs_html = f"""
     <div class="channel-switcher-container">
@@ -342,11 +404,84 @@ def generate_newspaper_portal_html(
                 <span class="channel-tab-name">TARIM HABER BÜLTENİ</span>
                 {agri_badge_count}
             </a>
+            <a href="hayvancilik.html" class="channel-tab-btn {livestock_active_cls}" title="Hayvancılık Bülteni">
+                <span class="channel-tab-icon">🐄</span>
+                <span class="channel-tab-name">HAYVANCILIK BÜLTENİ</span>
+                {livestock_badge_count}
+            </a>
         </div>
     </div>
     """
 
-    if is_agri:
+    if is_livestock:
+        top_stat_html = (
+            '<a href="https://data.tuik.gov.tr/Bulten/Index?p=Hayvansal-Uretim-Istatistikleri" '
+            'target="_blank" rel="noopener noreferrer" class="top-stat-link" '
+            'title="Hesaplama Kaynağı: TÜİK Hayvansal Üretim İstatistikleri">'
+            '🐄 Büyükbaş Varlığı: ~16.6 Milyon Baş | Küçükbaş: ~52.4 Milyon Baş <span class="ext-link-icon">↗</span></a>'
+        )
+        category_pills_html = """
+                <button type="button" class="cat-btn active" data-slug="all" onclick="filterCategory('all')">Tümü</button>
+                <button type="button" class="cat-btn" data-slug="sut" onclick="filterCategory('sut')">🥛 Süt &amp; Mandıra</button>
+                <button type="button" class="cat-btn" data-slug="besi" onclick="filterCategory('besi')">🥩 Besi &amp; Kırmızı Et</button>
+                <button type="button" class="cat-btn" data-slug="yem" onclick="filterCategory('yem')">🌾 Yem &amp; Besleme</button>
+                <button type="button" class="cat-btn" data-slug="saglik" onclick="filterCategory('saglik')">🩺 Hayvan Sağlığı</button>
+                <button type="button" class="cat-btn" data-slug="kucukbas" onclick="filterCategory('kucukbas')">🐑 Küçükbaş</button>
+                <button type="button" class="cat-btn" data-slug="kanatli" onclick="filterCategory('kanatli')">🐔 Kanatlı Sektörü</button>
+                <button type="button" class="cat-btn" data-slug="teknoloji" onclick="filterCategory('teknoloji')">🤖 Hayvancılık Teknolojileri</button>
+                <button type="button" class="cat-btn" data-slug="destek" onclick="filterCategory('destek')">📊 Destek &amp; Fiyat</button>
+                <button type="button" class="cat-btn" data-slug="akademik" onclick="filterCategory('akademik')">🎓 Akademik Yayınlar</button>
+        """.strip()
+        section_title = "🐄 Son Hayvancılık Haberleri, Piyasa Raporları &amp; Araştırmalar"
+        empty_icon = "🐄"
+        sidebar_stats_html = """
+                <div class="sidebar-card">
+                    <h4 class="sidebar-title">Rakamlarla Hayvancılık</h4>
+                    <div class="stat-row">
+                        <span>Yıllık Çiğ Süt Üretimi</span>
+                        <span class="stat-value">~21.5 Milyon Ton</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Yıllık Kırmızı Et Üretimi</span>
+                        <span class="stat-value">~2.4 Milyon Ton</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Kanatlı Eti Üretimi</span>
+                        <span class="stat-value">~2.3 Milyon Ton</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Kişi Başı Yıllık Süt Tüketimi</span>
+                        <span class="stat-value">~265 kg</span>
+                    </div>
+                </div>
+        """.strip()
+        sidebar_sources_html = """
+                <div class="sidebar-card">
+                    <h4 class="sidebar-title">Taranan Hayvancılık Kaynakları</h4>
+                    <ul style="font-size:12px; color:var(--ink-muted); padding-left:18px; line-height:1.8;">
+                        <li>ScienceDirect: Animal Science &amp; Veterinary</li>
+                        <li>MDPI: Animals &amp; Dairy Science</li>
+                        <li>Frontiers in Veterinary Science</li>
+                        <li>FAO: Livestock &amp; Animal Health</li>
+                        <li>DergiPark: Ulusal Veterinerlik ve Zootekni Dergileri</li>
+                    </ul>
+                </div>
+        """.strip()
+        category_titles_js = """
+            'all': '🐄 Son Hayvancılık Haberleri, Piyasa Raporları &amp; Araştırmalar',
+            'sut': '🥛 Çiğ Süt, Mandıra &amp; Soğuk Zincir Gelişmeleri',
+            'besi': '🥩 Besicilik, Kırmızı Et &amp; Karkas Piyasası',
+            'yem': '🌾 Yem, Silaj &amp; Rasyon Maliyetleri',
+            'saglik': '🩺 Hayvan Sağlığı, Aşı &amp; Biyogüvenlik',
+            'kucukbas': '🐑 Küçükbaş Hayvancılık &amp; Mera Yönetimi',
+            'kanatli': '🐔 Kanatlı Endüstrisi &amp; Yumurta Üretimi',
+            'teknoloji': '🤖 Akıllı Sağım, Sensör &amp; Sürü Yönetimi',
+            'destek': '📊 Hayvancılık Destekleri &amp; Taban Fiyatlar',
+            'akademik': '🎓 Hakemli Zootekni &amp; Veterinerlik Araştırmaları'
+        """.strip()
+        footer_sub_text = "Süt, besi, yem, hayvan sağlığı, zootekni ve hakemli veterinerlik dergilerinden derlenen günlük dijital hayvancılık gazetesi."
+        live_feed_file = "feed_hayvancilik.json"
+    elif is_agri:
         top_stat_html = (
             '<a href="https://data.worldbank.org/indicator/NV.AGR.TOTL.ZS?locations=TR" '
             'target="_blank" rel="noopener noreferrer" class="top-stat-link" '

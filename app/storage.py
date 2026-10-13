@@ -268,6 +268,71 @@ class Storage:
                         raw_tr = d.get("is_turkey")
                         d["is_turkey"] = 1 if (str(raw_tr).strip() in ["1", "True", "true"] or raw_tr == 1) else 0
                         items_list.append(d)
+                return items_list
+
+            elif channel == "livestock":
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE channel = 'livestock' OR channel = 'both' OR guid LIKE 'tr_livestock:%' OR guid LIKE 'academic_livestock:%' OR guid LIKE 'global_livestock:%'
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT ?
+                """, (limit,))
+                rows = cursor.fetchall()
+                items_list = []
+                seen_guids = set()
+                for r in rows:
+                    d = dict(r)
+                    raw_tr = d.get("is_turkey")
+                    d["is_turkey"] = 1 if (str(raw_tr).strip() in ["1", "True", "true"] or raw_tr == 1) else 0
+                    raw_acad = d.get("is_academic")
+                    d["is_academic"] = 1 if (str(raw_acad).strip() in ["1", "True", "true"] or raw_acad == 1) else 0
+                    items_list.append(d)
+                    seen_guids.add(d["guid"])
+
+                # Türkiye hayvancılık haberlerinin yer almasını garanti et
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE (channel = 'livestock' OR channel = 'both' OR guid LIKE 'tr_livestock:%')
+                      AND (is_turkey = 1 OR guid LIKE 'tr_livestock:%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT 35
+                """)
+                for tr_r in cursor.fetchall():
+                    d = dict(tr_r)
+                    if d["guid"] not in seen_guids:
+                        d["is_turkey"] = 1
+                        raw_acad = d.get("is_academic")
+                        d["is_academic"] = 1 if (str(raw_acad).strip() in ["1", "True", "true"] or raw_acad == 1) else 0
+                        items_list.append(d)
+                        seen_guids.add(d["guid"])
+
+                # Akademik zootekni & veterinerlik yayınlarını ekle
+                cursor.execute("""
+                    SELECT guid, title, link, author, source_feed,
+                           description, image_url, pub_date, pub_date_ts,
+                           first_seen_ts, raw_date_str,
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                    FROM items
+                    WHERE (channel = 'livestock' OR channel = 'both' OR guid LIKE 'academic_livestock:%')
+                      AND (is_academic = 1 OR guid LIKE 'academic_livestock:%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT 40
+                """)
+                for acad_r in cursor.fetchall():
+                    d = dict(acad_r)
+                    if d["guid"] not in seen_guids:
+                        d["is_academic"] = 1
+                        raw_tr = d.get("is_turkey")
+                        d["is_turkey"] = 1 if (str(raw_tr).strip() in ["1", "True", "true"] or raw_tr == 1) else 0
+                        items_list.append(d)
                         seen_guids.add(d["guid"])
 
                 return items_list

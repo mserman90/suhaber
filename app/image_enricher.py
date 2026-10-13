@@ -108,6 +108,47 @@ THEMATIC_IMAGES = {
         "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=900&q=80",  # Global grain satellite view
         "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=80",  # FAO summit conference
         "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=900&q=80",  # Global food logistics
+    ],
+    # Hayvancılık Kategorileri
+    "Süt & Mandıra": [
+        "https://images.unsplash.com/photo-1527153857715-3908f2ae5e81?w=900&q=80",  # Dairy cow in pasture
+        "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=900&q=80",  # Holstein cows feeding
+        "https://images.unsplash.com/photo-1596797038530-2c107229654b?w=900&q=80",  # Fresh milk jar & farm
+        "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=900&q=80",  # Dairy milk processing
+    ],
+    "Besi & Kırmızı Et": [
+        "https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=900&q=80",  # Cattle herd on hill
+        "https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=900&q=80",  # Angus herd grazing
+        "https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=900&q=80",  # Farm cattle feedlot
+    ],
+    "Yem & Besleme": [
+        "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=900&q=80",  # Silage & forage field
+        "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=900&q=80",  # Grain feed ration
+        "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?w=900&q=80",  # Silage bales
+    ],
+    "Küçükbaş Hayvancılık": [
+        "https://images.unsplash.com/photo-1484557052118-f32bd25b45b5?w=900&q=80",  # Sheep herd meadow
+        "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=900&q=80",  # Mountain sheep grazing
+        "https://images.unsplash.com/photo-1535294435445-d7249524ef2e?w=900&q=80",  # Flock of sheep in green hills
+    ],
+    "Hayvan Sağlığı & Biyogüvenlik": [
+        "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=900&q=80",  # Veterinary lab testing
+        "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=900&q=80",  # Biosafety biosecurity facility
+        "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=900&q=80",  # Diagnostics & medicine
+    ],
+    "Kanatlı Sektörü": [
+        "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=900&q=80",  # Free range poultry chickens
+        "https://images.unsplash.com/photo-1569288052389-dac9b01c9c05?w=900&q=80",  # Modern poultry farm
+        "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=900&q=80",  # Farm fresh eggs
+    ],
+    "Hayvancılık Teknolojileri": [
+        "https://images.unsplash.com/photo-1581092335397-9583fe92d232?w=900&q=80",  # Milking robot automated dairy
+        "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=900&q=80",  # Livestock RFID ear tag & sensor
+        "https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=900&q=80",  # Smart herd tracking
+    ],
+    "Destek & Fiyat Politikaları": [
+        "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&q=80",  # Market price board & trade
+        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=900&q=80",  # Sectoral livestock meeting
     ]
 }
 
@@ -193,7 +234,12 @@ def get_thematic_image(title: str, category: str, seed_index: int = 0, default_c
     elif re.search(r'\b(tohum|gübre|bitki besleme|fide|hibrit)\b', title_lower):
         category = "Tohum & Gübre"
 
-    fallback = THEMATIC_IMAGES["Bitkisel Üretim"] if default_channel == "agriculture" else THEMATIC_IMAGES["Su Kaynakları"]
+    if default_channel == "livestock":
+        fallback = THEMATIC_IMAGES["Süt & Mandıra"]
+    elif default_channel == "agriculture":
+        fallback = THEMATIC_IMAGES["Bitkisel Üretim"]
+    else:
+        fallback = THEMATIC_IMAGES["Su Kaynakları"]
     pool = THEMATIC_IMAGES.get(category, fallback)
     return pool[seed_index % len(pool)]
 
@@ -207,7 +253,15 @@ def resolve_article_image(item: Dict[str, Any], index: int = 0, channel: str = "
     raw_img = (item.get("image_url") or "").strip()
     link = (item.get("link") or "").strip()
     title = item.get("title_tr") or item.get("title") or ""
-    category = item.get("category_tr") or ("Bitkisel Üretim" if channel == "agriculture" else "Su Kaynakları")
+    
+    if channel == "livestock":
+        default_cat = "Hayvancılık & Besicilik"
+    elif channel == "agriculture":
+        default_cat = "Bitkisel Üretim"
+    else:
+        default_cat = "Su Kaynakları"
+
+    category = item.get("category_tr") or default_cat
     if item.get("is_academic"):
         category = "Akademik Yayınlar"
 

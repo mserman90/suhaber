@@ -301,3 +301,61 @@ def get_daily_agriculture_quote(dt: datetime = None) -> Dict[str, str]:
     index = (day_of_year + (year * 11)) % len(AGRICULTURE_MANAGEMENT_QUOTES)
     
     return AGRICULTURE_MANAGEMENT_QUOTES[index]
+
+
+LIVESTOCK_MANAGEMENT_QUOTES = [
+    {
+        "quote": "Yerli damızlık ve genetik ıslah, sürdürülebilir bir hayvancılık modelinin en temel taşıdır. Dışa bağımlılığı azaltmak damızlık kalitesini yükseltmekle başlar.",
+        "author": "Milli Damızlık ve Islah Rehberi",
+        "category": "Genetik & Damızlık"
+    },
+    {
+        "quote": "Kaba yem açığını kapatmayan ve kaliteli silaj üretmeyen bir işletmede besi ve süt maliyetleri kontrol altına alınamaz.",
+        "author": "Hayvan Besleme ve Kaba Yem Masası",
+        "category": "Yem & Besleme"
+    },
+    {
+        "quote": "Meralar sadece hayvan otlatma alanı değil, Anadolu'nun en zengin doğal ekosistemi ve biyolojik hazinesidir. Islah edilen meralar et ve sütte maliyeti yarıya düşürür.",
+        "author": "Mera Islahı ve Otlatma Yönetimi",
+        "category": "Mera & Otlatma"
+    },
+    {
+        "quote": "Biyogüvenlik ve koruyucu hekimlik tedbirleri, salgın hastalık ortaya çıktıktan sonraki tedavi maliyetlerinden yüz kat daha ekonomiktir.",
+        "author": "Veteriner Halk Sağlığı ve Biyogüvenlik",
+        "category": "Hayvan Sağlığı"
+    },
+    {
+        "quote": "Sürü takip sensörleri, otomatik sağım robotları ve kızgınlık tespit sistemleri akıllı hayvancılıkta verimliliği zirveye taşır.",
+        "author": "Hassas Hayvancılık Teknolojileri",
+        "category": "Akıllı Çiftlik"
+    },
+    {
+        "quote": "Kaliteli çiğ süt, soğuk zincir bozulmadan mandıraya ulaştığında hem üreticiye hak ettiği değeri hem de tüketiciye sağlığı sunar.",
+        "author": "Süt Hijyeni ve Soğuk Zincir Masası",
+        "category": "Süt Endüstrisi"
+    },
+    {
+        "quote": "Hayvan refahı ve konforu, doğrudan süt verimi ve et kalitesini belirleyen en kritik fizyolojik faktördür. Huzurlu sürü, bereketli üretimdir.",
+        "author": "Çiftlik Yönetimi ve Hayvan Refahı",
+        "category": "Hayvan Refahı"
+    },
+    {
+        "quote": "Küçükbaş hayvancılık Anadolu'nun kadim coğrafyasına ve kurak iklimine en uygun, suyu ve merayı en verimli değerlendiren üretim modelidir.",
+        "author": "Anadolu Küçükbaş Yetiştiriciliği Vizyonu",
+        "category": "Küçükbaş"
+    }
+]
+
+def get_daily_livestock_quote(dt: datetime = None) -> Dict[str, str]:
+    """
+    Belirtilen tarihe (varsayılan: bugün UTC) göre Hayvancılık Bülteni 'Günün Sözü'nü deterministik olarak döndürür.
+    """
+    if dt is None:
+        dt = datetime.now(timezone.utc)
+    
+    day_of_year = dt.timetuple().tm_yday
+    year = dt.year
+    index = (day_of_year + (year * 13)) % len(LIVESTOCK_MANAGEMENT_QUOTES)
+    
+    return LIVESTOCK_MANAGEMENT_QUOTES[index]
+
