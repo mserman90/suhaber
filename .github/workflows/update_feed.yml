@@ -2,8 +2,8 @@ name: Update RSS Feed & Deploy to GitHub Pages
 
 on:
   schedule:
-    # Her sabah Türkiye saati ile 10:00'da (07:00 UTC) günlük bülten yayını
-    - cron: "0 7 * * *"
+    # Her sabah Türkiye saati ile 09:00'da (06:00 UTC) günlük manşet ve bülten yayını
+    - cron: "0 6 * * *"
     # Gün içi periyodik haber taramaları
     - cron: "13,43 * * * *"
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           python export_static.py
 
       - name: Commit & Push Updated Data to Repository
-        if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
+        if: github.event.schedule == '0 6 * * *' || github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
