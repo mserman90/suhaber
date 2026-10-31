@@ -421,22 +421,6 @@ def generate_newspaper_portal_html(
     if not is_agri and not is_livestock:
         interactive_map_html = f"""
         <section class="newspaper-map-section" id="interactiveMapSection">
-            <div class="map-section-header">
-                <div class="map-title-group">
-                    <span class="map-badge-tag">🌐 COĞRAFİ BİLGİ SİSTEMİ (GIS) &amp; HİDROPOLİTİK ATLAS</span>
-                    <h2 class="map-section-title">İnteraktif Su, Tarım &amp; Sınır Aşan Havza Haritası</h2>
-                    <p class="map-section-desc">
-                        Doğrulanmış coğrafi konuma sahip güncel haber akışları, Oregon State Üniversitesi TFDD <strong>3.059 uluslararası su anlaşması</strong>, Pacific Institute <strong>2.809 tarihi çatışma kaydı</strong> ve <strong>310 nehir havzası</strong> tek haritada.
-                    </p>
-                </div>
-                <div class="map-header-actions">
-                    <a href="https://mserman90.github.io/water-agreements-portal/" target="_blank" rel="noopener noreferrer" class="btn-portal-ext-link" title="Su Anlaşmaları Portalı'nı ayrı sekmede tam ekran aç">
-                        <span>🏛️ Su Anlaşmaları Portalı</span>
-                        <span class="ext-icon">↗</span>
-                    </a>
-                </div>
-            </div>
-
             <!-- Map Toolbar: Side Panel Toggle & View Controls -->
             <div class="map-toolbar">
                 <div class="map-toolbar-left">
@@ -447,6 +431,10 @@ def generate_newspaper_portal_html(
                     </button>
                 </div>
                 <div class="map-view-controls">
+                    <a href="https://mserman90.github.io/water-agreements-portal/" target="_blank" rel="noopener noreferrer" class="btn-portal-ext-link" title="Su Anlaşmaları Portalı'nı ayrı sekmede tam ekran aç" style="padding: 6px 14px; font-size: 12px; text-decoration: none; border-radius: 8px;">
+                        <span>🏛️ Su Anlaşmaları Portalı</span>
+                        <span class="ext-icon">↗</span>
+                    </a>
                     <button type="button" class="btn-map-view" onclick="zoomMapTo('turkey')" title="Türkiye ve Çevresine Yakınlaş">
                         🇹🇷 Türkiye
                     </button>
@@ -462,7 +450,7 @@ def generate_newspaper_portal_html(
             <!-- Map Canvas Container with Collapsible Left Side Panel -->
             <div class="map-canvas-wrapper" id="mapCanvasWrapper">
                 <!-- Collapsible Left Side Panel for All News & Data Layers -->
-                <aside class="map-side-panel open" id="mapSidePanel" aria-label="Harita Katman Filtreleri">
+                <aside class="map-side-panel" id="mapSidePanel" aria-label="Harita Katman Filtreleri">
                     <div class="side-panel-header">
                         <div class="side-panel-title-wrap">
                             <span class="side-panel-icon">🗂️</span>
@@ -572,7 +560,7 @@ def generate_newspaper_portal_html(
                 </aside>
 
                 <!-- Floating Canvas Open Toggle Button (Visible when side panel is closed) -->
-                <button type="button" class="map-canvas-toggle-btn" id="mapCanvasToggleBtn" onclick="toggleMapSidePanel(true)" title="Katman Filtrelerini Aç" style="display: none;">
+                <button type="button" class="map-canvas-toggle-btn" id="mapCanvasToggleBtn" onclick="toggleMapSidePanel(true)" title="Katman Filtrelerini Aç" style="display: inline-flex;">
                     <span class="toggle-icon">☰</span>
                     <span class="toggle-txt">Katmanlar</span>
                     <span class="toggle-badge" id="canvasActiveBadge">1</span>
@@ -3372,9 +3360,7 @@ def generate_newspaper_portal_html(
             }});
             mapLayers['livestock'] = livestockCluster;
             updateActiveLayersBadges();
-            if (window.innerWidth <= 800) {{
-                toggleMapSidePanel(false);
-            }}
+            toggleMapSidePanel(false);
         }}
 
         function executeMapSearch() {{
