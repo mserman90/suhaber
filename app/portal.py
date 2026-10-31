@@ -194,7 +194,7 @@ def generate_newspaper_portal_html(
         items = [
             it for it in items
             if it.get("category_tr") != "Hayvancılık & Süt"
-            and not any(term in (it.get("title_tr", "") + " " + it.get("title", "")).lower() for term in livestock_terms)
+            and not any(term in ((it.get("title_tr") or "") + " " + (it.get("title") or "")).lower() for term in livestock_terms)
         ]
 
     # Sort items by date
@@ -3727,8 +3727,7 @@ function toggleMapSidePanel(forceState) {{
             }}
 
             const summary = isEn ? (it.summary_en || it.summary_tr || '') : (it.summary_tr || '');
-            document.getElementById('modalContent').innerHTML = '<p>' + summary.replace(/
-/g, '</p><p>') + '</p>';
+            document.getElementById('modalContent').innerHTML = (summary || '').split(String.fromCharCode(10)).filter(p => p.trim()).map(p => '<p>' + p + '</p>').join('') || '<p></p>'
             document.getElementById('modalDoiLink').href = it.link || '#';
             const doiBtn = document.getElementById('modalDoiLink');
             if (doiBtn) {{

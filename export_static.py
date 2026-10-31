@@ -293,7 +293,7 @@ def main():
     agri_items = [
         it for it in agri_items
         if it.get("category_tr") != "Hayvancılık & Süt"
-        and not any(term in (it.get("title_tr", "") + " " + it.get("title", "")).lower() for term in livestock_filter_terms)
+        and not any(term in ((it.get("title_tr") or "") + " " + (it.get("title") or "")).lower() for term in livestock_filter_terms)
     ]
     print(f"[+] Tarım kanalı toplam filtrelenmiş veritabanı kaydı: {len(agri_items)}")
     agri_items = batch_translate_articles(agri_items)
