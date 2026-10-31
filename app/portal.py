@@ -635,6 +635,10 @@ def generate_newspaper_portal_html(
             badge_lbl = html.escape(it['category'])
         is_tr_str = "true" if it.get("is_turkey") else "false"
         is_acad_str = "true" if it.get("is_academic") else "false"
+        it_orig_title_html = (
+            f'<h5 class="card-title-en" data-article-original-title-id="{it["id"]}">Orijinal Başlık: {html.escape(it["title_en"])}</h5>'
+            if (it.get('title_en') and it['title_en'] != it['title_tr']) else ''
+        )
         grid_html += f"""
         <article class="news-grid-card" data-slug="{it['slug']}" data-is-turkey="{is_tr_str}" data-is-academic="{is_acad_str}" data-category="{html.escape(it['category'])}" data-is-top="{'true' if is_top else 'false'}" data-search="{html.escape(search_corpus)}"{display_style}>
             <div class="card-img-wrap" style="background-image: url('{html.escape(it['image'])}');" onclick="openArticleModal({it['id']})">
@@ -648,7 +652,7 @@ def generate_newspaper_portal_html(
                 <h3 class="card-title" data-article-title-id="{it['id']}" onclick="openArticleModal({it['id']})">
                     {html.escape(it['title_tr'])}
                 </h3>
-                {f'<h5 class="card-title-en" data-article-original-title-id="{it['id']}">Orijinal Başlık: {html.escape(it["title_en"])}</h5>' if (it.get('title_en') and it['title_en'] != it['title_tr']) else ''}
+                {it_orig_title_html}
                 <p class="card-excerpt" data-article-summary-id="{it['id']}">
                     {html.escape(it['summary_tr'][:180])}...
                 </p>
@@ -728,6 +732,10 @@ def generate_newspaper_portal_html(
         else:
             badge_title = "⭐ GÜNÜN MANŞETİ &bull; 🇹🇷 TÜRKİYE SU GÜNDEMİ" if is_tr_hero else f"⭐ GÜNÜN MANŞETİ &bull; {html.escape(h['category'])}"
             hero_hint = "📰 Ulusal &amp; Yerel Basın &bull; Güncel Su Araştırmaları" if is_tr_hero else "ScienceDirect / ASCE / IWMI Akademik Veritabanı Kaynağı"
+        hero_orig_title_html = (
+            f'<h4 class="hero-title-en" data-article-original-title-id="{h["id"]}">Orijinal Başlık: {html.escape(h["title_en"])}</h4>'
+            if (h.get('title_en') and h['title_en'] != h['title_tr']) else ''
+        )
         hero_html = f"""
         <section class="main-headline-banner" id="heroSection" onclick="openArticleModal({h['id']})" data-slug="{h['slug']}">
             <div class="hero-image-col" style="background-image: url('{html.escape(h['image'])}');">
@@ -740,9 +748,9 @@ def generate_newspaper_portal_html(
                     <span>📅 {html.escape(h['date'][:16] if h.get('date') else today_str)}</span> &bull; 
                     <span>{html.escape(h['source'][:40])}</span>
                 </div>
-                <h2 class="hero-title">{html.escape(h['title_tr'])}</h2>
-                {f'<h4 class="hero-title-en">Orijinal Başlık: {html.escape(h["title_en"])}</h4>' if (h.get('title_en') and h['title_en'] != h['title_tr']) else ''}
-                <p class="hero-summary">{html.escape(h['summary_tr'][:320])}...</p>
+                <h2 class="hero-title" data-article-title-id="{h['id']}">{html.escape(h['title_tr'])}</h2>
+                {hero_orig_title_html}
+                <p class="hero-summary" data-article-summary-id="{h['id']}">{html.escape(h['summary_tr'][:320])}...</p>
                 <div class="hero-footer">
                     <button class="btn-hero-read">Tam Haberi ve Analizi Oku &rarr;</button>
                     <span class="hero-hint">{hero_hint}</span>
