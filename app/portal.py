@@ -1,7 +1,7 @@
 import html
 import re
 from datetime import datetime, timezone
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.quotes import get_daily_water_quote
 
 def clean_html_tags(text: str) -> str:
@@ -19,7 +19,9 @@ def generate_newspaper_portal_html(
     channel: str = "water",
     water_count: int = 0,
     agri_count: int = 0,
-    livestock_count: int = 0
+    livestock_count: int = 0,
+    agri_items: Optional[List[Dict[str, Any]]] = None,
+    livestock_items: Optional[List[Dict[str, Any]]] = None
 ) -> str:
     today_str = datetime.now(timezone.utc).strftime("%d.%m.%Y")
     is_agri = (channel == "agriculture")
@@ -246,7 +248,215 @@ def generate_newspaper_portal_html(
             "is_academic": is_academic
         })
 
-    json_portal_data = json.dumps(portal_data, ensure_ascii=False)
+    from app.geocoder import geocode_article
+
+    # Prepare Geocoded Datasets for Interactive Map (all channels)
+    water_map_data = []
+    agri_map_data = []
+    livestock_map_data = []
+
+    # All articles data dictionary for Modal lookup across all channels
+    all_articles_data = list(portal_data)
+
+    for it in portal_data:
+        lat, lng, loc_name = geocode_article(it, it["id"])
+        water_map_data.append({
+            "id": it["id"],
+            "title": it["title_tr"],
+            "category": it["category"],
+            "date": it["date"][:16] if it.get("date") else today_str,
+            "source": it.get("source", ""),
+            "summary": it.get("summary_tr", "")[:260],
+            "lat": lat,
+            "lng": lng,
+            "loc": loc_name,
+            "channel": "water"
+        })
+
+    if agri_items:
+        for idx, a_it in enumerate(agri_items):
+            aid = 10000 + idx
+            title_tr = a_it.get("title_tr") or a_it.get("title") or ""
+            summary_tr = a_it.get("summary_tr") or ""
+            source = a_it.get("source_feed") or a_it.get("author") or "Tarım Basını"
+            cat = a_it.get("category_tr") or "Tarım & Bitkisel"
+            img = a_it.get("image_url") or "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=900&q=80"
+            lat, lng, loc_name = geocode_article(a_it, aid)
+            
+            all_articles_data.append({
+                "id": aid,
+                "title_tr": title_tr,
+                "title_en": a_it.get("title", ""),
+                "summary_tr": summary_tr,
+                "category": cat,
+                "channel_name": "Tarım Bülteni",
+                "slug": "tarim",
+                "source": source,
+                "author": a_it.get("author", "Tarım Muhabiri"),
+                "date": a_it.get("pub_date", today_str),
+                "link": a_it.get("link", "#"),
+                "image": img,
+                "is_turkey": a_it.get("is_turkey", False),
+                "is_academic": a_it.get("is_academic", False)
+            })
+
+            agri_map_data.append({
+                "id": aid,
+                "title": title_tr,
+                "category": cat,
+                "date": (a_it.get("pub_date") or today_str)[:16],
+                "source": source,
+                "summary": summary_tr[:260],
+                "lat": lat,
+                "lng": lng,
+                "loc": loc_name,
+                "channel": "agriculture"
+            })
+
+    if livestock_items:
+        for idx, l_it in enumerate(livestock_items):
+            lid = 20000 + idx
+            title_tr = l_it.get("title_tr") or l_it.get("title") or ""
+            summary_tr = l_it.get("summary_tr") or ""
+            source = l_it.get("source_feed") or l_it.get("author") or "Hayvancılık Basını"
+            cat = l_it.get("category_tr") or "Hayvancılık & Süt"
+            img = l_it.get("image_url") or "https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=900&q=80"
+            lat, lng, loc_name = geocode_article(l_it, lid)
+
+            all_articles_data.append({
+                "id": lid,
+                "title_tr": title_tr,
+                "title_en": l_it.get("title", ""),
+                "summary_tr": summary_tr,
+                "category": cat,
+                "channel_name": "Hayvancılık Bülteni",
+                "slug": "hayvancilik",
+                "source": source,
+                "author": l_it.get("author", "Zootekni Uzmanı"),
+                "date": l_it.get("pub_date", today_str),
+                "link": l_it.get("link", "#"),
+                "image": img,
+                "is_turkey": l_it.get("is_turkey", False),
+                "is_academic": l_it.get("is_academic", False)
+            })
+
+            livestock_map_data.append({
+                "id": lid,
+                "title": title_tr,
+                "category": cat,
+                "date": (l_it.get("pub_date") or today_str)[:16],
+                "source": source,
+                "summary": summary_tr[:260],
+                "lat": lat,
+                "lng": lng,
+                "loc": loc_name,
+                "channel": "livestock"
+            })
+
+    json_portal_data = json.dumps(all_articles_data, ensure_ascii=False)
+    json_water_map = json.dumps(water_map_data, ensure_ascii=False)
+    json_agri_map = json.dumps(agri_map_data, ensure_ascii=False)
+    json_livestock_map = json.dumps(livestock_map_data, ensure_ascii=False)
+
+    # Interactive Map Section HTML (Rendered on Home / Water Channel)
+    interactive_map_html = ""
+    if not is_agri and not is_livestock:
+        interactive_map_html = f"""
+        <section class="newspaper-map-section" id="interactiveMapSection">
+            <div class="map-section-header">
+                <div class="map-title-group">
+                    <span class="map-badge-tag">🗺️ COĞRAFİ HABER &amp; HİDROPOLİTİK ATLAS</span>
+                    <h2 class="map-section-title">Sınır Aşan Su Anlaşmaları &amp; Canlı Haber Haritası</h2>
+                    <p class="map-section-desc">
+                        Oregon State Üniversitesi TFDD veritabanı, Birleşmiş Milletler su anlaşmaları, Pacific Institute çatışma kronolojisi ve tüm kanalların (Su, Tarım, Hayvancılık) coğrafi haber akışı tek çatı altında.
+                    </p>
+                </div>
+                <div class="map-header-actions">
+                    <a href="https://mserman90.github.io/water-agreements-portal/" target="_blank" rel="noopener noreferrer" class="btn-portal-ext-link" title="Sınır Aşan Su Anlaşmaları ve Hidro-İklim Portalı'nı tam ekran aç">
+                        <span>🏛️ Su Anlaşmaları Portalı</span>
+                        <span class="ext-icon">↗</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Map Toolbar: Layer Switchers & Controls -->
+            <div class="map-toolbar">
+                <div class="map-layers-group" id="mapLayersGroup">
+                    <span class="toolbar-label">Katmanlar:</span>
+                    
+                    <label class="layer-toggle-btn active" data-layer="water" id="layerBtn_water" title="Su Haber Bülteni haberleri (Varsayılan aktif katman)">
+                        <input type="checkbox" id="layerWaterCheck" checked onchange="toggleMapLayer('water')">
+                        <span class="layer-dot layer-dot-water"></span>
+                        <span class="layer-text">💧 Su Haberleri</span>
+                        <span class="layer-count" id="countWaterNews">{len(water_map_data)}</span>
+                    </label>
+
+                    <label class="layer-toggle-btn" data-layer="agri" id="layerBtn_agri" title="Tarım Haber Bülteni haber katmanı">
+                        <input type="checkbox" id="layerAgriCheck" onchange="toggleMapLayer('agri')">
+                        <span class="layer-dot layer-dot-agri"></span>
+                        <span class="layer-text">🌾 Tarım Haberleri</span>
+                        <span class="layer-count" id="countAgriNews">{len(agri_map_data)}</span>
+                    </label>
+
+                    <label class="layer-toggle-btn" data-layer="livestock" id="layerBtn_livestock" title="Hayvancılık Bülteni haber katmanı">
+                        <input type="checkbox" id="layerLivestockCheck" onchange="toggleMapLayer('livestock')">
+                        <span class="layer-dot layer-dot-livestock"></span>
+                        <span class="layer-text">🐄 Hayvancılık Haberleri</span>
+                        <span class="layer-count" id="countLivestockNews">{len(livestock_map_data)}</span>
+                    </label>
+
+                    <label class="layer-toggle-btn" data-layer="agreements" id="layerBtn_agreements" title="1820'den günümüze sınır aşan su anlaşmaları (TFDD / Oregon State Univ.)">
+                        <input type="checkbox" id="layerAgreementsCheck" onchange="toggleMapLayer('agreements')">
+                        <span class="layer-dot layer-dot-agreements"></span>
+                        <span class="layer-text">🌊 Sınır Aşan Anlaşmalar (TFDD)</span>
+                        <span class="layer-count">3.059</span>
+                    </label>
+
+                    <label class="layer-toggle-btn" data-layer="conflicts" id="layerBtn_conflicts" title="Tarihi su uyuşmazlıkları ve çatışmalar (Pacific Institute)">
+                        <input type="checkbox" id="layerConflictsCheck" onchange="toggleMapLayer('conflicts')">
+                        <span class="layer-dot layer-dot-conflicts"></span>
+                        <span class="layer-text">⚡ Su Olayları &amp; Krizler</span>
+                        <span class="layer-count">2.809</span>
+                    </label>
+
+                    <label class="layer-toggle-btn" data-layer="basins" id="layerBtn_basins" title="310 uluslararası sınır aşan nehir ve göl havzası poligonları">
+                        <input type="checkbox" id="layerBasinsCheck" onchange="toggleMapLayer('basins')">
+                        <span class="layer-dot layer-dot-basins"></span>
+                        <span class="layer-text">🗺️ 310 Sınır Aşan Havza</span>
+                        <span class="layer-count">310</span>
+                    </label>
+                </div>
+
+                <div class="map-view-controls">
+                    <button type="button" class="btn-map-view" onclick="zoomMapTo('turkey')" title="Türkiye ve Çevresine Yakınlaş">
+                        🇹🇷 Türkiye
+                    </button>
+                    <button type="button" class="btn-map-view" onclick="zoomMapTo('world')" title="Dünya Genel Görünümüne Uzaklaş">
+                        🌍 Dünya
+                    </button>
+                    <button type="button" class="btn-map-view" id="btnMapFullscreen" onclick="toggleMapFullscreen()" title="Haritayı Genişlet / Küçült">
+                        ⛶ Tam Ekran
+                    </button>
+                </div>
+            </div>
+
+            <!-- Map Canvas Container -->
+            <div class="map-canvas-wrapper" id="mapCanvasWrapper">
+                <div id="portalLeafletMap" class="portal-leaflet-map"></div>
+                <div id="mapLoadingIndicator" class="map-loading-overlay" style="display: none;">
+                    <div class="map-spinner"></div>
+                    <span id="mapLoadingText">Veri katmanı yükleniyor...</span>
+                </div>
+                <div class="map-legend-overlay">
+                    <div class="legend-item"><span class="legend-circle dot-water"></span> Su Haberi</div>
+                    <div class="legend-item"><span class="legend-circle dot-agri"></span> Tarım Haberi</div>
+                    <div class="legend-item"><span class="legend-circle dot-livestock"></span> Hayvancılık Haberi</div>
+                    <div class="legend-item"><span class="legend-circle dot-agreement"></span> Su Anlaşması (TFDD)</div>
+                    <div class="legend-item"><span class="legend-circle dot-conflict"></span> Su Olayı (BAR)</div>
+                </div>
+            </div>
+        </section>
+        """
 
     # Secondary headline cards
     secondary_html = ""
@@ -649,6 +859,12 @@ def generate_newspaper_portal_html(
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Public+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,800;0,900;1,400;1,700&display=swap" rel="stylesheet">
+    <!-- Leaflet & MarkerCluster for Geospatial Intelligence Atlas -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
     <!-- Theme Detection Script (Prevents flash of light theme on load) -->
     <script>
@@ -1986,6 +2202,367 @@ def generate_newspaper_portal_html(
         }}
         .footer-inner p {{ margin-bottom: 12px; }}
 
+        /* Geospatial Intelligence Map Section */
+        .newspaper-map-section {{
+            background: var(--paper-card);
+            border: 1px solid var(--border-line);
+            border-radius: 8px;
+            padding: 18px 20px 22px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-subtle);
+            transition: all 0.25s ease;
+        }}
+        .map-section-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 14px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 12px;
+        }}
+        .map-title-group {{
+            flex: 1;
+        }}
+        .map-badge-tag {{
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: #0284c7;
+            background: rgba(2, 132, 199, 0.1);
+            border: 1px solid rgba(2, 132, 199, 0.25);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+        }}
+        [data-theme="dark"] .map-badge-tag {{
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.3);
+        }}
+        .map-section-title {{
+            font-family: 'Playfair Display', serif;
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: var(--ink-black);
+            margin: 0 0 4px;
+            line-height: 1.25;
+        }}
+        .map-section-desc {{
+            font-size: 12.5px;
+            color: var(--ink-muted);
+            margin: 0;
+            line-height: 1.45;
+            max-width: 850px;
+        }}
+        .btn-portal-ext-link {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #0369a1, #0284c7);
+            color: #ffffff !important;
+            font-size: 12.5px;
+            font-weight: 700;
+            border-radius: 6px;
+            text-decoration: none;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+            transition: all 0.2s ease;
+        }}
+        .btn-portal-ext-link:hover {{
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+        }}
+        .map-toolbar {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+            background: var(--paper-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 8px 12px;
+        }}
+        .map-layers-group {{
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }}
+        .toolbar-label {{
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-dark);
+            margin-right: 4px;
+        }}
+        .layer-toggle-btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            background: var(--paper-card);
+            border: 1px solid var(--border-line);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ink-dark);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+        }}
+        .layer-toggle-btn:hover {{
+            border-color: #0284c7;
+            background: var(--cat-btn-hover);
+        }}
+        .layer-toggle-btn.active {{
+            border-color: #0284c7;
+            background: rgba(2, 132, 199, 0.08);
+            color: #0284c7;
+        }}
+        [data-theme="dark"] .layer-toggle-btn.active {{
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border-color: #38bdf8;
+        }}
+        .layer-toggle-btn input[type="checkbox"] {{
+            cursor: pointer;
+            accent-color: #0284c7;
+            width: 14px;
+            height: 14px;
+            margin: 0;
+        }}
+        .layer-dot {{
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }}
+        .layer-dot-water {{ background: #0284c7; box-shadow: 0 0 6px rgba(2, 132, 199, 0.6); }}
+        .layer-dot-agri {{ background: #16a34a; box-shadow: 0 0 6px rgba(22, 163, 74, 0.6); }}
+        .layer-dot-livestock {{ background: #d97706; box-shadow: 0 0 6px rgba(217, 119, 6, 0.6); }}
+        .layer-dot-agreements {{ background: #2563eb; box-shadow: 0 0 6px rgba(37, 99, 235, 0.6); }}
+        .layer-dot-conflicts {{ background: #dc2626; box-shadow: 0 0 6px rgba(220, 38, 38, 0.6); }}
+        .layer-dot-basins {{ background: #0891b2; box-shadow: 0 0 6px rgba(8, 145, 178, 0.6); }}
+        .layer-count {{
+            font-size: 10px;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.08);
+            padding: 1px 6px;
+            border-radius: 10px;
+            color: var(--ink-light);
+        }}
+        [data-theme="dark"] .layer-count {{
+            background: rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
+        }}
+        .map-view-controls {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }}
+        .btn-map-view {{
+            background: var(--paper-card);
+            border: 1px solid var(--border-line);
+            color: var(--ink-dark);
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }}
+        .btn-map-view:hover {{
+            border-color: #0284c7;
+            background: var(--cat-btn-hover);
+        }}
+        .map-canvas-wrapper {{
+            position: relative;
+            width: 100%;
+            height: 520px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-line);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.08);
+        }}
+        .map-canvas-wrapper.fullscreen-mode {{
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 100vh !important;
+            z-index: 10000;
+            border-radius: 0;
+            border: none;
+        }}
+        .portal-leaflet-map {{
+            width: 100%;
+            height: 100%;
+            background: #e2e8f0;
+        }}
+        [data-theme="dark"] .portal-leaflet-map {{
+            background: #0f172a;
+        }}
+        .map-loading-overlay {{
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(4px);
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }}
+        .map-spinner {{
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: mapSpin 0.7s linear infinite;
+        }}
+        @keyframes mapSpin {{
+            to {{ transform: rotate(360deg); }}
+        }}
+        .map-legend-overlay {{
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 11.5px;
+            color: #f1f5f9;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+            flex-wrap: wrap;
+        }}
+        .legend-item {{
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+        }}
+        .legend-circle {{
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }}
+        .dot-water {{ background: #0284c7; border: 1.5px solid #fff; }}
+        .dot-agri {{ background: #16a34a; border: 1.5px solid #fff; }}
+        .dot-livestock {{ background: #d97706; border: 1.5px solid #fff; }}
+        .dot-agreement {{ background: #2563eb; border: 1.5px solid #fff; }}
+        .dot-conflict {{ background: #dc2626; border: 1.5px solid #fff; }}
+
+        /* Custom Popup Styling */
+        .leaflet-popup-content-wrapper {{
+            border-radius: 8px !important;
+            padding: 4px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+        }}
+        .portal-popup-card {{
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 12px;
+            line-height: 1.45;
+            color: #1e293b;
+            min-width: 240px;
+            max-width: 290px;
+        }}
+        .portal-popup-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }}
+        .popup-channel-badge {{
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #ffffff;
+            text-transform: uppercase;
+        }}
+        .popup-cat-badge {{
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+        }}
+        .portal-popup-title {{
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 6px;
+            line-height: 1.35;
+        }}
+        .portal-popup-meta {{
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }}
+        .portal-popup-desc {{
+            font-size: 11.5px;
+            color: #334155;
+            margin: 0 0 8px;
+            line-height: 1.4;
+        }}
+        .btn-map-popup-read {{
+            display: block;
+            width: 100%;
+            text-align: center;
+            background: #0284c7;
+            color: #ffffff !important;
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }}
+        .btn-map-popup-read:hover {{
+            background: #0369a1;
+        }}
+
+        @media (max-width: 768px) {{
+            .map-section-header {{
+                flex-direction: column;
+                align-items: stretch;
+            }}
+            .map-toolbar {{
+                flex-direction: column;
+                align-items: stretch;
+            }}
+            .map-canvas-wrapper {{
+                height: 400px;
+            }}
+            .map-legend-overlay {{
+                display: none;
+            }}
+        }}
+
         /* Responsive */
         @media (max-width: 900px) {{
             .main-headline-banner {{ grid-template-columns: 1fr; }}
@@ -2084,6 +2661,9 @@ def generate_newspaper_portal_html(
         <section class="sub-headlines-grid" id="subHeadlinesSection">
             {secondary_html}
         </section>
+
+        <!-- Interactive Map Section -->
+        {interactive_map_html}
 
         <!-- Columns Section -->
         <div class="newspaper-columns">
@@ -2192,20 +2772,363 @@ def generate_newspaper_portal_html(
     <!-- Interactive Scripts -->
     <script>
         const articlesData = {json_portal_data};
+        const waterMapData = {json_water_map};
+        const agriMapData = {json_agri_map};
+        const livestockMapData = {json_livestock_map};
+
+        let portalMap = null;
+        let portalTileLayer = null;
+        const mapLayers = {{}};
+
+        function escapeMapHtml(str) {{
+            if (!str) return '';
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
+        }}
+
+        function buildNewsMarkerIcon(color, symbol) {{
+            return L.divIcon({{
+                className: '',
+                html: `<div style="
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 50%;
+                    background: ${{color}};
+                    border: 2px solid #ffffff;
+                    box-shadow: 0 0 8px ${{color}}cc, 0 2px 4px rgba(0,0,0,0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 11px;
+                    cursor: pointer;
+                    user-select: none;
+                ">${{symbol}}</div>`,
+                iconSize: [22, 22],
+                iconAnchor: [11, 11],
+                popupAnchor: [0, -11]
+            }});
+        }}
+
+        function buildNewsPopup(item, channelBadge, channelBg) {{
+            return `
+                <div class="portal-popup-card">
+                    <div class="portal-popup-header">
+                        <span class="popup-channel-badge" style="background:${{channelBg}};">${{channelBadge}}</span>
+                        <span class="popup-cat-badge">[${{item.category}}]</span>
+                    </div>
+                    <h4 class="portal-popup-title">${{escapeMapHtml(item.title)}}</h4>
+                    <div class="portal-popup-meta">
+                        <span>📅 ${{escapeMapHtml(item.date)}}</span> &bull; <span>📍 ${{escapeMapHtml(item.loc || 'Bölge')}}</span>
+                    </div>
+                    <p class="portal-popup-desc">${{escapeMapHtml(item.summary)}}...</p>
+                    <button type="button" class="btn-map-popup-read" onclick="openArticleModal(${{item.id}})">
+                        Tam Haberi ve Analizi Oku &rarr;
+                    </button>
+                </div>
+            `;
+        }}
+
+        function initPortalMap() {{
+            const mapEl = document.getElementById('portalLeafletMap');
+            if (!mapEl || typeof L === 'undefined') return;
+
+            const isDark = (document.documentElement.getAttribute('data-theme') === 'dark');
+            const tileUrl = isDark 
+                ? 'https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png'
+                : 'https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png';
+
+            portalMap = L.map('portalLeafletMap', {{
+                center: [38.5, 35.0],
+                zoom: 6,
+                minZoom: 2,
+                maxZoom: 18,
+                scrollWheelZoom: true
+            }});
+
+            portalTileLayer = L.tileLayer(tileUrl, {{
+                attribution: '&copy; <a href="https://carto.com/">CARTO</a> &bull; <a href="https://www.openstreetmap.org/copyright">OSM</a> | <a href="https://mserman90.github.io/water-agreements-portal/" target="_blank">TFDD Oregon State Univ.</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }}).addTo(portalMap);
+
+            window.portalMapInstance = portalMap;
+            window.portalTileLayer = portalTileLayer;
+
+            // 1. Water News Layer (DEFAULT: ACTIVE / VISIBLE)
+            const waterCluster = L.markerClusterGroup({{
+                chunkedLoading: true,
+                maxClusterRadius: 35,
+                showCoverageOnHover: false,
+                spiderfyOnMaxZoom: true
+            }});
+            const waterIcon = buildNewsMarkerIcon('#0284c7', '💧');
+            waterMapData.forEach(item => {{
+                if (!item.lat || !item.lng) return;
+                const marker = L.marker([item.lat, item.lng], {{ icon: waterIcon, title: item.title }});
+                marker.bindPopup(buildNewsPopup(item, '💧 SU HABERİ', '#0284c7'));
+                waterCluster.addLayer(marker);
+            }});
+            portalMap.addLayer(waterCluster);
+            mapLayers['water'] = waterCluster;
+
+            // 2. Agriculture News Layer (Toggleable)
+            const agriCluster = L.markerClusterGroup({{
+                chunkedLoading: true,
+                maxClusterRadius: 35,
+                showCoverageOnHover: false
+            }});
+            const agriIcon = buildNewsMarkerIcon('#16a34a', '🌾');
+            agriMapData.forEach(item => {{
+                if (!item.lat || !item.lng) return;
+                const marker = L.marker([item.lat, item.lng], {{ icon: agriIcon, title: item.title }});
+                marker.bindPopup(buildNewsPopup(item, '🌾 TARIM HABERİ', '#16a34a'));
+                agriCluster.addLayer(marker);
+            }});
+            mapLayers['agri'] = agriCluster;
+
+            // 3. Livestock News Layer (Toggleable)
+            const livestockCluster = L.markerClusterGroup({{
+                chunkedLoading: true,
+                maxClusterRadius: 35,
+                showCoverageOnHover: false
+            }});
+            const livestockIcon = buildNewsMarkerIcon('#d97706', '🐄');
+            livestockMapData.forEach(item => {{
+                if (!item.lat || !item.lng) return;
+                const marker = L.marker([item.lat, item.lng], {{ icon: livestockIcon, title: item.title }});
+                marker.bindPopup(buildNewsPopup(item, '🐄 HAYVANCILIK HABERİ', '#d97706'));
+                livestockCluster.addLayer(marker);
+            }});
+            mapLayers['livestock'] = livestockCluster;
+        }}
+
+        async function toggleMapLayer(layerId) {{
+            if (!portalMap) return;
+            const chk = document.getElementById('layer' + layerId.charAt(0).toUpperCase() + layerId.slice(1) + 'Check');
+            const btn = document.getElementById('layerBtn_' + layerId);
+            const isChecked = chk ? chk.checked : false;
+
+            if (btn) {{
+                if (isChecked) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }}
+
+            const loader = document.getElementById('mapLoadingIndicator');
+            const loaderText = document.getElementById('mapLoadingText');
+
+            if (layerId === 'water' || layerId === 'agri' || layerId === 'livestock') {{
+                const cluster = mapLayers[layerId];
+                if (!cluster) return;
+                if (isChecked) {{
+                    portalMap.addLayer(cluster);
+                }} else {{
+                    portalMap.removeLayer(cluster);
+                }}
+                return;
+            }}
+
+            if (layerId === 'agreements') {{
+                if (!isChecked) {{
+                    if (mapLayers['agreements']) portalMap.removeLayer(mapLayers['agreements']);
+                    return;
+                }}
+                if (mapLayers['agreements']) {{
+                    portalMap.addLayer(mapLayers['agreements']);
+                    return;
+                }}
+                // Fetch agreements
+                if (loader) {{ loaderText.innerText = '3.059 Sınır Aşan Su Anlaşması yükleniyor...'; loader.style.display = 'flex'; }}
+                try {{
+                    let res = await fetch('data/agreements.min.json');
+                    if (!res.ok) res = await fetch('https://mserman90.github.io/water-agreements-portal/data/agreements.min.json');
+                    const agreements = await res.json();
+                    const cluster = L.markerClusterGroup({{ chunkedLoading: true, maxClusterRadius: 40 }});
+                    const icon = L.divIcon({{
+                        className: '',
+                        html: '<div style="width:11px;height:11px;border-radius:50%;background:#2563eb;border:1.5px solid #fff;box-shadow:0 0 6px rgba(37,99,235,0.8);"></div>',
+                        iconSize: [11, 11],
+                        iconAnchor: [5, 5]
+                    }});
+                    agreements.forEach(a => {{
+                        if (!a.latitude || !a.longitude) return;
+                        const marker = L.marker([a.latitude, a.longitude], {{ icon, title: a.name }});
+                        marker.bindPopup(`
+                            <div class="portal-popup-card">
+                                <div class="portal-popup-header">
+                                    <span class="popup-channel-badge" style="background:#2563eb;">🌊 ULUSLARARASI ANLAŞMA</span>
+                                    <span class="popup-cat-badge">📅 ${{a.year || ''}}</span>
+                                </div>
+                                <h4 class="portal-popup-title">${{escapeMapHtml(a.name)}}</h4>
+                                <div class="portal-popup-meta">
+                                    <div>📍 <b>Ülkeler:</b> ${{escapeMapHtml(a.country || '')}}</div>
+                                    <div>🌊 <b>Havza:</b> ${{escapeMapHtml(a.basin || '')}}</div>
+                                    <div>📋 <b>Konu:</b> ${{escapeMapHtml(a.purpose || '')}}</div>
+                                </div>
+                                <a href="https://mserman90.github.io/water-agreements-portal/" target="_blank" rel="noopener noreferrer" class="btn-map-popup-read" style="text-decoration:none;">
+                                    🏛️ Su Anlaşmaları Portalında İncele ↗
+                                </a>
+                            </div>
+                        `);
+                        cluster.addLayer(marker);
+                    }});
+                    mapLayers['agreements'] = cluster;
+                    portalMap.addLayer(cluster);
+                }} catch (err) {{
+                    console.error('Agreements layer error:', err);
+                }} finally {{
+                    if (loader) loader.style.display = 'none';
+                }}
+                return;
+            }}
+
+            if (layerId === 'conflicts') {{
+                if (!isChecked) {{
+                    if (mapLayers['conflicts']) portalMap.removeLayer(mapLayers['conflicts']);
+                    return;
+                }}
+                if (mapLayers['conflicts']) {{
+                    portalMap.addLayer(mapLayers['conflicts']);
+                    return;
+                }}
+                if (loader) {{ loaderText.innerText = '2.809 Tarihi Su Olayı & Çatışması yükleniyor...'; loader.style.display = 'flex'; }}
+                try {{
+                    let res = await fetch('data/water_conflicts.json');
+                    if (!res.ok) res = await fetch('https://mserman90.github.io/water-agreements-portal/data/water_conflicts.json');
+                    const conflicts = await res.json();
+                    const cluster = L.markerClusterGroup({{ chunkedLoading: true, maxClusterRadius: 35 }});
+                    conflicts.forEach(c => {{
+                        if (!c.latitude || !c.longitude) return;
+                        const symbol = c.intensity <= -4 ? '⚡' : (c.intensity > 0 ? '🤝' : '⚔️');
+                        const color = c.intensity < 0 ? '#dc2626' : '#16a34a';
+                        const icon = L.divIcon({{
+                            className: '',
+                            html: `<div style="width:18px;height:18px;border-radius:50%;background:${{color}};border:1.5px solid #fff;box-shadow:0 0 6px ${{color}};display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;">${{symbol}}</div>`,
+                            iconSize: [18, 18],
+                            iconAnchor: [9, 9]
+                        }});
+                        const marker = L.marker([c.latitude, c.longitude], {{ icon, title: c.title }});
+                        marker.bindPopup(`
+                            <div class="portal-popup-card">
+                                <div class="portal-popup-header">
+                                    <span class="popup-channel-badge" style="background:${{color}};">⚡ SU OLAYI (BAR: ${{c.intensity}})</span>
+                                    <span class="popup-cat-badge">📅 ${{c.dateStr || c.year}}</span>
+                                </div>
+                                <h4 class="portal-popup-title">${{escapeMapHtml(c.title)}}</h4>
+                                <div class="portal-popup-meta">
+                                    <div>📍 <b>Taraflar:</b> ${{escapeMapHtml(c.countries || '')}}</div>
+                                    <div>🌊 <b>Havza:</b> ${{escapeMapHtml(c.basin || '')}}</div>
+                                </div>
+                                <p class="portal-popup-desc">${{escapeMapHtml(c.description || '')}}</p>
+                                <a href="${{c.pacificRefUrl || 'https://mserman90.github.io/water-agreements-portal/'}}" target="_blank" rel="noopener noreferrer" class="btn-map-popup-read" style="text-decoration:none;">
+                                    📚 Pacific Institute / Kaynakça ↗
+                                </a>
+                            </div>
+                        `);
+                        cluster.addLayer(marker);
+                    }});
+                    mapLayers['conflicts'] = cluster;
+                    portalMap.addLayer(cluster);
+                }} catch (err) {{
+                    console.error('Conflicts layer error:', err);
+                }} finally {{
+                    if (loader) loader.style.display = 'none';
+                }}
+                return;
+            }}
+
+            if (layerId === 'basins') {{
+                if (!isChecked) {{
+                    if (mapLayers['basins']) portalMap.removeLayer(mapLayers['basins']);
+                    return;
+                }}
+                if (mapLayers['basins']) {{
+                    portalMap.addLayer(mapLayers['basins']);
+                    return;
+                }}
+                if (loader) {{ loaderText.innerText = '310 Sınır Aşan Nehir Havzası poligonları yükleniyor...'; loader.style.display = 'flex'; }}
+                try {{
+                    let res = await fetch('data/Basin310_Master_20180511.geojson');
+                    if (!res.ok) res = await fetch('https://mserman90.github.io/water-agreements-portal/data/Basin310_Master_20180511.geojson');
+                    const geoJson = await res.json();
+                    const geoLayer = L.geoJSON(geoJson, {{
+                        style: () => ({{
+                            fillColor: '#0284c7',
+                            weight: 1.2,
+                            opacity: 0.8,
+                            color: '#0369a1',
+                            fillOpacity: 0.12
+                        }}),
+                        onEachFeature: (feature, layer) => {{
+                            const p = feature.properties || {{}};
+                            const bName = p.Basin_Name || 'Bilinmeyen Havza';
+                            const area = p.Area_km2 ? Number(p.Area_km2).toLocaleString() : 'N/A';
+                            const pop = p.Pop_2020 ? Number(p.Pop_2020).toLocaleString() : 'N/A';
+                            layer.bindPopup(`
+                                <div class="portal-popup-card">
+                                    <div class="portal-popup-header">
+                                        <span class="popup-channel-badge" style="background:#0891b2;">🗺️ SINIR AŞAN HAVZA</span>
+                                        <span class="popup-cat-badge">${{p.BCODE || ''}}</span>
+                                    </div>
+                                    <h4 class="portal-popup-title">🌊 ${{escapeMapHtml(bName)}}</h4>
+                                    <div class="portal-popup-meta">
+                                        <div>📐 <b>Yüzölçümü:</b> ${{area}} km²</div>
+                                        <div>👥 <b>Nüfus (2020):</b> ${{pop}}</div>
+                                        <div>🌍 <b>Kıta:</b> ${{escapeMapHtml(p.Continent_ || '')}}</div>
+                                    </div>
+                                    <a href="https://mserman90.github.io/water-agreements-portal/" target="_blank" rel="noopener noreferrer" class="btn-map-popup-read" style="text-decoration:none;">
+                                        📊 Havza İklim Anomalilerini İncele ↗
+                                    </a>
+                                </div>
+                            `);
+                        }}
+                    }});
+                    mapLayers['basins'] = geoLayer;
+                    portalMap.addLayer(geoLayer);
+                }} catch (err) {{
+                    console.error('Basins layer error:', err);
+                }} finally {{
+                    if (loader) loader.style.display = 'none';
+                }}
+                return;
+            }}
+        }}
+
+        function zoomMapTo(target) {{
+            if (!portalMap) return;
+            if (target === 'turkey') {{
+                portalMap.setView([38.5, 35.0], 6);
+            }} else {{
+                portalMap.setView([25.0, 20.0], 2.5);
+            }}
+        }}
+
+        function toggleMapFullscreen() {{
+            const wrapper = document.getElementById('mapCanvasWrapper');
+            const btn = document.getElementById('btnMapFullscreen');
+            if (!wrapper) return;
+            wrapper.classList.toggle('fullscreen-mode');
+            const isFull = wrapper.classList.contains('fullscreen-mode');
+            if (btn) btn.innerText = isFull ? '✕ Küçült' : '⛶ Tam Ekran';
+            if (portalMap) {{
+                setTimeout(() => portalMap.invalidateSize(), 200);
+            }}
+        }}
 
         function openArticleModal(id) {{
             const it = articlesData.find(a => a.id === id);
             if (!it) return;
 
+            const channelTag = it.channel_name || '{portal_name}';
             if (it.is_academic) {{
                 document.getElementById('modalBadge').innerText = '🎓 ' + it.category;
                 document.getElementById('modalHeaderCategory').innerText = '🎓 HAKEMLİ AKADEMİK YAYIN &bull; ' + it.category.toUpperCase();
             }} else if (it.is_turkey) {{
                 document.getElementById('modalBadge').innerText = '🇹🇷 ' + it.category;
-                document.getElementById('modalHeaderCategory').innerText = 'TÜRKİYE BÜLTENİ &bull; ' + it.category.toUpperCase();
+                document.getElementById('modalHeaderCategory').innerText = channelTag.toUpperCase() + ' &bull; ' + it.category.toUpperCase();
             }} else {{
                 document.getElementById('modalBadge').innerText = it.category;
-                document.getElementById('modalHeaderCategory').innerText = it.category.toUpperCase() + ' &bull; {portal_name}';
+                document.getElementById('modalHeaderCategory').innerText = it.category.toUpperCase() + ' &bull; ' + channelTag;
             }}
             document.getElementById('modalTitleTr').innerText = it.title_tr;
             const titleEnEl = document.getElementById('modalTitleEn');
@@ -2418,6 +3341,12 @@ def generate_newspaper_portal_html(
                 btn.innerHTML = `<span class="theme-icon">${{icon}}</span>`;
                 btn.title = tooltip;
             }}
+            if (window.portalTileLayer) {{
+                const newUrl = isDark 
+                    ? 'https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png'
+                    : 'https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png';
+                window.portalTileLayer.setUrl(newUrl);
+            }}
         }}
 
         function toggleTheme() {{
@@ -2432,9 +3361,13 @@ def generate_newspaper_portal_html(
         (function initThemeUI() {{
             const current = document.documentElement.getAttribute('data-theme') || 'light';
             if (document.readyState === 'loading') {{
-                document.addEventListener('DOMContentLoaded', () => updateThemeElements(current));
+                document.addEventListener('DOMContentLoaded', () => {{
+                    updateThemeElements(current);
+                    initPortalMap();
+                }});
             }} else {{
                 updateThemeElements(current);
+                initPortalMap();
             }}
         }})();
 

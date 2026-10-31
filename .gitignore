@@ -10,6 +10,8 @@ data/*
 !data/whatsapp_history.json
 !data/sygm_last_report_url.txt
 !data/sygm_sync_history.json
+!data/geo/
+!data/geo/**
 !data/episodes/
 !data/episodes/*.mp3
 *.sqlite

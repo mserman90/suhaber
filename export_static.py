@@ -14,6 +14,7 @@ import sys
 import json
 import html
 import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -452,6 +453,15 @@ def main():
     public_url = config.PUBLIC_BASE_URL or "https://mserman90.github.io/suhaberportali"
     now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
 
+    # Harita jeo-uzamsal veri setlerini (Sınır aşan su anlaşmaları, çatışmalar, havzalar) dist/data dizinine kopyala
+    dist_geo_dir = dist_dir / "data"
+    dist_geo_dir.mkdir(parents=True, exist_ok=True)
+    local_geo_dir = Path(__file__).resolve().parent / "data" / "geo"
+    if local_geo_dir.exists():
+        for geo_file in local_geo_dir.glob("*.*"):
+            shutil.copy2(geo_file, dist_geo_dir / geo_file.name)
+        print(f"[+] Harita jeo-uzamsal veri setleri kopyalandı: {dist_geo_dir}")
+
     # --- A) SU HABER BÜLTENİ BESLEMELERİ & PORTALI ---
     rss_water_self = f"{public_url}/rss.xml"
     atom_water_self = f"{public_url}/atom.xml"
@@ -493,7 +503,7 @@ def main():
     (dist_dir / "feed.json").write_text(json.dumps(json_data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'feed.json'}")
 
-    # 4. Su Portalı (index.html)
+    # 4. Su Portalı (index.html) - Tüm kanalların verisiyle Harita Katmanlarını destekler
     portal_html = generate_newspaper_portal_html(
         water_items,
         now_str,
@@ -503,7 +513,9 @@ def main():
         channel="water",
         water_count=len(water_items),
         agri_count=len(agri_items),
-        livestock_count=len(livestock_items)
+        livestock_count=len(livestock_items),
+        agri_items=agri_items,
+        livestock_items=livestock_items
     )
     (dist_dir / "index.html").write_text(portal_html, encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'index.html'} ('Su Haber Bülteni' Modern Gazete Portalı)")
