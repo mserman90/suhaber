@@ -28,39 +28,68 @@ def generate_newspaper_portal_html(
     is_livestock = (channel == "livestock")
 
     if is_livestock:
-        portal_name = "HAYVANCILIK GÜNDEMİ"
-        portal_sub_name = "Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi"
-        portal_motto = '"Köylünün refahı ve milletin gıdası, güçlü ve yerli hayvancılıkla mümkündür."'
-        portal_title_tag = "Hayvancılık Gündemi — Türkiye ve Dünya Hayvancılık & Süt Endüstrisi Gazetesi"
+        channel_key = "livestock"
+        portal_name_tr = "HAYVANCILIK GÜNDEMİ"
+        portal_name_en = "LIVESTOCK AGENDA"
+        portal_sub_name_tr = "Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi"
+        portal_sub_name_en = "Turkey & Global Livestock, Dairy, Meat, Feed & Animal Health Newspaper"
+        portal_motto_tr = '"Köylünün refahı ve milletin gıdası, güçlü ve yerli hayvancılıkla mümkündür."'
+        portal_motto_en = '"The welfare of rural communities and nourishment of the nation rely on strong, sustainable livestock."'
+        portal_title_tag_tr = "Hayvancılık Gündemi — Türkiye ve Dünya Hayvancılık & Süt Endüstrisi Gazetesi"
+        portal_title_tag_en = "Livestock Agenda — Turkey & Global Livestock & Dairy Industry Newspaper"
     elif is_agri:
-        portal_name = "TARIM GÜNDEMİ"
-        portal_sub_name = "Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi"
-        portal_motto = '"Milli ekonominin temeli tarımdır." &mdash; Mustafa Kemal Atatürk'
-        portal_title_tag = "Tarım Gündemi — Türkiye ve Dünya Tarım, Bitkisel Üretim & Akıllı Tarım Gazetesi"
+        channel_key = "agriculture"
+        portal_name_tr = "TARIM GÜNDEMİ"
+        portal_name_en = "AGRICULTURE AGENDA"
+        portal_sub_name_tr = "Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi"
+        portal_sub_name_en = "Turkey & Global Agriculture, Crop Production, Seed & Smart Farming Newspaper"
+        portal_motto_tr = '"Milli ekonominin temeli tarımdır." &mdash; Mustafa Kemal Atatürk'
+        portal_motto_en = '"The foundation of the national economy is agriculture." &mdash; Mustafa Kemal Atatürk'
+        portal_title_tag_tr = "Tarım Gündemi — Türkiye ve Dünya Tarım, Bitkisel Üretim & Akıllı Tarım Gazetesi"
+        portal_title_tag_en = "Agriculture Agenda — Turkey & Global Agriculture, Crop Production & Smart Farming Newspaper"
     else:
-        portal_name = "SU GÜNDEMİ"
-        portal_sub_name = "Türkiye ve Dünya Su, Sulama ve Çevre Araştırmaları Gazetesi"
-        portal_motto = '"Geleceğin dünyasında en stratejik güç sudur."'
-        portal_title_tag = "Su Gündemi — Türkiye ve Dünya Su & Sulama Gazetesi"
-    
+        channel_key = "water"
+        portal_name_tr = "SU GÜNDEMİ"
+        portal_name_en = "WATER AGENDA"
+        portal_sub_name_tr = "Türkiye ve Dünya Su, Sulama ve Çevre Araştırmaları Gazetesi"
+        portal_sub_name_en = "Turkey & Global Water, Irrigation & Environmental Research Newspaper"
+        portal_motto_tr = '"Geleceğin dünyasında en stratejik güç sudur."'
+        portal_motto_en = '"In the world of tomorrow, water is the most strategic power."'
+        portal_title_tag_tr = "Su Gündemi — Türkiye ve Dünya Su & Sulama Gazetesi"
+        portal_title_tag_en = "Water Agenda — Turkey & Global Water & Irrigation Newspaper"
+
+    portal_name = portal_name_tr
+    portal_sub_name = portal_sub_name_tr
+    portal_motto = portal_motto_tr
+    portal_title_tag = portal_title_tag_tr
+
     # Günün Sözü (Su / Tarım / Hayvancılık Yönetimi Öğütleri)
     if is_livestock:
         from app.quotes import get_daily_livestock_quote
         daily_quote = get_daily_livestock_quote()
         quote_text = html.escape(daily_quote.get("quote", ""))
+        quote_text_en = html.escape(daily_quote.get("quote_en", daily_quote.get("quote", "")))
         quote_author = html.escape(daily_quote.get("author", "Milli Hayvancılık Rehberi"))
+        quote_author_en = html.escape(daily_quote.get("author_en", "National Livestock Guide"))
         quote_cat = html.escape(daily_quote.get("category", "Hayvancılık"))
+        quote_cat_en = html.escape(daily_quote.get("category_en", "Livestock"))
     elif is_agri:
         from app.quotes import get_daily_agriculture_quote
         daily_quote = get_daily_agriculture_quote()
         quote_text = html.escape(daily_quote.get("quote", ""))
+        quote_text_en = html.escape(daily_quote.get("quote_en", daily_quote.get("quote", "")))
         quote_author = html.escape(daily_quote.get("author", "Milli Tarım Rehberi"))
+        quote_author_en = html.escape(daily_quote.get("author_en", "National Agriculture Guide"))
         quote_cat = html.escape(daily_quote.get("category", "Tarım"))
+        quote_cat_en = html.escape(daily_quote.get("category_en", "Agriculture"))
     else:
         daily_quote = get_daily_water_quote()
         quote_text = html.escape(daily_quote.get("quote", ""))
+        quote_text_en = html.escape(daily_quote.get("quote_en", daily_quote.get("quote", "")))
         quote_author = html.escape(daily_quote.get("author", "Su Yönetimi Rehberi"))
+        quote_author_en = html.escape(daily_quote.get("author_en", "Water Management Guide"))
         quote_cat = html.escape(daily_quote.get("category", "Su Yönetimi"))
+        quote_cat_en = html.escape(daily_quote.get("category_en", "Water Management"))
 
     now_ts = int(datetime.now(timezone.utc).timestamp())
 
@@ -244,12 +273,20 @@ def generate_newspaper_portal_html(
         default_slug_name = "besicilik" if is_livestock else ("bitkisel" if is_agri else "kaynak")
         category = cat_raw or default_cat_name
         slug = CATEGORY_SLUGS.get(category, default_slug_name)
+        title_en_val = it.get("title_en") or it.get("title") or title_tr
+        summary_en_val = it.get("summary_en") or ""
+        curr_channel_tr = "Hayvancılık Gündemi" if is_livestock else ("Tarım Gündemi" if is_agri else "Su Gündemi")
+        curr_channel_en = "Livestock Agenda" if is_livestock else ("Agriculture Agenda" if is_agri else "Water Agenda")
         portal_data.append({
             "id": idx,
             "title_tr": title_tr,
-            "title_en": it.get("title", ""),
+            "title_en": title_en_val,
             "summary_tr": summary_tr,
+            "summary_en": summary_en_val,
             "category": category,
+            "channel_key": channel,
+            "channel_name": curr_channel_tr,
+            "channel_name_en": curr_channel_en,
             "slug": slug,
             "source": source,
             "author": it.get("author", ""),
@@ -299,10 +336,13 @@ def generate_newspaper_portal_html(
             all_articles_data.append({
                 "id": aid,
                 "title_tr": title_tr,
-                "title_en": a_it.get("title", ""),
+                "title_en": a_it.get("title_en") or a_it.get("title") or title_tr,
                 "summary_tr": summary_tr,
+                "summary_en": a_it.get("summary_en") or "",
                 "category": cat,
-                "channel_name": "Tarım Bülteni",
+                "channel_key": "agriculture",
+                "channel_name": "Tarım Gündemi",
+                "channel_name_en": "Agriculture Agenda",
                 "slug": "tarim",
                 "source": source,
                 "author": a_it.get("author", "Tarım Muhabiri"),
@@ -340,10 +380,13 @@ def generate_newspaper_portal_html(
             all_articles_data.append({
                 "id": lid,
                 "title_tr": title_tr,
-                "title_en": l_it.get("title", ""),
+                "title_en": l_it.get("title_en") or l_it.get("title") or title_tr,
                 "summary_tr": summary_tr,
+                "summary_en": l_it.get("summary_en") or "",
                 "category": cat,
+                "channel_key": "livestock",
                 "channel_name": "Hayvancılık Gündemi",
+                "channel_name_en": "Livestock Agenda",
                 "slug": "hayvancilik",
                 "source": source,
                 "author": l_it.get("author", "Zootekni Uzmanı"),
@@ -569,8 +612,8 @@ def generate_newspaper_portal_html(
             </div>
             <div class="sub-headline-content">
                 <span class="news-date">📅 {html.escape(it['date'][:16] if it.get('date') else today_str)}</span>
-                <h4>{html.escape(it['title_tr'])}</h4>
-                <p>{html.escape(it['summary_tr'][:120])}...</p>
+                <h4 data-article-title-id="{it['id']}">{html.escape(it['title_tr'])}</h4>
+                <p data-article-summary-id="{it['id']}">{html.escape(it['summary_tr'][:120])}...</p>
             </div>
         </div>
         """
@@ -602,16 +645,16 @@ def generate_newspaper_portal_html(
                     <span>📅 {html.escape(it['date'][:16] if it.get('date') else today_str)}</span>
                     <span>{html.escape(it['source'][:32])}</span>
                 </div>
-                <h3 class="card-title" onclick="openArticleModal({it['id']})">
+                <h3 class="card-title" data-article-title-id="{it['id']}" onclick="openArticleModal({it['id']})">
                     {html.escape(it['title_tr'])}
                 </h3>
-                {f'<h5 class="card-title-en">Orijinal Başlık: {html.escape(it["title_en"])}</h5>' if (it.get('title_en') and it['title_en'] != it['title_tr']) else ''}
-                <p class="card-excerpt">
+                {f'<h5 class="card-title-en" data-article-original-title-id="{it['id']}">Orijinal Başlık: {html.escape(it["title_en"])}</h5>' if (it.get('title_en') and it['title_en'] != it['title_tr']) else ''}
+                <p class="card-excerpt" data-article-summary-id="{it['id']}">
                     {html.escape(it['summary_tr'][:180])}...
                 </p>
                 <div class="card-action-bar">
-                    <button class="btn-read-more" onclick="openArticleModal({it['id']})">Haberi Oku &rarr;</button>
-                    <a href="{html.escape(it['link'])}" target="_blank" rel="noopener noreferrer" class="link-original" title="Orijinal Araştırma Sayfası">
+                    <button class="btn-read-more" data-i18n="read_news" onclick="openArticleModal({it['id']})">Haberi Oku &rarr;</button>
+                    <a href="{html.escape(it['link'])}" target="_blank" rel="noopener noreferrer" class="link-original" data-i18n="source_link" title="Orijinal Araştırma Sayfası">
                         🔗 Kaynak
                     </a>
                 </div>
@@ -663,7 +706,7 @@ def generate_newspaper_portal_html(
             f'<span class="ticker-item" onclick="openArticleModal({it["id"]})">'
             f'<span class="ticker-icon">⚡</span> '
             f'{cat_badge} '
-            f'<span class="ticker-text">{html.escape(it["title_tr"])}</span>'
+            f'<span class="ticker-text" data-article-ticker-id="{it["id"]}">{html.escape(it["title_tr"])}</span>'
             f'<span class="ticker-sep">&bull;</span>'
             f'</span>'
         )
@@ -720,19 +763,19 @@ def generate_newspaper_portal_html(
     channel_tabs_html = f"""
     <div class="channel-switcher-container">
         <div class="channel-switcher-inner">
-            <a href="index.html" class="channel-tab-btn {water_active_cls}" title="Su Gündemi (Ana Sayfa)">
+            <a href="index.html" class="channel-tab-btn {water_active_cls}" id="tabWater" title="Su Gündemi">
                 <span class="channel-tab-icon">💧</span>
-                <span class="channel-tab-name">SU GÜNDEMİ</span>
+                <span class="channel-tab-name" id="tabNameWater" data-i18n="tab_water">SU GÜNDEMİ</span>
                 {water_badge_count}
             </a>
-            <a href="tarim.html" class="channel-tab-btn {agri_active_cls}" title="Tarım Gündemi">
+            <a href="tarim.html" class="channel-tab-btn {agri_active_cls}" id="tabAgri" title="Tarım Gündemi">
                 <span class="channel-tab-icon">🌾</span>
-                <span class="channel-tab-name">TARIM GÜNDEMİ</span>
+                <span class="channel-tab-name" id="tabNameAgri" data-i18n="tab_agri">TARIM GÜNDEMİ</span>
                 {agri_badge_count}
             </a>
-            <a href="hayvancilik.html" class="channel-tab-btn {livestock_active_cls}" title="Hayvancılık Gündemi">
+            <a href="hayvancilik.html" class="channel-tab-btn {livestock_active_cls}" id="tabLivestock" title="Hayvancılık Gündemi">
                 <span class="channel-tab-icon">🐄</span>
-                <span class="channel-tab-name">HAYVANCILIK GÜNDEMİ</span>
+                <span class="channel-tab-name" id="tabNameLivestock" data-i18n="tab_livestock">HAYVANCILIK GÜNDEMİ</span>
                 {livestock_badge_count}
             </a>
         </div>
@@ -1151,6 +1194,38 @@ def generate_newspaper_portal_html(
             background: rgba(255, 255, 255, 0.16);
             border-color: #38bdf8;
             box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+        }}
+        .lang-pill-switch {{
+            display: inline-flex;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            user-select: none;
+            gap: 2px;
+        }}
+        .lang-btn {{
+            background: transparent;
+            border: none;
+            padding: 3px 10px;
+            border-radius: 14px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            color: var(--ink-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            line-height: 1.2;
+        }}
+        .lang-btn:hover {{
+            color: var(--ink-primary);
+        }}
+        .lang-btn.active {{
+            background: var(--accent-color, #0284c7);
+            color: #ffffff !important;
+            box-shadow: 0 1px 4px rgba(2, 132, 199, 0.35);
         }}
         .top-theme-toggle-btn {{
             background: rgba(255, 255, 255, 0.1);
@@ -2967,10 +3042,14 @@ def generate_newspaper_portal_html(
     <div class="top-masthead-bar">
         <div class="top-bar-inner">
             <div class="top-bar-left">
-                <span>🗓️ {today_str}</span>
-                {top_stat_html}
+                <span id="topBarDate">🗓️ {today_str}</span>
+                <span id="topStatContainer">{top_stat_html}</span>
             </div>
             <div class="top-bar-right">
+                <div class="lang-pill-switch" id="langPillSwitch" title="Dil Seçimi / Select Language">
+                    <button type="button" class="lang-btn active" id="btnLangTR" onclick="setPortalLanguage('tr')">TR</button>
+                    <button type="button" class="lang-btn" id="btnLangEN" onclick="setPortalLanguage('en')">EN</button>
+                </div>
                 <div class="top-search-box">
                     <input type="text" id="searchInput" placeholder="🔍 Başlıklarda ara..." oninput="filterSearch()" aria-label="Haberlerde ara">
                 </div>
@@ -2986,9 +3065,9 @@ def generate_newspaper_portal_html(
 
     <!-- Masthead -->
     <header class="newspaper-header">
-        <div class="newspaper-motto">{portal_motto}</div>
-        <h1 class="newspaper-logo">{portal_name}</h1>
-        <div class="newspaper-sub-logo">{portal_sub_name}</div>
+        <div class="newspaper-motto" id="newspaperMotto">{portal_motto}</div>
+        <h1 class="newspaper-logo" id="newspaperLogo">{portal_name}</h1>
+        <div class="newspaper-sub-logo" id="newspaperSubLogo">{portal_sub_name}</div>
         <div class="masthead-divider"></div>
     </header>
 
@@ -3044,11 +3123,11 @@ def generate_newspaper_portal_html(
                 
                 <!-- Günün Sözü (Su / Tarım Yönetimi Öğütleri) -->
                 <div class="sidebar-card">
-                    <h4 class="sidebar-title">Günün Sözü</h4>
-                    <div class="editorial-quote">
+                    <h4 class="sidebar-title" id="dailyQuoteTitle" data-i18n="daily_quote_title">Günün Sözü</h4>
+                    <div class="editorial-quote" id="dailyQuoteText">
                         "{quote_text}"
                     </div>
-                    <div class="editorial-author">&mdash; {quote_author} &bull; <span style="font-weight:normal; color:var(--ink-light);">{quote_cat}</span></div>
+                    <div class="editorial-author">&mdash; <span id="dailyQuoteAuthor">{quote_author}</span> &bull; <span style="font-weight:normal; color:var(--ink-light);" id="dailyQuoteCat">{quote_cat}</span></div>
                 </div>
 
                 <!-- Stats Infographic -->
@@ -3596,32 +3675,54 @@ function toggleMapSidePanel(forceState) {{
             }}
         }}
 
+                window.currentModalArticleId = null;
+
         function openArticleModal(id) {{
             const it = articlesData.find(a => a.id === id);
             if (!it) return;
 
-            const channelTag = it.channel_name || '{portal_name}';
+            window.currentModalArticleId = id;
+            const isEn = (window.currentPortalLang === 'en');
+            const channelTag = isEn ? (it.channel_name_en || 'Water Agenda') : (it.channel_name || '{portal_name}');
+            const catName = isEn ? (CATEGORIES_I18N[it.category] || it.category) : it.category;
+
             if (it.is_academic) {{
-                document.getElementById('modalBadge').innerText = '🎓 ' + it.category;
-                document.getElementById('modalHeaderCategory').innerText = '🎓 HAKEMLİ AKADEMİK YAYIN &bull; ' + it.category.toUpperCase();
+                document.getElementById('modalBadge').innerText = '🎓 ' + catName;
+                document.getElementById('modalHeaderCategory').innerText = isEn
+                    ? ('🎓 PEER-REVIEWED RESEARCH • ' + catName.toUpperCase())
+                    : ('🎓 HAKEMLİ AKADEMİK YAYIN • ' + catName.toUpperCase());
             }} else if (it.is_turkey) {{
-                document.getElementById('modalBadge').innerText = '🇹🇷 ' + it.category;
-                document.getElementById('modalHeaderCategory').innerText = channelTag.toUpperCase() + ' &bull; ' + it.category.toUpperCase();
+                document.getElementById('modalBadge').innerText = '🇹🇷 ' + catName;
+                document.getElementById('modalHeaderCategory').innerText = channelTag.toUpperCase() + ' • ' + catName.toUpperCase();
             }} else {{
-                document.getElementById('modalBadge').innerText = it.category;
-                document.getElementById('modalHeaderCategory').innerText = it.category.toUpperCase() + ' &bull; ' + channelTag;
+                document.getElementById('modalBadge').innerText = catName;
+                document.getElementById('modalHeaderCategory').innerText = catName.toUpperCase() + ' • ' + channelTag;
             }}
-            document.getElementById('modalTitleTr').innerText = it.title_tr;
+
+            const titleTr = it.title_tr || it.title || '';
+            const titleEn = it.title_en || it.title || titleTr;
+
+            document.getElementById('modalTitleTr').innerText = isEn ? titleEn : titleTr;
             const titleEnEl = document.getElementById('modalTitleEn');
-            if (it.title_en && it.title_en !== it.title_tr) {{
-                titleEnEl.innerText = 'Orijinal Başlık: ' + it.title_en;
-                titleEnEl.style.display = 'block';
+            if (isEn) {{
+                if (titleTr && titleTr !== titleEn) {{
+                    titleEnEl.innerText = 'Turkish Headline: ' + titleTr;
+                    titleEnEl.style.display = 'block';
+                }} else {{
+                    titleEnEl.style.display = 'none';
+                }}
             }} else {{
-                titleEnEl.style.display = 'none';
+                if (titleEn && titleEn !== titleTr) {{
+                    titleEnEl.innerText = 'Orijinal Başlık: ' + titleEn;
+                    titleEnEl.style.display = 'block';
+                }} else {{
+                    titleEnEl.style.display = 'none';
+                }}
             }}
-            document.getElementById('modalDate').innerText = '📅 ' + it.date;
-            document.getElementById('modalSource').innerText = (it.source && (it.source.startsWith('📰') || it.source.startsWith('🎓') || it.source.startsWith('🇹🇷') || it.source.startsWith('📡') || it.source.startsWith('🌾'))) ? it.source : '📰 ' + (it.source || 'Basın');
-            document.getElementById('modalAuthor').innerText = it.author ? '✍️ ' + it.author : '✍️ Basın Bülteni';
+
+            document.getElementById('modalDate').innerText = '📅 ' + (it.date || '');
+            document.getElementById('modalSource').innerText = (it.source && (it.source.startsWith('📰') || it.source.startsWith('🎓') || it.source.startsWith('🇹🇷') || it.source.startsWith('📡') || it.source.startsWith('🌾') || it.source.startsWith('🐄'))) ? it.source : '📰 ' + (it.source || (isEn ? 'Press' : 'Basın'));
+            document.getElementById('modalAuthor').innerText = it.author ? ('✍️ ' + it.author) : ('✍️ ' + (isEn ? 'Press Release' : 'Basın Bülteni'));
             
             const imgEl = document.getElementById('modalImg');
             if (it.image) {{
@@ -3631,8 +3732,14 @@ function toggleMapSidePanel(forceState) {{
                 imgEl.style.display = 'none';
             }}
 
-            document.getElementById('modalContent').innerHTML = '<p>' + it.summary_tr.replace(/\\n/g, '</p><p>') + '</p>';
-            document.getElementById('modalDoiLink').href = it.link;
+            const summary = isEn ? (it.summary_en || it.summary_tr || '') : (it.summary_tr || '');
+            document.getElementById('modalContent').innerHTML = '<p>' + summary.replace(/
+/g, '</p><p>') + '</p>';
+            document.getElementById('modalDoiLink').href = it.link || '#';
+            const doiBtn = document.getElementById('modalDoiLink');
+            if (doiBtn) {{
+                doiBtn.innerHTML = isEn ? 'Original Article & Sources &rarr;' : 'Orijinal Araştırma ve Kaynak &rarr;';
+            }}
 
             const modal = document.getElementById('articleModal');
             modal.style.display = 'flex';
@@ -3647,6 +3754,194 @@ function toggleMapSidePanel(forceState) {{
 
         document.addEventListener('keydown', function(e) {{
             if (e.key === 'Escape') closeArticleModal();
+        }});
+
+                // Bilingual (Turkish / English) Engine
+        window.currentPortalLang = localStorage.getItem('portal_language') || 'tr';
+
+        const CHANNEL_CONFIG = {{
+            channel_key: '{channel_key}',
+            portal_name_tr: `{portal_name_tr}`,
+            portal_name_en: `{portal_name_en}`,
+            portal_sub_name_tr: `{portal_sub_name_tr}`,
+            portal_sub_name_en: `{portal_sub_name_en}`,
+            portal_motto_tr: `{portal_motto_tr}`,
+            portal_motto_en: `{portal_motto_en}`,
+            portal_title_tag_tr: `{portal_title_tag_tr}`,
+            portal_title_tag_en: `{portal_title_tag_en}`,
+            quote_text_tr: `{quote_text}`,
+            quote_text_en: `{quote_text_en}`,
+            quote_author_tr: `{quote_author}`,
+            quote_author_en: `{quote_author_en}`,
+            quote_cat_tr: `{quote_cat}`,
+            quote_cat_en: `{quote_cat_en}`,
+            today_str: `{today_str}`
+        }};
+
+        const CATEGORIES_I18N = {{
+            "Su Kaynakları": "Water Resources",
+            "İklim & Kuraklık": "Climate & Drought",
+            "Tarımsal Sulama": "Agricultural Irrigation",
+            "Su Teknolojileri": "Water Technologies",
+            "Su Arıtma & Kalite": "Water Treatment & Quality",
+            "Su Politikaları": "Water Policy & Governance",
+            "Akademik Yayınlar": "Academic Publications",
+            "Akademik": "Academic",
+            "Türkiye": "Turkey",
+
+            "Tarım Teknolojileri": "AgTech & Precision Farming",
+            "Tohum & Gübre": "Seed & Fertilizer",
+            "Tarımsal Destekler": "Agricultural Subsidies",
+            "Küresel Tarım": "Global Agriculture",
+            "Bitkisel Üretim": "Crop Production",
+            "Tarım & Bitkisel": "Agriculture & Crops",
+
+            "Hayvancılık Teknolojileri": "Livestock Technologies",
+            "Süt & Mandıra": "Dairy & Milk",
+            "Besi & Kırmızı Et": "Livestock & Beef",
+            "Yem & Besleme": "Feed & Nutrition",
+            "Hayvan Sağlığı & Biyogüvenlik": "Animal Health & Biosecurity",
+            "Küçükbaş Hayvancılık": "Small Ruminants (Sheep & Goat)",
+            "Kanatlı Sektörü": "Poultry Sector",
+            "Destek & Fiyat Politikaları": "Subsidies & Market Prices",
+            "Hayvancılık & Besicilik": "Livestock & Ranching",
+            "Hayvancılık & Süt": "Livestock & Dairy"
+        }};
+
+        const CATEGORY_TITLES_EN = {{
+            'all': '{channel_ticker_icon} Latest Articles & Research',
+            'akademik': '🎓 Peer-Reviewed Academic Research Papers',
+            'sulama': '🌾 Agricultural Irrigation Research',
+            'teknoloji': '🔬 Water & Agritech Innovations',
+            'kaynak': '💧 Water Resources & Basin Management',
+            'iklim': '🌍 Climate & Drought Research',
+            'politika': '⚖️ Water & Agricultural Policy',
+            'tohum': '🌱 Seeds, Fertilizers & Soil Health',
+            'destek': '🏛️ Subsidies, Grants & Market Prices',
+            'kuresel': '🌐 Global Markets & Commodities',
+            'bitkisel': '🚜 Crop Production & Greenhouses',
+            'sut': '🥛 Dairy & Milk Processing',
+            'besi': '🥩 Beef & Livestock Ranching',
+            'yem': '🌾 Feed & Animal Nutrition',
+            'saglik': '🩺 Animal Health & Veterinary',
+            'kucukbas': '🐑 Small Ruminants (Sheep & Goat)',
+            'kanatli': '🐔 Poultry Industry'
+        }};
+
+        function setPortalLanguage(lang) {{
+            window.currentPortalLang = lang;
+            localStorage.setItem('portal_language', lang);
+
+            const isEn = (lang === 'en');
+
+            // 1. Language pill switcher buttons
+            const btnTR = document.getElementById('btnLangTR');
+            const btnEN = document.getElementById('btnLangEN');
+            if (btnTR) btnTR.classList.toggle('active', !isEn);
+            if (btnEN) btnEN.classList.toggle('active', isEn);
+
+            // 2. HTML lang and document title
+            document.documentElement.lang = lang;
+            document.title = isEn ? CHANNEL_CONFIG.portal_title_tag_en : CHANNEL_CONFIG.portal_title_tag_tr;
+
+            // 3. Header Masthead Elements
+            const logoEl = document.getElementById('newspaperLogo');
+            const subLogoEl = document.getElementById('newspaperSubLogo');
+            const mottoEl = document.getElementById('newspaperMotto');
+            if (logoEl) logoEl.innerText = isEn ? CHANNEL_CONFIG.portal_name_en : CHANNEL_CONFIG.portal_name_tr;
+            if (subLogoEl) subLogoEl.innerText = isEn ? CHANNEL_CONFIG.portal_sub_name_en : CHANNEL_CONFIG.portal_sub_name_tr;
+            if (mottoEl) mottoEl.innerHTML = isEn ? CHANNEL_CONFIG.portal_motto_en : CHANNEL_CONFIG.portal_motto_tr;
+
+            // 4. Channel Switcher Tabs
+            const tabW = document.getElementById('tabNameWater');
+            const tabA = document.getElementById('tabNameAgri');
+            const tabL = document.getElementById('tabNameLivestock');
+            if (tabW) tabW.innerText = isEn ? 'WATER AGENDA' : 'SU GÜNDEMİ';
+            if (tabA) tabA.innerText = isEn ? 'AGRICULTURE AGENDA' : 'TARIM GÜNDEMİ';
+            if (tabL) tabL.innerText = isEn ? 'LIVESTOCK AGENDA' : 'HAYVANCILIK GÜNDEMİ';
+
+            // 5. Search Box Placeholder
+            const searchEl = document.getElementById('searchInput');
+            if (searchEl) searchEl.placeholder = isEn ? '🔍 Search in headlines...' : '🔍 Başlıklarda ara...';
+
+            // 6. Günün Sözü (Quote of the Day)
+            const qTitle = document.getElementById('dailyQuoteTitle');
+            const qText = document.getElementById('dailyQuoteText');
+            const qAuth = document.getElementById('dailyQuoteAuthor');
+            const qCat = document.getElementById('dailyQuoteCat');
+            if (qTitle) qTitle.innerText = isEn ? 'Quote of the Day' : 'Günün Sözü';
+            if (qText) qText.innerText = '"' + (isEn ? CHANNEL_CONFIG.quote_text_en : CHANNEL_CONFIG.quote_text_tr) + '"';
+            if (qAuth) qAuth.innerText = isEn ? CHANNEL_CONFIG.quote_author_en : CHANNEL_CONFIG.quote_author_tr;
+            if (qCat) qCat.innerText = isEn ? CHANNEL_CONFIG.quote_cat_en : CHANNEL_CONFIG.quote_cat_tr;
+
+            // 7. Update All Article Titles, Summaries, Categories across Page
+            document.querySelectorAll('[data-article-title-id]').forEach(el => {{
+                const aid = parseInt(el.getAttribute('data-article-title-id'));
+                const art = articlesData.find(a => a.id === aid);
+                if (art) {{
+                    el.innerText = isEn ? (art.title_en || art.title_tr) : art.title_tr;
+                }}
+            }});
+
+            document.querySelectorAll('[data-article-summary-id]').forEach(el => {{
+                const aid = parseInt(el.getAttribute('data-article-summary-id'));
+                const art = articlesData.find(a => a.id === aid);
+                if (art) {{
+                    const fullSum = isEn ? (art.summary_en || art.summary_tr || '') : (art.summary_tr || '');
+                    const maxLen = el.classList.contains('hero-summary') ? 320 : (el.classList.contains('card-excerpt') ? 180 : 120);
+                    el.innerText = fullSum.slice(0, maxLen) + '...';
+                }}
+            }});
+
+            document.querySelectorAll('[data-article-ticker-id]').forEach(el => {{
+                const aid = parseInt(el.getAttribute('data-article-ticker-id'));
+                const art = articlesData.find(a => a.id === aid);
+                if (art) {{
+                    el.innerText = isEn ? (art.title_en || art.title_tr) : art.title_tr;
+                }}
+            }});
+
+            // 8. Buttons (Read news & source links)
+            document.querySelectorAll('[data-i18n="read_news"]').forEach(el => {{
+                el.innerText = isEn ? 'Read Article →' : 'Haberi Oku →';
+            }});
+            document.querySelectorAll('[data-i18n="source_link"]').forEach(el => {{
+                el.innerText = isEn ? '🔗 Source' : '🔗 Kaynak';
+            }});
+
+            // 9. Map section labels & side panel (if present)
+            const mapBadge = document.querySelector('.map-badge-tag');
+            if (mapBadge) mapBadge.innerText = isEn ? '🌐 GEOGRAPHIC INFORMATION SYSTEM (GIS) & ATLAS' : '🌐 COĞRAFİ BİLGİ SİSTEMİ (GIS) & HİDROPOLİTİK ATLAS';
+            const mapTitle = document.querySelector('.map-section-title');
+            if (mapTitle) mapTitle.innerText = isEn ? 'Interactive Water, Agriculture & Transboundary Basins Map' : 'İnteraktif Su, Tarım & Sınır Aşan Havza Haritası';
+            const sidePanelTitle = document.querySelector('.side-panel-title');
+            if (sidePanelTitle) sidePanelTitle.innerText = isEn ? 'Layer Filters' : 'Katman Filtreleri';
+            const sidePanelClose = document.querySelector('.btn-close-side-panel');
+            if (sidePanelClose) sidePanelClose.title = isEn ? 'Hide Panel' : 'Paneli Gizle (Kapat)';
+            const btnToggleLayers = document.querySelector('.btn-toggle-layers-bar');
+            if (btnToggleLayers) btnToggleLayers.title = isEn ? 'Toggle Layer Filters Panel' : 'Katman Filtreleri Panelini Aç / Kapat';
+
+            // 10. Update current active category title header
+            if (typeof filterCategory === 'function') {{
+                const secTitle = document.getElementById('sectionTitle');
+                if (secTitle) {{
+                    if (isEn && CATEGORY_TITLES_EN[currentSlug]) {{
+                        secTitle.innerText = CATEGORY_TITLES_EN[currentSlug];
+                    }} else if (CATEGORY_TITLES[currentSlug]) {{
+                        secTitle.innerText = CATEGORY_TITLES[currentSlug];
+                    }}
+                }}
+            }}
+
+            // 11. If an article modal is currently open, refresh it in the active language
+            if (window.currentModalArticleId !== null && window.currentModalArticleId !== undefined) {{
+                openArticleModal(window.currentModalArticleId);
+            }}
+        }}
+
+        // Initialize language immediately
+        document.addEventListener('DOMContentLoaded', function() {{
+            setPortalLanguage(window.currentPortalLang);
         }});
 
         let currentSlug = 'all';

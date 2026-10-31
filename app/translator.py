@@ -569,3 +569,108 @@ def batch_translate_articles(items: List[Dict]) -> List[Dict]:
                 logger.error("Parallel translation error: %s", e)
 
     return items
+
+
+def translate_to_english(text: str) -> str:
+    """
+    Translates Turkish text into natural English with multi-engine fallback.
+    If already English, returns as is.
+    """
+    if not text or not text.strip():
+        return ""
+    if not is_genuinely_turkish(text):
+        return text.strip()
+
+    clean_txt = strip_publisher_suffix(text)
+
+    # 1. Google Client5 with tl=en
+    try:
+        url = "https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=tr&tl=en&q=" + urllib.parse.quote(clean_txt)
+        resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=6)
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list) and len(data) > 0:
+                first = data[0]
+                if isinstance(first, str) and first:
+                    return first.strip()
+                elif isinstance(first, list) and len(first) > 0 and first[0]:
+                    return first[0].strip()
+    except Exception:
+        pass
+
+    # 2. MyMemory with tr|en
+    try:
+        url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(clean_txt[:300])}&langpair=tr|en&de=mserman90@gmail.com"
+        resp = requests.get(url, timeout=6)
+        if resp.status_code == 200:
+            trans = resp.json().get("responseData", {}).get("translatedText")
+            if trans and "MYMEMORY" not in trans.upper() and "QUOTA" not in trans.upper():
+                return html.unescape(trans).strip()
+    except Exception:
+        pass
+
+    return clean_txt
+
+
+def generate_english_editorial_summary(title_en: str, category: str, source: str = "", channel: str = "water") -> str:
+    """Generates a professional English editorial summary when full English narrative is unavailable."""
+    src_clean = strip_publisher_suffix(source).replace("📰", "").replace("🎓", "").replace("🇹🇷", "").replace("🌾", "").replace("🐄", "").strip() or "Industry Wire"
+    if channel == "agriculture":
+        return f"{title_en}. Detailed agricultural research, field trials, and production metrics reported by {src_clean}. Full data and findings are available via the original publication."
+    elif channel == "livestock":
+        return f"{title_en}. Animal welfare metrics, breeding standards, veterinary insights, and market data compiled from {src_clean}. Review full details in the original report."
+    else:
+        return f"{title_en}. Hydrological research, watershed analysis, and sustainable water management metrics published by {src_clean}. Explore context and measurements in the source."
+
+
+def batch_translate_to_english(items: List[Dict], channel: str = "water") -> List[Dict]:
+    """
+    Ensures every article has title_en and summary_en.
+    Uses ThreadPoolExecutor for fast parallel processing of any missing translations.
+    """
+    def process_item_en(it):
+        # 1. title_en
+        title_en = it.get("title_en")
+        raw_title = (it.get("title") or "").strip()
+        title_tr = (it.get("title_tr") or "").strip()
+        
+        if not title_en:
+            if not is_genuinely_turkish(raw_title) and len(raw_title) > 5:
+                title_en = raw_title
+            else:
+                title_en = translate_to_english(title_tr or raw_title)
+        
+        # 2. summary_en
+        summary_en = it.get("summary_en")
+        if not summary_en:
+            desc = it.get("description", "")
+            narrative = extract_real_narrative(desc)
+            if narrative and not is_genuinely_turkish(narrative) and len(narrative) >= 50:
+                summary_en = narrative[:320]
+            else:
+                summary_tr = it.get("summary_tr", "")
+                if summary_tr and len(summary_tr) > 20:
+                    summary_en = translate_to_english(summary_tr[:280])
+                else:
+                    summary_en = generate_english_editorial_summary(title_en, it.get("category_tr", ""), it.get("source_feed", ""), channel)
+        
+        return it["guid"], title_en, summary_en
+
+    items_needing_en = [it for it in items if not it.get("title_en") or not it.get("summary_en")]
+    if not items_needing_en:
+        return items
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = {executor.submit(process_item_en, it): it for it in items_needing_en}
+        for future in as_completed(futures):
+            try:
+                guid, title_en, summary_en = future.result()
+                for it in items:
+                    if it["guid"] == guid:
+                        it["title_en"] = title_en
+                        it["summary_en"] = summary_en
+                        break
+            except Exception as e:
+                logger.error("English parallel translation error: %s", e)
+
+    return items

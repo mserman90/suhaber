@@ -36,7 +36,7 @@ class Storage:
                     category_tr TEXT
                 )
             """)
-            for col in ["title_tr", "summary_tr", "category_tr", "is_turkey", "is_academic", "channel"]:
+            for col in ["title_tr", "summary_tr", "category_tr", "is_turkey", "is_academic", "channel", "title_en", "summary_en"]:
                 try:
                     cursor.execute(f"ALTER TABLE items ADD COLUMN {col} TEXT")
                 except sqlite3.OperationalError:
@@ -134,13 +134,15 @@ class Storage:
                         dt = datetime.fromtimestamp(pub_ts, tz=timezone.utc)
                         pub_date_rfc = email.utils.format_datetime(dt)
 
+                    title_en_val = it.get("title_en", "")
+                    summary_en_val = it.get("summary_en", "")
                     cursor.execute("""
                         INSERT INTO items (
                             guid, title, link, author, source_feed,
                             description, image_url, pub_date, pub_date_ts,
                             first_seen_ts, raw_date_str,
-                            title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         guid,
                         it["title"],
@@ -158,7 +160,9 @@ class Storage:
                         category_tr,
                         is_turkey_val,
                         is_academic_val,
-                        ch_val
+                        ch_val,
+                        title_en_val,
+                        summary_en_val
                     ))
 
             conn.commit()
@@ -191,6 +195,17 @@ class Storage:
                 """, (title_tr, summary_tr, category_tr, int(is_turkey), int(is_academic), guid))
             conn.commit()
 
+    def update_item_english(self, guid: str, title_en: str, summary_en: str):
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE items SET
+                    title_en = ?,
+                    summary_en = ?
+                WHERE guid = ?
+            """, (title_en, summary_en, guid))
+            conn.commit()
+
     def update_item_image(self, guid: str, image_url: str):
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -210,7 +225,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE channel = 'agriculture' OR channel = 'both' OR guid LIKE 'tr_agri:%' OR guid LIKE 'academic_agri:%' OR guid LIKE 'global_agri:%'
                     ORDER BY pub_date_ts DESC, first_seen_ts DESC
@@ -233,7 +248,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE (channel = 'agriculture' OR channel = 'both' OR guid LIKE 'tr_agri:%')
                       AND (is_turkey = 1 OR guid LIKE 'tr_agri:%')
@@ -254,7 +269,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE (channel = 'agriculture' OR channel = 'both' OR guid LIKE 'academic_agri:%')
                       AND (is_academic = 1 OR guid LIKE 'academic_agri:%')
@@ -275,7 +290,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE channel = 'livestock' OR channel = 'both' OR guid LIKE 'tr_livestock:%' OR guid LIKE 'academic_livestock:%' OR guid LIKE 'global_livestock:%'
                     ORDER BY pub_date_ts DESC, first_seen_ts DESC
@@ -298,7 +313,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE (channel = 'livestock' OR channel = 'both' OR guid LIKE 'tr_livestock:%')
                       AND (is_turkey = 1 OR guid LIKE 'tr_livestock:%')
@@ -319,7 +334,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE (channel = 'livestock' OR channel = 'both' OR guid LIKE 'academic_livestock:%')
                       AND (is_academic = 1 OR guid LIKE 'academic_livestock:%')
@@ -343,7 +358,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE (channel = 'water' OR channel = 'both' OR channel IS NULL OR channel = '')
                        OR (guid LIKE 'tr_water:%' OR guid LIKE 'academic:%' OR guid LIKE 'sygm:%' OR guid LIKE 'inoreader:%')
@@ -367,7 +382,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE (channel = 'water' OR channel = 'both' OR channel IS NULL OR channel = '')
                       AND (is_turkey = 1 OR category_tr = 'Türkiye' OR guid LIKE 'tr_water:%' OR guid LIKE 'sygm:%')
@@ -388,7 +403,7 @@ class Storage:
                     SELECT guid, title, link, author, source_feed,
                            description, image_url, pub_date, pub_date_ts,
                            first_seen_ts, raw_date_str,
-                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel
+                           title_tr, summary_tr, category_tr, is_turkey, is_academic, channel, title_en, summary_en
                     FROM items
                     WHERE (channel = 'water' OR channel = 'both' OR channel IS NULL OR channel = '')
                       AND (is_academic = 1 OR guid LIKE 'academic:%' OR source_feed LIKE '%🎓%')

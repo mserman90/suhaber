@@ -39,6 +39,7 @@ from app.livestock_scraper import (
 from app.feed import generate_rss_2_xml, generate_atom_xml, generate_json_feed
 from app.translator import (
     batch_translate_articles,
+    batch_translate_to_english,
     categorize_article,
     categorize_agriculture_article,
     categorize_livestock_article,
@@ -236,6 +237,10 @@ def main():
         it["image_url"] = resolved_img
         storage.update_item_image(it["guid"], resolved_img)
 
+    water_items = batch_translate_to_english(water_items, channel="water")
+    for it in water_items:
+        storage.update_item_english(it["guid"], it.get("title_en", ""), it.get("summary_en", ""))
+
     now_ts = int(datetime.now(timezone.utc).timestamp())
 
     def turkey_water_headline_sort_key(x):
@@ -336,6 +341,10 @@ def main():
         it["image_url"] = resolved_img
         storage.update_item_image(it["guid"], resolved_img)
 
+    agri_items = batch_translate_to_english(agri_items, channel="agriculture")
+    for it in agri_items:
+        storage.update_item_english(it["guid"], it.get("title_en", ""), it.get("summary_en", ""))
+
     def turkey_agri_headline_sort_key(x):
         guid = x.get("guid", "")
         source = x.get("source_feed", "")
@@ -422,6 +431,10 @@ def main():
         resolved_img = resolve_article_image(it, idx, channel="livestock")
         it["image_url"] = resolved_img
         storage.update_item_image(it["guid"], resolved_img)
+
+    livestock_items = batch_translate_to_english(livestock_items, channel="livestock")
+    for it in livestock_items:
+        storage.update_item_english(it["guid"], it.get("title_en", ""), it.get("summary_en", ""))
 
     def turkey_livestock_headline_sort_key(x):
         guid = x.get("guid", "")
