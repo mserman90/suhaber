@@ -44,15 +44,16 @@ def clean_agriculture_title(raw_title: str) -> Tuple[str, str]:
 
 def scrape_turkey_agriculture_news(limit: int = 30) -> List[Dict[str, Any]]:
     """
-    Türkiye ulusal ve sektörel basınından güncel tarım, hayvancılık,
-    hasat, tohum, gübre ve tarımsal destek haberlerini çeker.
+    Türkiye ulusal ve sektörel basınından güncel bitkisel üretim, hasat,
+    tohum, gübre, tarım teknolojileri ve tarımsal destek haberlerini çeker.
+    (Hayvancılık haberleri Hayvancılık Gündemi kanalına aittir).
     """
     import xml.etree.ElementTree as ET
 
     query = (
         'tarımsal üretim OR "tarım teknolojileri" OR çiftçi OR hasat OR '
-        'tohumculuk OR gübre OR hayvancılık OR "tarımsal destekler" OR seracılık OR '
-        '"akıllı tarım" OR "bitkisel üretim"'
+        'tohumculuk OR gübre OR "tarımsal destekler" OR seracılık OR '
+        '"akıllı tarım" OR "bitkisel üretim" OR "tarla bitkileri"'
     )
     url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=tr&gl=TR&ceid=TR:tr"
 
@@ -85,6 +86,16 @@ def scrape_turkey_agriculture_news(limit: int = 30) -> List[Dict[str, Any]]:
                 clean_title, pub_from_title = clean_agriculture_title(raw_title)
                 if pub_from_title and source_name == "Türkiye Tarım Bülteni":
                     source_name = pub_from_title
+
+                # Hayvancılık haberlerini Tarım kanalına alma (Hayvancılık Gündemi'ne aittir)
+                t_lower = clean_title.lower()
+                livestock_terms = [
+                    "büyükbaş", "küçükbaş", "çiğ süt", "süt üretici", "süt fiyat", 
+                    "sağım robotu", "besi hayvan", "damızlık sığır", "damızlık koyun",
+                    "kırmızı et", "şap hastalığı", "tavukçuluk", "arıcılık", "kümes hayvan"
+                ]
+                if any(t in t_lower for t in livestock_terms):
+                    continue
 
                 pub_ts = int(now_dt.timestamp())
                 pub_rfc = email.utils.format_datetime(now_dt)
@@ -159,6 +170,16 @@ def scrape_global_agritech_news(limit: int = 25) -> List[Dict[str, Any]]:
                 clean_title, pub_from_title = clean_agriculture_title(raw_title)
                 if pub_from_title and source_name == "Global Agritech":
                     source_name = pub_from_title
+
+                # Hayvancılık haberlerini Tarım kanalına alma (Hayvancılık Gündemi'ne aittir)
+                t_lower = clean_title.lower()
+                livestock_terms = [
+                    "büyükbaş", "küçükbaş", "çiğ süt", "süt üretici", "süt fiyat", 
+                    "sağım robotu", "besi hayvan", "damızlık sığır", "damızlık koyun",
+                    "kırmızı et", "şap hastalığı", "tavukçuluk", "arıcılık", "kümes hayvan"
+                ]
+                if any(t in t_lower for t in livestock_terms):
+                    continue
 
                 pub_ts = int(now_dt.timestamp())
                 pub_rfc = email.utils.format_datetime(now_dt)
@@ -263,6 +284,16 @@ def scrape_academic_agriculture_publications(limit_per_query: int = 10, max_tota
                 if norm_key in seen_titles:
                     continue
                 seen_titles.add(norm_key)
+
+                # Hayvancılık haberlerini Tarım kanalına alma (Hayvancılık Gündemi'ne aittir)
+                t_lower = clean_title.lower()
+                livestock_terms = [
+                    "büyükbaş", "küçükbaş", "çiğ süt", "süt üretici", "süt fiyat", 
+                    "sağım robotu", "besi hayvan", "damızlık sığır", "damızlık koyun",
+                    "kırmızı et", "şap hastalığı", "tavukçuluk", "arıcılık", "kümes hayvan"
+                ]
+                if any(t in t_lower for t in livestock_terms):
+                    continue
 
                 pub_ts = int(now_dt.timestamp())
                 pub_rfc = email.utils.format_datetime(now_dt)

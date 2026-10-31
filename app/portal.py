@@ -34,9 +34,9 @@ def generate_newspaper_portal_html(
         portal_title_tag = "Hayvancılık Gündemi — Türkiye ve Dünya Hayvancılık & Süt Endüstrisi Gazetesi"
     elif is_agri:
         portal_name = "TARIM GÜNDEMİ"
-        portal_sub_name = "Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi"
+        portal_sub_name = "Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi"
         portal_motto = '"Milli ekonominin temeli tarımdır." &mdash; Mustafa Kemal Atatürk'
-        portal_title_tag = "Tarım Gündemi — Türkiye ve Dünya Tarım, Hayvancılık & Akıllı Tarım Gazetesi"
+        portal_title_tag = "Tarım Gündemi — Türkiye ve Dünya Tarım, Bitkisel Üretim & Akıllı Tarım Gazetesi"
     else:
         portal_name = "SU GÜNDEMİ"
         portal_sub_name = "Türkiye ve Dünya Su, Sulama ve Çevre Araştırmaları Gazetesi"
@@ -155,6 +155,19 @@ def generate_newspaper_portal_html(
             final_score = quality - (age_days * 500.0)
             return (final_score, pub_ts)
 
+    # Filter out livestock items from agriculture channel if present
+    if is_agri:
+        livestock_terms = [
+            "büyükbaş", "küçükbaş", "çiğ süt", "süt üretici", "süt fiyat", "sağım robotu",
+            "besi hayvan", "damızlık sığır", "damızlık koyun", "kırmızı et", "şap hastalığı",
+            "tavukçuluk", "arıcılık", "kümes hayvan", "et ve süt kurumu"
+        ]
+        items = [
+            it for it in items
+            if it.get("category_tr") != "Hayvancılık & Süt"
+            and not any(term in (it.get("title_tr", "") + " " + it.get("title", "")).lower() for term in livestock_terms)
+        ]
+
     # Sort items by date
     raw_sorted = sorted(items, key=lambda x: x.get("pub_date_ts", 0), reverse=True)
     tr_candidates = [it for it in raw_sorted if headline_sort_key(it)[0] > -500000]
@@ -187,7 +200,6 @@ def generate_newspaper_portal_html(
         CATEGORY_SLUGS = {
             "Akademik Yayınlar": "akademik",
             "Tarım Teknolojileri": "teknoloji",
-            "Hayvancılık & Süt": "hayvancilik",
             "Tohum & Gübre": "tohum",
             "Tarımsal Destekler": "destek",
             "Küresel Tarım": "kuresel",
@@ -738,7 +750,6 @@ def generate_newspaper_portal_html(
                 <button type="button" class="cat-btn active" data-slug="all" onclick="filterCategory('all')">Tümü</button>
                 <button type="button" class="cat-btn" data-slug="bitkisel" onclick="filterCategory('bitkisel')">🌱 Bitkisel Üretim</button>
                 <button type="button" class="cat-btn" data-slug="teknoloji" onclick="filterCategory('teknoloji')">🚜 Tarım Teknolojileri</button>
-                <button type="button" class="cat-btn" data-slug="hayvancilik" onclick="filterCategory('hayvancilik')">🐄 Hayvancılık &amp; Süt</button>
                 <button type="button" class="cat-btn" data-slug="tohum" onclick="filterCategory('tohum')">🌾 Tohum &amp; Gübre</button>
                 <button type="button" class="cat-btn" data-slug="destek" onclick="filterCategory('destek')">📊 Tarımsal Destekler</button>
                 <button type="button" class="cat-btn" data-slug="kuresel" onclick="filterCategory('kuresel')">🌍 Küresel Tarım</button>
@@ -783,13 +794,12 @@ def generate_newspaper_portal_html(
             'all': '🌾 Son Tarım Haberleri, Raporlar &amp; Araştırmalar',
             'bitkisel': '🌱 Bitkisel Üretim &amp; Hasat Gelişmeleri',
             'teknoloji': '🚜 Akıllı Tarım &amp; Tarım Teknolojileri',
-            'hayvancilik': '🐄 Hayvancılık &amp; Süt Sektörü',
             'tohum': '🌾 Tohum, Gübre &amp; Bitki Besleme',
             'destek': '📊 Tarımsal Destekler &amp; Ekonomi',
             'kuresel': '🌍 Küresel Tarım Piyasaları &amp; Raporlar',
             'akademik': '🎓 Hakemli Tarım &amp; Agronomi Araştırmaları'
         """.strip()
-        footer_sub_text = "Bitkisel üretim, tarım teknolojileri, hayvancılık, tohumculuk ve hakemli tarım dergilerinden derlenen günlük dijital tarım gazetesi."
+        footer_sub_text = "Bitkisel üretim, tarım teknolojileri, tohumculuk, gübreleme ve hakemli tarım dergilerinden derlenen günlük dijital tarım gazetesi."
         live_feed_file = "feed_tarim.json"
     else:
         top_stat_html = (

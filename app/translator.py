@@ -345,12 +345,7 @@ def categorize_agriculture_article(title: str, text: str = "") -> str:
     if re.search(teknoloji_pat, t_lower) or re.search(teknoloji_pat, combined):
         return "Tarım Teknolojileri"
 
-    # 3. Hayvancılık & Süt Sektörü
-    hayvan_pat = r'\b(hayvan\w*|büyükbaş|küçükbaş|süt|besi|et|damızlık|koyun|keçi|sığır|inek|manda|kanatlı|tavuk|kümes|yumurta|arıcılık|bal|yem|mera|çoban|livestock|dairy|cattle|poultry)\b'
-    if re.search(hayvan_pat, t_lower) or re.search(hayvan_pat, combined):
-        return "Hayvancılık & Süt"
-
-    # 4. Tohum, Gübre & Bitki Koruma
+    # 3. Tohum, Gübre & Bitki Koruma
     tohum_pat = r'\b(tohum\w*|gübre\w*|fertiliz\w*|seed\w*|azot|fosfor|potas\w*|kompost|zirai ilaç|pestisit|bitki koruma|hastalık|zararlı|biyolojik mücadele|fide|fidan)\b'
     if re.search(tohum_pat, t_lower) or re.search(tohum_pat, combined):
         return "Tohum & Gübre"
@@ -388,8 +383,6 @@ def generate_agriculture_editorial_summary(title_tr: str, category: str, source_
         return f"{title_tr}. Ziraat, bitki bilimi ve tarımsal verimlilik alanındaki bu hakemli araştırma; sürdürülebilir üretim metodolojileri ve saha deneylerini içermektedir. Tam metin ve analizler {src_clean} üzerinden incelenebilir."
     elif category == "Tarım Teknolojileri":
         return f"{title_tr}. Bu gelişme; akıllı tarım uygulamaları, hassas sensörler, insansız hava araçları ve tarımsal otomasyon sistemlerinin üretim verimliliği üzerindeki katkılarını ele almaktadır. Kaynak: {src_clean}."
-    elif category == "Hayvancılık & Süt":
-        return f"{title_tr}. Hayvancılık sektörü, süt ve et verimliliği, damızlık ıslahı ve kaliteli yem yönetimine dair güncel sektörel veriler ve analizler {src_clean} bünyesinde yer almaktadır."
     elif category == "Tohum & Gübre":
         return f"{title_tr}. Tohumculuk teknolojileri, yerli ve hibrit tohum çeşitleri, dengeli gübreleme ve çevre dostu bitki besleme uygulamalarına ilişkin araştırma ve saha sonuçları {src_clean} tarafından aktarılmıştır."
     elif category == "Tarımsal Destekler":

@@ -61,7 +61,7 @@ FOREIGN_WATER_PAT = re.compile(
 )
 
 TURKEY_AGRI_PAT = re.compile(
-    r"\b(türkiye|türk tarım|çiftçi|üretici|tmo|toprak mahsulleri|tarım kredi|tzob|çukurova|harran|konya ovası|bafra|çarşamba|gediz|menderes|buğday|arpa|mısır|ayçiçeği|pamuk|zeytin|fındık|çeltik|seracılık|antalya|mersin|adana|ege|anadolu|gübre|tohum|mazot desteği|çiğ süt|büyükbaş|küçükbaş)\b",
+    r"\b(türkiye|türk tarım|çiftçi|üretici|tmo|toprak mahsulleri|tarım kredi|tzob|çukurova|harran|konya ovası|bafra|çarşamba|gediz|menderes|buğday|arpa|mısır|ayçiçeği|pamuk|zeytin|fındık|çeltik|seracılık|antalya|mersin|adana|ege|anadolu|gübre|tohum|mazot desteği)\b",
     re.IGNORECASE
 )
 FOREIGN_AGRI_PAT = re.compile(
@@ -279,7 +279,18 @@ def main():
     # 4. TARIM KANALINI İŞLEME (AGRICULTURE ITEMS)
     # ==========================================
     agri_items = storage.get_items(limit=200, channel="agriculture")
-    print(f"[+] Tarım kanalı toplam veritabanı kaydı: {len(agri_items)}")
+    # Hayvancılık haberlerini Tarım kanalından tamamen hariç tut
+    livestock_filter_terms = [
+        "büyükbaş", "küçükbaş", "çiğ süt", "süt üretici", "süt fiyat", "sağım robotu",
+        "besi hayvan", "damızlık sığır", "damızlık koyun", "kırmızı et", "şap hastalığı",
+        "tavukçuluk", "arıcılık", "kümes hayvan", "et ve süt kurumu", "besicilik"
+    ]
+    agri_items = [
+        it for it in agri_items
+        if it.get("category_tr") != "Hayvancılık & Süt"
+        and not any(term in (it.get("title_tr", "") + " " + it.get("title", "")).lower() for term in livestock_filter_terms)
+    ]
+    print(f"[+] Tarım kanalı toplam filtrelenmiş veritabanı kaydı: {len(agri_items)}")
     agri_items = batch_translate_articles(agri_items)
 
     for idx, it in enumerate(agri_items):
@@ -532,7 +543,7 @@ def main():
     # 1. Tarım RSS 2.0
     rss_agri_content = generate_rss_2_xml(
         feed_title="Tarım Gündemi - Tarım & Bitkisel Üretim Gazetesi",
-        feed_description="Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi",
+        feed_description="Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi",
         feed_link=f"{public_url}/tarim.html",
         self_rss_url=rss_agri_self,
         items=agri_rss_items,
@@ -544,7 +555,7 @@ def main():
     # 2. Tarım Atom 1.0
     atom_agri_content = generate_atom_xml(
         feed_title="Tarım Gündemi",
-        feed_description="Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi",
+        feed_description="Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi",
         feed_link=f"{public_url}/tarim.html",
         self_atom_url=atom_agri_self,
         items=agri_rss_items
@@ -555,7 +566,7 @@ def main():
     # 3. Tarım JSON Feed
     json_agri_data = generate_json_feed(
         feed_title="Tarım Gündemi",
-        feed_description="Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi",
+        feed_description="Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi",
         feed_link=f"{public_url}/tarim.html",
         self_json_url=json_agri_self,
         items=agri_rss_items
