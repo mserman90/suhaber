@@ -1024,18 +1024,113 @@ def generate_newspaper_portal_html(
         footer_sub_text = "Akademik araştırmalar, hakemli dergiler ve küresel su kurumlarından derlenen günlük dijital su gazetesi."
         live_feed_file = "feed.json"
 
+    
+    base_public_url = "https://mserman90.github.io/suhaber"
+    if is_livestock:
+        canonical_url = f"{base_public_url}/hayvancilik.html"
+        page_seo_title = "Hayvancılık Gündemi | Türkiye ve Dünya Hayvancılık, Süt, Besi & Yem Gazetesi"
+        page_seo_desc = "Türkiye ve dünya hayvancılık sektörü, çiğ süt tavsiye fiyatları, büyükbaş ve küçükbaş karkas et piyasası, yem maliyetleri, hayvan sağlığı ve uluslararası hayvancılık zirveleri dijital gazetesi."
+        page_seo_keywords = "hayvancılık gündemi, karkas et fiyatları, çiğ süt fiyatı, büyükbaş besicilik, küçükbaş hayvancılık, yem fiyatları, et ve süt kurumu, damızlık sığır, hayvancılık destekleri, hayvan sağlığı"
+        og_image = "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1200&h=630&fit=crop&q=85"
+    elif is_agri:
+        canonical_url = f"{base_public_url}/tarim.html"
+        page_seo_title = "Tarım Gündemi | Türkiye ve Dünya Tarım, Bitkisel Üretim & Çiftçi Gazetesi"
+        page_seo_desc = "Türkiye ve dünya tarım, bitkisel üretim, tohumculuk, gübre, sulama ve akıllı tarım sektörü güncel haberleri; uluslararası tarım kongreleri, buğday, mısır, pamuk ve ayçiçeği piyasa fiyatları."
+        page_seo_keywords = "tarım gündemi, buğday fiyatları, gübre fiyatları, mazot gübre desteği, bitkisel üretim, akıllı tarım, çukurova tarım, konya ovası, tohumculuk, tarımsal emtia borsası, tmo alım fiyatları, tarım haberleri"
+        og_image = "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1200&h=630&fit=crop&q=85"
+    else:
+        canonical_url = f"{base_public_url}/index.html"
+        page_seo_title = "Su Gündemi | Türkiye ve Dünya Su Kaynakları, Sulama, Barajlar & GIS Atlası"
+        page_seo_desc = "Türkiye ve dünya su kaynakları, baraj doluluk oranları, kuraklık haritası, tarımsal sulama ve hidro-jeolojik araştırmalar dijital gazetesi. İnteraktif GIS atlası, uluslararası su zirveleri ve canlı haber akışı."
+        page_seo_keywords = "su gündemi, türkiye baraj doluluk oranları, dsi barajları, su kaynakları, kuraklık haritası, tarımsal sulama, su anlaşmaları, su stresi, su krizi, yeraltı suları, fırat dicle havzası, gis su haritası"
+        og_image = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&h=630&fit=crop&q=85"
+
+    json_ld_schema = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "WebSite",
+                "@id": f"{base_public_url}/#website",
+                "url": f"{base_public_url}/",
+                "name": "Su, Tarım ve Hayvancılık Dijital Gazete Portalı",
+                "alternateName": "Water, Agriculture & Livestock Digital Newspaper",
+                "description": "Türkiye ve Dünya Su, Tarım ve Hayvancılık haberleri, interaktif GIS atlası, uluslararası zirveler ve güncel emtia fiyatları.",
+                "inLanguage": ["tr-TR", "en-US"],
+                "publisher": {
+                    "@id": f"{base_public_url}/#organization"
+                }
+            },
+            {
+                "@type": "NewsMediaOrganization",
+                "@id": f"{base_public_url}/#organization",
+                "name": "Su & Tarım & Hayvancılık Dijital Gazetesi",
+                "url": f"{base_public_url}/",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&h=600&fit=crop&q=85"
+                },
+                "sameAs": [
+                    "https://github.com/mserman90/suhaber",
+                    "https://mserman90.github.io/water-agreements-portal/"
+                ]
+            },
+            {
+                "@type": "CollectionPage",
+                "@id": f"{canonical_url}#webpage",
+                "url": canonical_url,
+                "name": page_seo_title,
+                "description": page_seo_desc,
+                "isPartOf": {
+                    "@id": f"{base_public_url}/#website"
+                },
+                "inLanguage": "tr-TR"
+            }
+        ]
+    }
+    json_ld_script_tag = f'<script type="application/ld+json">\n{json.dumps(json_ld_schema, ensure_ascii=False, indent=2)}\n    </script>'
+
     return f"""<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{portal_title_tag}</title>
+    <title>{page_seo_title}</title>
     
-    <!-- Meta tags for SEO & Feed Readers -->
-    <meta name="description" content="{portal_sub_name} araştırmalarından derlenen modern gazete temalı haber portalı.">
+    <!-- Google SEO & Discoverability Meta Tags -->
+    <meta name="description" content="{page_seo_desc}">
+    <meta name="keywords" content="{page_seo_keywords}">
+    <meta name="author" content="Su & Tarım & Hayvancılık Dijital Gazetesi">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <link rel="canonical" href="{canonical_url}">
+    <meta name="theme-color" content="#0a192f">
+
+    <!-- Open Graph Protocol (Facebook, WhatsApp, LinkedIn, Slack) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{canonical_url}">
+    <meta property="og:site_name" content="Su, Tarım ve Hayvancılık Dijital Gazete Portalı">
+    <meta property="og:title" content="{page_seo_title}">
+    <meta property="og:description" content="{page_seo_desc}">
+    <meta property="og:image" content="{og_image}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{portal_name}">
+    <meta property="og:locale" content="tr_TR">
+    <meta property="og:locale:alternate" content="en_US">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{canonical_url}">
+    <meta name="twitter:title" content="{page_seo_title}">
+    <meta name="twitter:description" content="{page_seo_desc}">
+    <meta name="twitter:image" content="{og_image}">
+
+    <!-- Feed Readers & Syndication (RSS / Atom / JSON Feed) -->
     <link rel="alternate" type="application/rss+xml" title="{portal_name} (RSS 2.0)" href="{rss_url}">
     <link rel="alternate" type="application/atom+xml" title="{portal_name} (Atom)" href="{atom_url}">
     <link rel="alternate" type="application/feed+json" title="{portal_name} (JSON)" href="{json_url}">
+
+    <!-- Schema.org JSON-LD Structured Data for Google Rich Results -->
+    {json_ld_script_tag}
 
     <!-- Google Fonts for Editorial Newspaper Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

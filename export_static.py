@@ -110,6 +110,88 @@ def format_feed_items(items, channel="water"):
         rss_items.append(r_item)
     return rss_items
 
+
+def generate_sitemap_and_robots(dist_dir: Path, public_url: str):
+    """
+    Google SEO & Arama Motoru İndeksleme için sitemap.xml ve robots.txt üretir.
+    """
+    today_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # 1. robots.txt
+    robots_content = f"""# robots.txt - Su, Tarım & Hayvancılık Dijital Gazete Portalı
+User-agent: *
+Allow: /
+
+Sitemap: {public_url}/sitemap.xml
+"""
+    (dist_dir / "robots.txt").write_text(robots_content, encoding="utf-8")
+    print(f"[+] Üretildi: {dist_dir / 'robots.txt'}")
+
+    # 2. sitemap.xml
+    sitemap_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <!-- Ana Portallar -->
+    <url>
+        <loc>{public_url}/index.html</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>{public_url}/tarim.html</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>{public_url}/hayvancilik.html</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+
+    <!-- RSS & Atom Besleme Akışları -->
+    <url>
+        <loc>{public_url}/rss.xml</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>{public_url}/atom.xml</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>{public_url}/rss_tarim.xml</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>{public_url}/atom_tarim.xml</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>{public_url}/rss_hayvancilik.xml</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>{public_url}/atom_hayvancilik.xml</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.6</priority>
+    </url>
+</urlset>
+"""
+    (dist_dir / "sitemap.xml").write_text(sitemap_content, encoding="utf-8")
+    print(f"[+] Üretildi: {dist_dir / 'sitemap.xml'}")
+
 def main():
     dist_dir = Path(os.getenv("DIST_DIR", config.BASE_DIR / "dist"))
     dist_dir.mkdir(parents=True, exist_ok=True)
@@ -657,6 +739,9 @@ def main():
     )
     (dist_dir / "hayvancilik.html").write_text(hayvancilik_portal_html, encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'hayvancilik.html'} ('Hayvancılık Gündemi' Modern Gazete Portalı)")
+
+    # --- D) GOOGLE SEO & SITEMAP / ROBOTS DOSYALARI ---
+    generate_sitemap_and_robots(dist_dir, public_url)
 
     print("[*] Tüm 3 kanallı gazete portalları (Su, Tarım, Hayvancılık) ve yayın akışları başarıyla tamamlandı!")
 

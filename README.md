@@ -1,123 +1,153 @@
-# Inoreader Stream to RSS Bridge 📡
+# 🌊 Su, Tarım & Hayvancılık Dijital Gazete Portalı
+### *Water, Agriculture & Livestock Digital Newspaper & GIS Intelligence Portal*
 
-Bu uygulama, **Inoreader** üzerindeki herhangi bir herkese açık HTML akış sayfasını (özellikle `https://www.inoreader.com/stream/user/1006125058/tag/SU/view/html?cs=m` sayfasını) periyodik olarak tarayarak, RSS okuyucularınızda (Feedly, NetNewsWire, Thunderbird, Inoreader, Outlook, Reeder vb.) doğrudan kullanabileceğiniz **sabit ve standart bir RSS 2.0 / Atom yayınına** dönüştürür.
-
----
-
-## 💡 Neden Bu Köprüye İhtiyaç Var?
-
-Inoreader, akışlar için yerel RSS çıktısı (`/stream/user/.../tag/...`) sunmaktadır; ancak bu özellik **"Inoreader Pro" ücretli aboneliği** arkasında kilitlidir (`Feed suspended! Please contact the owner. Inoreader Pro plan is required to export RSS feeds`).
-
-Buna karşılık ilgili akışın web görünümü (`/view/html?cs=m`) herkese açıktır ve tüm güncellemeleri barındırır. Bu uygulama:
-1. İlgili HTML sayfasını periyodik aralıklarla kontrol eder.
-2. Makale başlıklarını, kaynak linklerini, yazarları, yayınlandığı dergi/bülten adlarını, özetleri, tarihleri ve kapak görsellerini ayrıştırır.
-3. Cloudflare e-posta gizlemelerini çözer.
-4. SQLite veritabanında geçmişi saklayarak her öğeye kalıcı bir `GUID` ve yayın tarihi atar (tarih kaymalarını önler).
-5. Sabit bir link üzerinden standart **RSS 2.0**, **Atom 1.0** ve **JSON Feed** formatlarında yayın yapar.
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Demo-2ea44f?style=for-the-badge&logo=github)](https://mserman90.github.io/suhaber/)
+[![Build & Deploy](https://img.shields.io/badge/Workflow-GitHub%20Actions%20CI%2FCD-blue?style=for-the-badge&logo=github-actions)](https://github.com/mserman90/suhaber/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python)](https://python.org)
+[![Leaflet GIS](https://img.shields.io/badge/GIS-Leaflet%201.9-green?style=for-the-badge&logo=leaflet)](https://leafletjs.com/)
+[![Mobile Responsive](https://img.shields.io/badge/Mobile-100%25%20Responsive-orange?style=for-the-badge&logo=googlechrome)](https://mserman90.github.io/suhaber/)
+[![Bilingual](https://img.shields.io/badge/i18n-TR%20%7C%20EN-purple?style=for-the-badge)](https://mserman90.github.io/suhaber/)
 
 ---
 
-## 📁 Proje Dizin Yapısı
+## 🌍 Canlı Yayın ve Portallar (Live Portals)
 
-```text
-suhaber/
-├── app/
-│   ├── __init__.py
-│   ├── config.py             # Konfigürasyon ve ortam değişkenleri
-│   ├── scraper.py            # Inoreader HTML ayrıştırıcı & makale çıkarıcı
-│   ├── storage.py            # SQLite kalıcı önbellek & geçmiş yönetimi
-│   ├── feed.py               # RSS 2.0, Atom 1.0 ve JSON Feed XML/JSON üretici
-│   └── main.py               # FastAPI web sunucusu & arka plan periyodik görevi
-├── dist/                     # Statik dışa aktarım dosyaları (rss.xml, atom.xml...)
-├── export_static.py          # Statik dosya üreten bağımsız betik (GitHub Actions / Cron için)
-├── run.py                    # Yerel sunucu başlatma betiği
-├── requirements.txt          # Python bağımlılıkları
-├── Dockerfile                # Docker imaj tanımı
-├── docker-compose.yml        # Docker Compose yapılandırması
-├── .github/
-│   └── workflows/
-│       └── update_feed.yml   # 7/24 ücretsiz GitHub Pages otomasyon iş akışı
-└── README.md
+Aşağıdaki bağlantılardan yayındaki canlı dijital gazete portallarına doğrudan erişebilirsiniz:
+
+| Kanal | Açıklama | Canlı Web Portalı | Standart RSS 2.0 Yayını |
+|---|---|:---:|:---:|
+| 💧 **Su Gündemi** | Türkiye ve Dünya Su Kaynakları, Sulama, Barajlar ve Hidroloji | [**Canlı Aç (index.html)**](https://mserman90.github.io/suhaber/index.html) | [🔗 `rss.xml`](https://mserman90.github.io/suhaber/rss.xml) |
+| 🌾 **Tarım Gündemi** | Bitkisel Üretim, Tohumculuk, Gübre, Destekler ve Akıllı Tarım | [**Canlı Aç (tarim.html)**](https://mserman90.github.io/suhaber/tarim.html) | [🔗 `rss_tarim.xml`](https://mserman90.github.io/suhaber/rss_tarim.xml) |
+| 🐄 **Hayvancılık Gündemi** | Büyükbaş & Küçükbaş Besicilik, Çiğ Süt, Yem ve Hayvan Sağlığı | [**Canlı Aç (hayvancilik.html)**](https://mserman90.github.io/suhaber/hayvancilik.html) | [🔗 `rss_hayvancilik.xml`](https://mserman90.github.io/suhaber/rss_hayvancilik.xml) |
+| 🌐 **Su Anlaşmaları Portalı** | Küresel Sınıraşan Sular ve İkili Anlaşmalar Veritabanı | [**Canlı Aç (External)**](https://mserman90.github.io/water-agreements-portal/) | — |
+
+---
+
+## 🌟 Öne Çıkan Temel Özellikler
+
+### 1. 📰 Üç Tematik Gazete Kanalı (Three Curated Editorial Channels)
+* **Su Gündemi:** Baraj doluluk oranları (DSİ, İSKİ, İZSU, ASKi), kuraklık analizleri, GAP yatırımları, yer altı suyu yönetimi ve su verimliliği seferberliği.
+* **Tarım Gündemi:** Tahıllar, yağlı tohumlar, gübre ve mazot destekleri, TMO hububat alım politikaları, Çukurova, Konya Ovası ve Harran bölgesel üretim raporları.
+* **Hayvancılık Gündemi:** Ulusal Süt Konseyi (USK) çiğ süt tavsiye fiyatları, Et ve Süt Kurumu (ESK) karkas et ve kombina alımları, karma yem maliyetleri, damızlık yetiştiriciliği ve aşı takvimleri.
+
+### 2. 🗺️ 7 Kademeli Akıllı Konumlandırma & İnteraktif Leaflet GIS Atlası
+Her haber akıllı bir coğrafi analiz süzgecinden geçirilir ve en az 7 değerlendirme aşamasıyla haritadaki gerçek noktasına yerleştirilir:
+1. **İl Düzeyi:** 81 Türkiye vilayeti ve uluslararası başkentler.
+2. **Nehir Havzaları:** Türkiye'nin 25 hidrolojik havzası (Fırat-Dicle, Kızılırmak, Yeşilırmak, Gediz, Büyük Menderes, Sakarya vb.).
+3. **Baraj ve Göller:** 100'ü aşkın kritik baraj (Atatürk, Keban, Karakaya, Ilısu, Ömerli, Tahtalı vb.) ve göl koordinatları.
+4. **İlçe & Zirai Üretim Merkezleri:** Bafra, Çarşamba, Söke, Harran, Ödemiş, Polatlı, Ceyhan, Menemen gibi ana üretim havzaları.
+5. **Kurumsal Tesisler:** DSİ bölge müdürlükleri, ESK kombinaları, TMO siloları ve sulama birlikleri.
+6. **Küresel Havzalar:** Colorado, Nil, Ren, Tuna, Mekong, Murray-Darling gibi uluslararası su havzaları.
+7. **Bağlamsal Doğrulama & Düşme Koruması:** Sahte eşleşmeleri filtreleyen ve koordinat doğruluğunu garanti altına alan çift yönlü metin analizi.
+
+### 3. 🌐 Uluslararası Zirveler & Kongreler Takvimi (Global Events Hub)
+Tüm kanallarda uluslararası öneme sahip prestijli toplantı ve kongreleri gösteren özel bir sekme yer alır:
+* **Su:** UN World Water Forum, World Water Week (Stockholm), IWA World Water Congress, COP Climate Summits.
+* **Tarım:** FAO World Food Forum, Agritechnica, International Wheat Congress, Smart Farming Expo.
+* **Hayvancılık:** EuroTier Hannover, IDF World Dairy Summit, World Meat Congress, VIV Worldwide.
+* Doğrudan etkinlik resmi sayfasına yönlendiren başvuru linkleri, şehir/ülke bilgileri ve tematik kategori etiketleri.
+
+### 4. 📊 Karşılaştırmalı Canlı Emtia & Fiyat Takip Paneli (TR vs Dünya)
+Tarım ve hayvancılık gündemlerinde Türkiye ile uluslararası piyasaları (AB Euronext/DG AGRI, ABD CBOT/USDA, Dünya FOB paritesi) yan yana getiren canlı karşılaştırma modülü:
+* **Tarımsal Emtia:** Ekmeklik Buğday, Makarnalık (Durum), Mısır, Ayçiçeği Tohumu, Pamuk (Lif), Arpa, Çeltik (Pirinç), Soya Fasulyesi, Gübre (DAP / Üre) ve Çiftçi Mazotu.
+* **Hayvansal Ürün & Yem:** USK Çiğ Süt, ESK Dana Karkas (E/U yağsız), Kuzu Karkas, Süt Yemi (%19 Ham Protein), Besi Yemi (%14 HP), Kuru Yonca Otu, Mısır Silajı, Arpa Kırması, Gebe Damızlık Düve ve Sofra Yumurtası.
+* Güncel döviz kurları (EUR/TRY, USD/TRY) üzerinden otomatik parite hesaplama, prim/indirim göstergeleri ve pazar analiz notları.
+
+### 5. 📱 %100 Duyarlı ve Mobil Uyumlu Tasarım (Mobile Responsive)
+* Tüm cihaz boyutlarında (320px akıllı telefonlardan 4K masaüstü ekranlara) kusursuz çalışan `clamp()` tabanlı akıcı tipografi ve esnek ızgara (`minmax(0, 1fr)`).
+* Mobilde ekranın sağa/sola taşmasını önleyen sıfır yatay kaydırma garantisi (`overflow-x: hidden`).
+* Mobil haritada buton çakışmalarını önleyen akıllı katman düzeni ve tam ekran harita kipi.
+* Ekranın altında akan son dakika haber bandı (ticker).
+
+### 6. 🌐 Canlı Türkçe / İngilizce Dil Seçeneği (TR / EN)
+Kullanıcılar tek bir butona tıklayarak web portalındaki tüm başlıkları, özetleri, arayüz butonlarını ve veri panellerini anında Türkçe veya İngilizce olarak okuyabilir.
+
+### 7. 🔍 Arama Motoru Optimizasyonu (Google SEO & Social Meta)
+* **Google Rich Results:** `NewsMediaOrganization`, `WebSite` (SearchAction) ve `CollectionPage` Schema.org JSON-LD yapısal verileri.
+* **Open Graph & Twitter Cards:** WhatsApp, LinkedIn, Twitter ve Facebook'ta 1200x630 piksel yüksek çözünürlüklü görsel önizlemeleri.
+* **Keşif Dosyaları:** Otomatik üretilen `sitemap.xml` ve arama botlarına yol gösteren `robots.txt`.
+
+---
+
+## 🛠️ Sistem Mimarisi & Çalışma Döngüsü
+
+```mermaid
+flowchart TD
+    A["📡 Veri Kaynakları\n(Inoreader, Ulusal Basın, Bilimsel Bültenler)"] --> B["⚙️ Otomatik Tarayıcı & Kazıyıcı\n(app/scraper.py, agriculture_scraper.py, livestock_scraper.py)"]
+    B --> C["🤖 Dil & Editöryal İşleme\n(app/translator.py, image_enricher.py)"]
+    C --> D["🗺️ 7-Kademeli Coğrafi Analiz Motoru\n(app/geocoder.py)"]
+    D --> E["📊 Emtia Fiyat & Zirve Motorları\n(app/prices_data.py, app/events_data.py)"]
+    E --> F["📰 Statik Portal ve Besleme Derleyici\n(export_static.py & app/portal.py)"]
+    F --> G["🌐 dist/ Dağıtım Dizini\n(index.html, tarim.html, hayvancilik.html,\nsitemap.xml, robots.txt, *.xml, *.json)"]
+    G --> H["🚀 GitHub Pages & Cloud CDN\n(Otomatik GitHub Actions ile Her Gün)"]
 ```
 
 ---
 
-## 🚀 Çalıştırma Yöntemleri
+## 💻 Yerel Geliştirme ve Kurulum (Local Setup)
 
-İhtiyacınıza göre aşağıdaki 3 yöntemden birini seçebilirsiniz:
-
-### Yöntem 1: Yerel Bilgisayarda veya Kendi Sunucunuzda (Python ile)
-
-1. **Bağımlılıkları yükleyin:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Sunucuyu başlatın:**
-   ```bash
-   python run.py
-   ```
-
-3. **Erişim sağlayın:**
-   * **Web Yönetim Paneli:** `http://localhost:8000/`
-   * **Sabit RSS 2.0 Linki:** `http://localhost:8000/rss.xml` (veya `http://localhost:8000/feed`)
-   * **Sabit Atom Linki:** `http://localhost:8000/atom.xml`
-   * **JSON Feed Linki:** `http://localhost:8000/feed.json`
-   * **Sağlık Durumu:** `http://localhost:8000/health`
-
----
-
-### Yöntem 2: Docker & Docker Compose ile (Sunucuda Tek Komutla)
-
-Kendi sanal sunucunuzda (VPS) 7/24 kesintisiz çalıştırmak için:
+Projeyi kendi bilgisayarınızda yerel olarak çalıştırmak veya katkıda bulunmak için:
 
 ```bash
-docker compose up -d
+# 1. Depoyu klonlayın
+git clone https://github.com/mserman90/suhaber.git
+cd suhaber
+
+# 2. Python sanal ortamını oluşturun ve aktifleştirin
+python -m venv venv
+# Windows:
+.\venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
+# 3. Bağımlılıkları yükleyin
+pip install -r requirements.txt
+
+# 4. Portalları, RSS akışlarını ve sitemap dosyalarını derleyin
+python export_static.py
+
+# 5. dist/ dizinini yerel web sunucusuyla başlatın
+python -m http.server 8000 --directory dist
 ```
 
-* Uygulama arka planda başlar, SQLite verilerini `inoreader-data` volume'ünde saklar.
-* Port: `8000` (dilerseniz `docker-compose.yml` içinden değiştirebilirsiniz).
+Tarayıcınızda `http://localhost:8000/` adresine giderek portala göz atabilirsiniz.
 
 ---
 
-### Yöntem 3: Tamamen Ücretsiz ve Sunucusuz (GitHub Pages + Actions)
+## 📂 Dizin Yapısı
 
-Kendi bilgisayarınızı açık tutmak ya da sunucu kiralamak istemiyorsanız, GitHub'ın ücretsiz altyapısını kullanabilirsiniz:
-
-1. Bu klasördeki dosyaları yeni bir GitHub deposuna yükleyin (Push edin).
-2. Deponuzun **Settings > Pages** sekmesine gidin:
-   * **Build and deployment > Source** seçeneğini **GitHub Actions** olarak ayarlayın.
-3. `.github/workflows/update_feed.yml` iş akışı her 30 dakikada bir otomatik çalışacak, akışı çekip GitHub Pages'e yükleyecektir.
-4. Sabit RSS linkiniz otomatik olarak şu adrese dönüşecektir:
-   ```text
-   https://<kullanici-adiniz>.github.io/<repo-adiniz>/rss.xml
-   ```
-   Bu linki istediğiniz RSS okuyucuya kalıcı olarak ekleyebilirsiniz.
-
----
-
-## ⚙️ Yapılandırma ve Ortam Değişkenleri (Environment Variables)
-
-Aşağıdaki değişkenler sistem ortamından (`.env` veya `docker-compose.yml`) özelleştirilebilir:
-
-| Değişken | Varsayılan Değer | Açıklama |
-| :--- | :--- | :--- |
-| `INOREADER_URL` | `https://www.inoreader.com/stream/user/1006125058/tag/SU/view/html?cs=m` | Kaynak Inoreader HTML akış bağlantısı |
-| `FETCH_INTERVAL_MINUTES` | `15` | Kaynağın kaç dakikada bir taranacağı |
-| `MAX_STORED_ITEMS` | `200` | Veritabanında saklanacak maksimum makale sayısı |
-| `PORT` | `8000` | Web sunucusunun dinleyeceği port |
-| `HOST` | `0.0.0.0` | Dinlenecek IP adresi |
-| `FEED_TITLE` | `SU - Inoreader Akışı` | RSS başlığında görünecek isim |
-| `FEED_DESCRIPTION` | `Inoreader SU akışı güncellemeleri` | RSS kanal açıklaması |
-| `PUBLIC_BASE_URL` | *(Boş)* | Eğer ters vekil (Nginx/Cloudflare) arkasındaysanız genel domain adresi (örn. `https://rss.ornek.com`) |
+```text
+├── .github/workflows/
+│   └── cron_and_deploy.yml       # Her gün çalışan otomatik GitHub Actions CI/CD
+├── app/
+│   ├── portal.py                 # Gazete HTML/CSS/JS üretici & SEO / Schema.org motoru
+│   ├── geocoder.py               # 7-kademeli GIS konumlandırma algoritması
+│   ├── prices_data.py            # Canlı emtia fiyatları & parite karşılaştırma motoru
+│   ├── events_data.py            # Uluslararası zirveler & kongreler takvimi
+│   ├── scraper.py                # Su gündemi veri çekici
+│   ├── agriculture_scraper.py    # Tarım gündemi veri çekici
+│   ├── livestock_scraper.py      # Hayvancılık gündemi veri çekici
+│   ├── translator.py             # Türkçe & İngilizce çeviri ve sınıflandırma
+│   └── feed.py                   # RSS 2.0, Atom 1.0 ve JSON Feed üreticileri
+├── dist/                         # GitHub Pages'a dağıtılan statik site
+│   ├── index.html                # Su Gündemi
+│   ├── tarim.html                # Tarım Gündemi
+│   ├── hayvancilik.html          # Hayvancılık Gündemi
+│   ├── sitemap.xml               # Google Arama Motoru Haritası
+│   ├── robots.txt                # Arama Motoru Robot Yönergeleri
+│   └── *.xml / *.json            # RSS, Atom ve JSON Feed dosyaları
+├── export_static.py              # Tüm portalları ve akışları derleyen ana script
+├── requirements.txt              # Python bağımlılıkları
+└── README.md                     # GitHub proje tanıtım dokümantasyonu
+```
 
 ---
 
-## 🔍 Desteklenen Uç Noktalar (Endpoints)
+## 📜 Lisans & İletişim
 
-* `GET /`: Canlı istatistikleri, sonraki güncelleme süresini, son makaleleri gösteren ve linkleri kopyalamanızı sağlayan modern gösterge paneli.
-* `GET /rss.xml` veya `/feed`: RSS 2.0 formatında yayın çıktısı (`application/rss+xml`).
-* `GET /atom.xml`: Atom 1.0 formatında yayın çıktısı (`application/atom+xml`).
-* `GET /feed.json`: JSON Feed v1.1 formatında çıktı (`application/feed+json`).
-* `POST /api/refresh` veya `GET /api/refresh`: Zamanlayıcıyı beklemeden hemen anında yeni veri çekmeyi tetikler.
-* `GET /health` veya `/api/status`: Sistemin çalışma ve senkronizasyon durumunu JSON olarak döndürür.
+Bu proje [MIT Lisansı](LICENSE) altında açık kaynak olarak geliştirilmektedir.
+Öneri, hata bildirimi veya katkı için lütfen GitHub Issues sekmesini kullanınız.
+
+**Proje Sahibi:** [@mserman90](https://github.com/mserman90)  
+**Canlı Portal:** [https://mserman90.github.io/suhaber/](https://mserman90.github.io/suhaber/)
