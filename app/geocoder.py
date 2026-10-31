@@ -1,18 +1,93 @@
 """
 app/geocoder.py
-Metin tabanlı haber içeriklerinden (başlık, özet, kaynak) gerçek coğrafi konumları (enlem, boylam ve yer ismi)
-çıkaran ve harita görselleştirmesi için doğal koordinat üreten modül.
-Sadece gerçek bir coğrafi varlıkla eşleşen haberlere koordinat atanır.
+Gelişmiş Çok Yöntemli Coğrafi Değerlendirme & Konum Doğrulama Motoru (Multi-Method Geographic Evaluator).
+
+Metin tabanlı haber içeriklerinden (başlık, özet, kaynak) konum tespit ederken doğruluğu garanti altına almak için
+7 aşamalı değerlendirme ve çapraz doğrulama pipelini uygular:
+  1. Google Alert / Kaynak Arama Sorgusu Temizleme (Feed Wrapper Cleaning)
+  2. Pozisyonel Ağırlıklandırma (Title: 45, Lead Sentence: 30, Summary: 20)
+  3. Coğrafi & Hidrolojik Niteleyici Doğrulaması (Collocation Verification: +25)
+  4. Anlamsal Eşadlılık & Sahte Pozitif Filtresi (Semantic Homonym Disambiguation: mısır/corn, ordu/military, van/vehicle, gap/yield gap, tire/wheel, kaş, bor, aras, ren)
+  5. Hiyerarşik İdari Çapraz Doğrulama (İlçe + İl Birlikte Geçme Bonusu: +35)
+  6. Çoklu Bölge ve Çatışma Çözümleme (Multi-Region / Ambiguity Resolution)
+  7. Güven Eşiği Filtresi (Confidence Threshold: Skor >= 70 / 100)
 """
 
 import re
 import math
 import hashlib
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Tuple, Optional, List, Set
 
-# 1. Türkiye İlleri, İlçeleri, Barajları, Ovaları ve Akarsuları
+# 1. İlçe -> İl Hiyerarşik Eşleme Tablosu (Cross-Validation Dictionary)
+DISTRICT_TO_PROVINCE: Dict[str, str] = {
+    # Ege Bölgesi
+    "ödemiş": "izmir", "bergama": "izmir", "tire": "izmir", "menemen": "izmir", "çeşme": "izmir",
+    "urla": "izmir", "seferihisar": "izmir", "torbalı": "izmir", "kemalpaşa": "izmir",
+    "akhisar": "manisa", "salihli": "manisa", "alaşehir": "manisa", "turgutlu": "manisa", "kırkağaç": "manisa", "soma": "manisa",
+    "söke": "aydın", "kuşadası": "aydın", "didim": "aydın", "nazilli": "aydın", "çine": "aydın", "germencik": "aydın",
+    "çivril": "denizli", "acıpavam": "denizli", "tavas": "denizli", "sarayköy": "denizli",
+    "bodrum": "muğla", "fethiye": "muğla", "milas": "muğla", "marmaris": "muğla", "yatağan": "muğla", "ortaca": "muğla",
+    "sandıklı": "afyonkarahisar", "dinar": "afyonkarahisar", "bolvadin": "afyonkarahisar", "emirdağ": "afyonkarahisar",
+    "simav": "kütahya", "tavşanlı": "kütahya", "gediz": "kütahya",
+    "banaz": "uşak", "eşme": "uşak",
+
+    # Akdeniz Bölgesi
+    "silifke": "mersin", "tarsus": "mersin", "anamur": "mersin", "erdemli": "mersin", "mut": "mersin",
+    "ceyhan": "adana", "kozan": "adana", "karataş": "adana", "yüreğir": "adana", "imamoğlu": "adana",
+    "alanya": "antalya", "manavgat": "antalya", "serik": "antalya", "kumluca": "antalya", "finike": "antalya",
+    "kaş": "antalya", "elmalı": "antalya", "korkuteli": "antalya", "demre": "antalya", "gazipaşa": "antalya",
+    "dörtyol": "hatay", "iskenderun": "hatay", "kırıkhan": "hatay", "reyhanlı": "hatay", "samandağ": "hatay", "erzin": "hatay",
+    "kadirli": "osmaniye", "düziçi": "osmaniye",
+    "bucak": "burdur", "gölhisar": "burdur",
+    "eğirdir": "isparta", "yalvaç": "isparta", "şarkikaraağaç": "isparta", "gelendost": "isparta",
+    "elbistan": "kahramanmaraş", "afşin": "kahramanmaraş", "pazarcık": "kahramanmaraş", "göksun": "kahramanmaraş",
+
+    # Marmara Bölgesi
+    "bandırma": "balıkesir", "edremit": "balıkesir", "gönen": "balıkesir", "manyas": "balıkesir", "susurluk": "balıkesir", "ayvalık": "balıkesir",
+    "biga": "çanakkale", "çan": "çanakkale", "ezine": "çanakkale", "bayramiç": "çanakkale", "gelibolu": "çanakkale",
+    "karacabey": "bursa", "inegöl": "bursa", "mustafakemalpaşa": "bursa", "yenişehir": "bursa", "iznik": "bursa", "mudanya": "bursa",
+    "lüleburgaz": "kırklareli", "babaeski": "kırklareli",
+    "çorlu": "tekirdağ", "çerkezköy": "tekirdağ", "malkara": "tekirdağ", "hayrabolu": "tekirdağ",
+    "uzunköprü": "edirne", "keşan": "edirne", "ipsala": "edirne", "havsa": "edirne",
+    "silivri": "istanbul", "çatalca": "istanbul", "şile": "istanbul",
+    "gebze": "kocaeli", "gölcük": "kocaeli", "kandıra": "kocaeli", "kartepe": "kocaeli",
+    "hendek": "sakarya", "akyazı": "sakarya", "geyve": "sakarya", "karasu": "sakarya",
+
+    # İç Anadolu Bölgesi
+    "çumra": "konya", "karapınar": "konya", "akşehir": "konya", "cihanbeyli": "konya", "kulu": "konya",
+    "ereğli": "konya", "seydişehir": "konya", "beyşehir": "konya", "kadınhanı": "konya", "sarayönü": "konya", "ilgın": "konya",
+    "polatlı": "ankara", "beypazarı": "ankara", "haymana": "ankara", "şereflikoçhisar": "ankara", "bala": "ankara", "nallıhan": "ankara", "çubuk": "ankara",
+    "develi": "kayseri", "yeşilhisar": "kayseri", "bünyan": "kayseri", "pınarbaşı": "kayseri",
+    "sungurlu": "çorum", "alaca": "çorum", "osmancık": "çorum",
+    "şarkışla": "sivas", "suşehri": "sivas", "kangal": "sivas", "yıldızeli": "sivas",
+    "sorgun": "yozgat", "yerköy": "yozgat", "boğazlıyan": "yozgat",
+
+    # Karadeniz Bölgesi
+    "bafra": "samsun", "çarşamba": "samsun", "vezirköprü": "samsun", "terme": "samsun", "havza": "samsun",
+    "merzifon": "amasya", "suluova": "amasya", "taşova": "amasya",
+    "turhal": "tokat", "erbaa": "tokat", "niksar": "tokat", "zile": "tokat",
+    "ünye": "ordu", "fatsa": "ordu",
+    "tosya": "kastamonu", "taşköprü": "kastamonu",
+    "boyabat": "sinop",
+
+    # Güneydoğu & Doğu Anadolu Bölgesi
+    "siverek": "şanlıurfa", "viranşehir": "şanlıurfa", "birecik": "şanlıurfa", "suruç": "şanlıurfa",
+    "akçakale": "şanlıurfa", "ceylanpınar": "şanlıurfa", "harran": "şanlıurfa", "bozova": "şanlıurfa", "halfeti": "şanlıurfa", "hilvan": "şanlıurfa",
+    "nizip": "gaziantep", "islahiye": "gaziantep", "araban": "gaziantep",
+    "kızıltepe": "mardin", "nusaybin": "mardin", "midyat": "mardin", "derik": "mardin",
+    "ergani": "diyarbakır", "bismil": "diyarbakır", "silvan": "diyarbakır", "çınar": "diyarbakır", "dicle": "diyarbakır",
+    "cizre": "şırnak", "silopi": "şırnak", "idil": "şırnak",
+    "yüksekova": "hakkari", "şemdinli": "hakkari", "çukurca": "hakkari",
+    "doğubayazıt": "ağrı", "patnos": "ağrı",
+    "erciş": "van", "tuşba": "van", "ipekyolu": "van",
+    "tatvan": "bitlis", "ahlat": "bitlis", "adilcevaz": "bitlis",
+    "kahta": "adıyaman", "besni": "adıyaman",
+    "kovancılar": "elazığ", "karakoçan": "elazığ",
+}
+
+# 2. Türkiye Lokasyonları (81 İl, İlçeler, Havzalar, Ovalar, Barajlar ve Göller)
 TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
-    # 81 İl
+    # 81 İl Merkezi
     "adana": (37.0017, 35.3289, "Adana"),
     "adıyaman": (37.7648, 38.2786, "Adıyaman"),
     "afyonkarahisar": (38.7569, 30.5387, "Afyonkarahisar"),
@@ -73,12 +148,12 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "rize": (41.0201, 40.5234, "Rize"),
     "sakarya": (40.7569, 30.3783, "Sakarya"),
     "adapazarı": (40.7569, 30.3783, "Sakarya / Adapazarı"),
-    "samsun": (41.2867, 36.33, "Samsun"),
-    "siirt": (37.9333, 41.95, "Siirt"),
+    "samsun": (41.2867, 36.3300, "Samsun"),
+    "siirt": (37.9333, 41.9500, "Siirt"),
     "sinop": (42.0231, 35.1531, "Sinop"),
     "sivas": (39.7477, 37.0179, "Sivas"),
     "tekirdağ": (40.9833, 27.5167, "Tekirdağ"),
-    "tokat": (40.3167, 36.55, "Tokat"),
+    "tokat": (40.3167, 36.5500, "Tokat"),
     "trabzon": (41.0027, 39.7168, "Trabzon"),
     "tunceli": (39.1079, 39.5401, "Tunceli"),
     "şanlıurfa": (37.1591, 38.7969, "Şanlıurfa"),
@@ -112,7 +187,7 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "büyük menderes": (37.9000, 28.3000, "Büyük Menderes Havzası"),
     "küçük menderes": (38.1000, 27.8000, "Küçük Menderes Havzası"),
     "seyhan": (36.9500, 35.3000, "Seyhan Havzası"),
-    "ceyhan": (37.0000, 35.8000, "Ceyhan Havzası"),
+    "ceyhan havzası": (37.0000, 35.8000, "Ceyhan Havzası"),
     "çoruh": (41.1000, 41.6000, "Çoruh Havzası"),
     "aras": (40.1000, 43.5000, "Aras Nehri"),
     "asi nehri": (36.1500, 36.0000, "Asi Nehri"),
@@ -136,23 +211,45 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "karakaya barajı": (38.2250, 38.6367, "Karakaya Barajı"),
     "altınkaya barajı": (41.3500, 35.7000, "Altınkaya Barajı"),
     "hirfanlı barajı": (39.2700, 33.5200, "Hirfanlı Barajı"),
+    "yuvacık barajı": (40.6650, 29.9700, "Yuvacık Barajı (Kocaeli)"),
+    "ömerli barajı": (41.0500, 29.3500, "Ömerli Barajı (İstanbul)"),
+    "terkos gölü": (41.3300, 28.5300, "Terkos Gölü (İstanbul)"),
+    "darlık barajı": (41.1100, 29.5600, "Darlık Barajı (İstanbul)"),
+    "büyükçekmece barajı": (41.0600, 28.5500, "Büyükçekmece Barajı"),
+    "sazlıdere barajı": (41.1200, 28.7300, "Sazlıdere Barajı"),
+    "alibeyköy barajı": (41.1100, 28.9300, "Alibeyköy Barajı"),
+    "tahtalı barajı": (38.1600, 27.1000, "Tahtalı Barajı (İzmir)"),
+    "gördes barajı": (38.9300, 28.2900, "Gördes Barajı (Manisa)"),
+    "kurtboğazı barajı": (40.2600, 32.7000, "Kurtboğazı Barajı (Ankara)"),
+    "çamlıdere barajı": (40.5000, 32.4800, "Çamlıdere Barajı (Ankara)"),
+
+    # Bölgesel Projeler ve Ovalar
     "gap": (37.3000, 39.0000, "GAP Bölgesi"),
     "güneydoğu anadolu projesi": (37.3000, 39.0000, "GAP Bölgesi"),
     "çukurova": (36.9500, 35.4000, "Çukurova Tarım Havzası"),
     "trakya": (41.3000, 27.5000, "Trakya Tarım Bölgesi"),
     "harran": (36.8700, 39.0200, "Harran Ovası"),
+    "bafra ovası": (41.5600, 35.9000, "Bafra Ovası"),
     "bafra": (41.5600, 35.9000, "Bafra Ovası"),
     "çarşamba ovası": (41.2000, 36.7200, "Çarşamba Ovası"),
     "çarşamba": (41.2000, 36.7200, "Çarşamba"),
+    "terme": (41.2092, 36.9739, "Samsun / Terme"),
+    "havza": (40.9786, 35.6586, "Samsun / Havza"),
+    "vezirköprü": (41.1436, 35.4547, "Samsun / Vezirköprü"),
+    "söke ovası": (37.7500, 27.4000, "Söke Ovası"),
     "söke": (37.7500, 27.4000, "Söke Ovası"),
     "menemen": (38.6000, 27.0600, "Menemen Ovası"),
-    "patnos": (39.2333, 42.8667, "Patnos"),
-    "polatlı": (39.5800, 32.1400, "Polatlı"),
-    "ceylanpınar": (36.8333, 39.9167, "Ceylanpınar TİGEM"),
     "amasya ovası": (40.6500, 35.8000, "Amasya Ovası"),
     "gediz ovası": (38.6500, 27.6000, "Gediz Ovası"),
     "konya ovası": (37.8500, 32.5000, "Konya Ovası"),
-    "ereğli": (37.5133, 34.0500, "Konya / Ereğli"),
+    "ceylanpınar": (36.8333, 39.9167, "Ceylanpınar TİGEM"),
+
+    # Başlıca Tarım & Su İlçeleri
+    "çeşme": (38.3236, 26.3042, "İzmir / Çeşme"),
+    "urla": (38.3225, 26.7642, "İzmir / Urla"),
+    "seferihisar": (38.1978, 26.8389, "İzmir / Seferihisar"),
+    "torbalı": (38.1517, 27.3619, "İzmir / Torbalı"),
+    "kemalpaşa": (38.4264, 27.4178, "İzmir / Kemalpaşa"),
     "ödemiş": (38.2289, 27.9733, "İzmir / Ödemiş"),
     "bergama": (39.1200, 27.1800, "İzmir / Bergama"),
     "tire": (38.0889, 27.7333, "İzmir / Tire"),
@@ -160,10 +257,13 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "salihli": (38.4800, 28.1300, "Manisa / Salihli"),
     "alaşehir": (38.3500, 28.5200, "Manisa / Alaşehir"),
     "turgutlu": (38.4900, 27.7000, "Manisa / Turgutlu"),
+    "kırkağaç": (39.1050, 27.6717, "Manisa / Kırkağaç"),
+    "soma": (39.1867, 27.6089, "Manisa / Soma"),
     "kuşadası": (37.8600, 27.2600, "Aydın / Kuşadası"),
     "didim": (37.3800, 27.2700, "Aydın / Didim"),
     "nazilli": (37.9150, 28.3225, "Aydın / Nazilli"),
-    "söke ovası": (37.7500, 27.4000, "Söke Ovası"),
+    "çine": (37.6158, 28.0644, "Aydın / Çine"),
+    "germencik": (37.8717, 27.5989, "Aydın / Germencik"),
     "silifke": (36.3775, 33.9344, "Mersin / Silifke"),
     "tarsus": (36.9167, 34.8956, "Mersin / Tarsus"),
     "anamur": (36.0750, 32.8333, "Mersin / Anamur"),
@@ -176,6 +276,8 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "kumluca": (36.3700, 30.2900, "Antalya / Kumluca"),
     "finike": (36.2956, 30.1417, "Antalya / Finike"),
     "kaş": (36.2000, 29.6389, "Antalya / Kaş"),
+    "elmalı": (36.7333, 29.9167, "Antalya / Elmalı"),
+    "korkuteli": (37.0667, 30.1989, "Antalya / Korkuteli"),
     "bodrum": (37.0383, 27.4292, "Muğla / Bodrum"),
     "fethiye": (36.6217, 29.1164, "Muğla / Fethiye"),
     "milas": (37.3167, 27.7833, "Muğla / Milas"),
@@ -186,6 +288,10 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "lüleburgaz": (41.4056, 27.3589, "Kırklareli / Lüleburgaz"),
     "çorlu": (41.1594, 27.8000, "Tekirdağ / Çorlu"),
     "çerkezköy": (41.2856, 28.0014, "Tekirdağ / Çerkezköy"),
+    "uzunköprü": (41.2708, 26.6858, "Edirne / Uzunköprü"),
+    "keşan": (40.8569, 26.6319, "Edirne / Keşan"),
+    "ipsala": (40.9214, 26.3828, "Edirne / İpsala"),
+    "havsa": (41.5492, 26.8208, "Edirne / Havsa"),
     "silivri": (41.0742, 28.2478, "İstanbul / Silivri"),
     "çatalca": (41.1439, 28.4611, "İstanbul / Çatalca"),
     "karacabey": (40.2150, 28.3600, "Bursa / Karacabey"),
@@ -200,22 +306,29 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "akşehir": (38.3575, 31.4164, "Konya / Akşehir"),
     "cihanbeyli": (38.6567, 32.9261, "Konya / Cihanbeyli"),
     "kulu": (39.0950, 33.0800, "Konya / Kulu"),
+    "ereğli": (37.5133, 34.0500, "Konya / Ereğli"),
+    "seydişehir": (37.4194, 31.8469, "Konya / Seydişehir"),
+    "kadınhanı": (38.2389, 32.2139, "Konya / Kadınhanı"),
+    "sarayönü": (38.2619, 32.4042, "Konya / Sarayönü"),
+    "ilgın": (38.2792, 31.9169, "Konya / Ilgın"),
+    "polatlı": (39.5800, 32.1400, "Ankara / Polatlı"),
     "beypazarı": (40.1681, 31.9211, "Ankara / Beypazarı"),
     "haymana": (39.4319, 32.4967, "Ankara / Haymana"),
+    "şereflikoçhisar": (38.9389, 33.5389, "Ankara / Şereflikoçhisar"),
+    "nallıhan": (40.1844, 31.3528, "Ankara / Nallıhan"),
+    "çubuk": (40.2386, 33.0322, "Ankara / Çubuk"),
     "develi": (38.3900, 35.4900, "Kayseri / Develi"),
     "sungurlu": (40.1667, 34.3750, "Çorum / Sungurlu"),
     "merzifon": (40.8739, 35.4628, "Amasya / Merzifon"),
+    "suluova": (40.8286, 35.6561, "Amasya / Suluova"),
+    "taşova": (40.7783, 36.3217, "Amasya / Taşova"),
     "turhal": (40.3900, 36.0900, "Tokat / Turhal"),
     "erbaa": (40.6700, 36.5700, "Tokat / Erbaa"),
     "zile": (40.3000, 35.8800, "Tokat / Zile"),
     "niksar": (40.5900, 36.9500, "Tokat / Niksar"),
-    "bafra ovası": (41.5600, 35.9000, "Bafra Ovası"),
-    "vezirköprü": (41.1436, 35.4547, "Samsun / Vezirköprü"),
     "ünye": (41.1300, 37.2800, "Ordu / Ünye"),
     "fatsa": (41.0300, 37.5000, "Ordu / Fatsa"),
     "şarkışla": (39.3500, 36.4100, "Sivas / Şarkışla"),
-    "elmalı": (36.7333, 29.9167, "Antalya / Elmalı"),
-    "korkuteli": (37.0667, 30.1989, "Antalya / Korkuteli"),
     "bucak": (37.4592, 30.5950, "Burdur / Bucak"),
     "siverek": (37.7550, 39.3175, "Şanlıurfa / Siverek"),
     "viranşehir": (37.2358, 39.7631, "Şanlıurfa / Viranşehir"),
@@ -224,8 +337,10 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "akçakale": (36.7111, 38.9483, "Şanlıurfa / Akçakale"),
     "bozova": (37.3622, 38.5256, "Şanlıurfa / Bozova"),
     "halfeti": (37.2464, 37.8681, "Şanlıurfa / Halfeti"),
+    "hilvan": (37.5858, 38.9567, "Şanlıurfa / Hilvan"),
     "nizip": (37.0108, 37.7944, "Gaziantep / Nizip"),
     "islahiye": (37.0264, 36.6311, "Gaziantep / İslahiye"),
+    "araban": (37.4239, 37.6889, "Gaziantep / Araban"),
     "kadirli": (37.3750, 36.0964, "Osmaniye / Kadirli"),
     "dörtyol": (36.8400, 36.2200, "Hatay / Dörtyol"),
     "iskenderun": (36.5872, 36.1733, "Hatay / İskenderun"),
@@ -234,20 +349,30 @@ TURKEY_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "ergani": (38.2689, 39.7639, "Diyarbakır / Ergani"),
     "bismil": (37.8469, 40.6669, "Diyarbakır / Bismil"),
     "silvan": (38.1408, 41.0106, "Diyarbakır / Silvan"),
+    "çınar": (37.7214, 40.4139, "Diyarbakır / Çınar"),
     "kızıltepe": (37.1939, 40.5878, "Mardin / Kızıltepe"),
     "midyat": (37.4189, 41.3389, "Mardin / Midyat"),
     "nusaybin": (37.0758, 41.2178, "Mardin / Nusaybin"),
+    "derik": (37.3628, 40.2708, "Mardin / Derik"),
     "cizre": (37.3272, 42.1894, "Şırnak / Cizre"),
     "silopi": (37.1750, 42.4722, "Şırnak / Silopi"),
+    "idil": (37.3417, 41.8906, "Şırnak / İdil"),
     "yüksekova": (37.5736, 44.2872, "Hakkari / Yüksekova"),
+    "şemdinli": (37.2961, 44.5756, "Hakkari / Şemdinli"),
+    "çukurca": (37.2472, 43.6139, "Hakkari / Çukurca"),
     "erciş": (39.0278, 43.3589, "Van / Erciş"),
+    "tuşba": (38.5200, 43.3700, "Van / Tuşba"),
+    "ipekyolu": (38.4900, 43.3900, "Van / İpekyolu"),
     "tatvan": (38.5083, 42.2811, "Bitlis / Tatvan"),
+    "ahlat": (38.7517, 42.4939, "Bitlis / Ahlat"),
+    "adilcevaz": (38.8028, 42.7306, "Bitlis / Adilcevaz"),
     "doğubayazıt": (39.5469, 44.0839, "Ağrı / Doğubayazıt"),
+    "patnos": (39.2333, 42.8667, "Ağrı / Patnos"),
     "kahta": (37.7844, 38.6250, "Adıyaman / Kahta"),
     "besni": (37.6939, 37.8617, "Adıyaman / Besni"),
 }
 
-# 2. Küresel Sınır-Aşan Nehir Havzaları, Ülkeler ve Şehirler
+# 3. Küresel Sınır-Aşan Nehir Havzaları, Ülkeler ve Şehirler
 GLOBAL_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     # Küresel Nehir Havzaları
     "nil": (15.5007, 32.5599, "Nil Nehri Havzası"),
@@ -342,68 +467,317 @@ GLOBAL_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "şili": (-35.6751, -71.5430, "Şili"),
 }
 
-# Uzun anahtarları önce aramak için sıralı liste (ör. 'afyonkarahisar' 'afyon'dan önce aransın)
-_SORTED_TURKEY_KEYS = sorted(TURKEY_LOCATIONS.keys(), key=lambda k: len(k), reverse=True)
-_SORTED_GLOBAL_KEYS = sorted(GLOBAL_LOCATIONS.keys(), key=lambda k: len(k), reverse=True)
+# 4. Coğrafi ve İdari Belirteçler (Collocation Indicators)
+GEO_INDICATORS_TR: Set[str] = {
+    "il", "ili", "ilinde", "iline", "ilinin",
+    "ilce", "ilcesi", "ilcesinde", "ilcesine",
+    "belediye", "belediyesi", "belediyesinin",
+    "valilik", "valiligi", "valiligince",
+    "kaymakamlik", "kaymakamligi",
+    "buyuksehir", "buyuksehiri",
+    "koy", "koyu", "koyunde",
+    "mahalle", "mahallesi", "mahallesinde",
+    "baraj", "baraji", "barajinda", "barajinin", "barajlar", "barajlari", "barajlarinda",
+    "havza", "havzasi", "havzasinda", "havzasinin", "havzalar",
+    "nehir", "nehri", "nehrinde", "nehrinin",
+    "cay", "cayi", "cayinda",
+    "dere", "deresi", "deresinde",
+    "gol", "golu", "golunde", "golunun",
+    "golet", "goleti", "goletinde",
+    "ova", "ovasi", "ovasinda", "ovasinin",
+    "yayla", "yaylasi", "yaylasinda",
+    "mera", "merasi", "merasinda",
+    "ciftlik", "ciftligi", "ciftliginde",
+    "sulama", "sulamasi", "sulamasinda",
+    "dsi", "sygm", "tigem",
+    "tarim il", "tarim ve orman", "sulama birligi",
+    "su idaresi", "iski", "izsu", "aski", "deski", "maski", "saski", "gaski", "kaski"
+}
 
+GEO_INDICATORS_EN: Set[str] = {
+    "basin", "basins", "watershed", "watersheds",
+    "river", "rivers", "lake", "lakes", "reservoir", "reservoirs",
+    "dam", "dams", "delta", "deltasi", "deltada", "deltanin", "valley",
+    "province", "district", "city of", "municipality",
+    "irrigation", "drought in", "flooding in", "floods in",
+    "water supply in", "water crisis in", "water authority"
+}
 
-def _normalize_turkish_text(text: str) -> str:
+def _clean_alert_query_from_source(source: str) -> str:
+    """Google Alert arama sorgusu etiketlerini temizler."""
+    if not source:
+        return ""
+    s = re.sub(r'Google\s+(?:Alert|Uyarı)\s*[-–—:]\s*["\'][^"\']+["\']', '', source, flags=re.IGNORECASE)
+    s = re.sub(r'Google\s+(?:Alert|Uyarı)', '', s, flags=re.IGNORECASE)
+    return s.strip()
+
+def _normalize_text(text: str) -> str:
     """Türkçe karakterleri ve noktalama işaretlerini standartlaştırır."""
     if not text:
         return ""
     t = text.lower()
-    t = t.replace("i̇", "i").replace("ı", "ı").replace("ğ", "g")
+    t = t.replace("i̇", "i").replace("ı", "i").replace("ğ", "g")
     t = t.replace("ü", "u").replace("ş", "s").replace("ö", "o").replace("ç", "c")
-    # Temizleme
-    t = re.sub(r"[^a-z0-9\sçğıöşü]", " ", t)
+    t = re.sub(r"[^a-z0-9\s]", " ", t)
     return " ".join(t.split())
 
+def _check_homonym_validity(keyword_norm: str, text_norm: str, is_turkish_feed: bool) -> bool:
+    """
+    Kelimelerin çift anlamlılık (homonym) durumlarını denetler.
+    Tarım mısırı, askeri ordu, taşıt van gibi sahte pozitifleri kesin olarak eler.
+    """
+    if keyword_norm == "misir":
+        # Tarımsal mısır bitkisi kontrolü
+        corn_terms = {
+            "hasat", "hasadi", "ekim", "ekimi", "dane", "tohum", "tohumu", "cesit", "cesitleri",
+            "yetistirici", "yetistiricileri", "silaj", "silaji", "fiyat", "fiyati", "fiyatlari",
+            "yem", "yemi", "verim", "verimi", "zararli", "zararlisi", "tarla", "tarlasi",
+            "corn", "maize", "grain", "usda", "hybrid", "stover"
+        }
+        words = set(text_norm.split())
+        if words.intersection(corn_terms):
+            egypt_country_terms = {"kahire", "cairo", "hukumet", "devlet", "bakanlik", "suez", "nil", "nile", "egypt", "egyptian"}
+            if not words.intersection(egypt_country_terms):
+                return False  # Mısır bitkisidir, Mısır ülkesi değildir!
 
-def _organic_jitter(seed_str: str, max_radius_km: float = 6.0) -> Tuple[float, float]:
+    elif keyword_norm == "ordu":
+        # Askeri ordu kontrolü
+        military_terms = {"asker", "askeri", "birlik", "birlikleri", "tugay", "komutan", "komutani", "general", "ordusu", "isgal", "savunma", "guvenlik", "silahli"}
+        words = set(text_norm.split())
+        if words.intersection(military_terms):
+            city_terms = {"ili", "ilinde", "valiligi", "belediyesi", "unye", "fatsa", "altinordu", "karadeniz"}
+            if not words.intersection(city_terms):
+                return False
+
+    elif keyword_norm == "van":
+        # Panelvan araç veya İngilizce "van der/moving van"
+        if not is_turkish_feed:
+            eng_van_terms = {"delivery van", "moving van", "van der", "van den", "vanguard", "caravan"}
+            if any(term in text_norm for term in eng_van_terms) or not any(k in text_norm for k in ["lake van", "van province", "van goli", "turkey"]):
+                return False
+        else:
+            vehicle_terms = {"panelvan", "minibus", "kamyonet", "arac", "servis araci"}
+            words = set(text_norm.split())
+            if words.intersection(vehicle_terms) and not any(k in text_norm for k in ["golu", "ili", "valiligi", "belediyesi", "ercis", "tusba", "ipekyolu"]):
+                return False
+
+    elif keyword_norm == "gap":
+        # İngilizce "yield gap", "price gap"
+        if not is_turkish_feed or any(k in text_norm for k in ["yield gap", "knowledge gap", "price gap", "bridge the gap", "generation gap"]):
+            if not any(k in text_norm for k in ["guneydogu anadolu", "gap bolgesi", "gap idaresi", "gap sulama", "gap projesi"]):
+                return False
+
+    elif keyword_norm == "tire":
+        if not is_turkish_feed or any(k in text_norm for k in ["flat tire", "rubber tire", "tire pressure", "tire wear"]):
+            if not any(k in text_norm for k in ["izmir", "ilcesi", "ilcesinde", "belediyesi", "organize"]):
+                return False
+
+    elif keyword_norm == "kas":
+        if not any(k in text_norm for k in ["antalya", "ilcesi", "ilcesinde", "belediyesi", "kaymakamligi", "demre", "kalkan"]):
+            return False
+
+    elif keyword_norm == "bor":
+        # Bor madeni mi yoksa Niğde Bor ilçesi mi
+        if any(k in text_norm for k in ["maden", "madeni", "eti maden", "karbur", "element", "gubre", "gubreleme", "asit"]):
+            if not any(k in text_norm for k in ["nigde", "ilcesi", "ilcesinde", "belediyesi", "ovasi"]):
+                return False
+
+    elif keyword_norm == "aras":
+        if not any(k in text_norm for k in ["nehir", "nehri", "nehrinde", "havza", "havzasi", "edash", "kars", "igdir", "erzurum"]):
+            return False
+
+    elif keyword_norm == "ren":
+        if not any(k in text_norm for k in ["nehir", "nehri", "rhine", "havza", "havzasi", "germany", "almanya"]):
+            return False
+
+    return True
+
+def evaluate_article_location(article: Dict[str, Any], index_seed: int = 0) -> Tuple[Optional[float], Optional[float], Optional[str], int, str]:
     """
-    Hash tabanlı homojen dairesel dağılım üretir.
-    Doğrusal çizgiler veya yapay köşegenler oluşturmaz.
+    Çok Yöntemli Coğrafi Değerlendirme Pipeline'ı (7 Aşamalı).
+    (lat, lng, loc_name, confidence_score, audit_reason) döner.
+    Güven skoru >= 70 ise konum doğrulanmış kabul edilir; aksi halde (None, None, None, score, reason) döner.
     """
+    title_tr = article.get("title_tr") or ""
+    title_en = article.get("title") or ""
+    summary_tr = article.get("summary_tr") or article.get("description") or ""
+    source_raw = article.get("source_feed") or article.get("source") or ""
+    guid = article.get("guid") or str(article.get("id") or "")
+
+    # Aşama 1: Kaynak Arama Sorgusu Temizleme
+    cleaned_source = _clean_alert_query_from_source(source_raw)
+
+    is_tr_feed = bool(
+        article.get("is_turkey")
+        or "🇹🇷" in source_raw
+        or guid.startswith("tr_")
+        or guid.startswith("sygm:")
+        or any(k in cleaned_source.lower() for k in ["iha", "dha", "aa", "anadolu", "tarım", "dsi", "iski", "belediye", "gazete", "bülten", "ajans"])
+    )
+
+    norm_title = _normalize_text(f"{title_tr} {title_en}")
+    norm_summary = _normalize_text(summary_tr)
+    norm_first_sentence = norm_summary.split(".")[0] if "." in norm_summary else norm_summary[:120]
+    full_norm = f"{norm_title} {norm_summary} {_normalize_text(cleaned_source)}"
+
+    turkey_keys = sorted(TURKEY_LOCATIONS.keys(), key=lambda k: len(_normalize_text(k)), reverse=True)
+    global_keys = sorted(GLOBAL_LOCATIONS.keys(), key=lambda k: len(_normalize_text(k)), reverse=True)
+
+    candidates: Dict[Tuple[str, str], Dict[str, Any]] = {}
+
+    # Aşama 2, 3, 4: Türkiye Lokasyon Adaylarını Değerlendir
+    for kw in turkey_keys:
+        kw_norm = _normalize_text(kw)
+        pattern = r"\b" + re.escape(kw_norm) + r"\b"
+
+        in_title = bool(re.search(pattern, norm_title))
+        in_lead = bool(re.search(pattern, norm_first_sentence))
+        in_summary = bool(re.search(pattern, norm_summary))
+
+        if not (in_title or in_lead or in_summary):
+            continue
+
+        if not _check_homonym_validity(kw_norm, full_norm, is_tr_feed):
+            continue
+
+        score = 0
+        reasons = []
+
+        # Pozisyonel Ağırlıklandırma
+        if in_title:
+            score += 45
+            reasons.append("başlıkta_doğrulandı(+45)")
+        elif in_lead:
+            score += 30
+            reasons.append("giriş_cümlesinde_tespit(+30)")
+        elif in_summary:
+            score += 20
+            reasons.append("özette_tespit(+20)")
+
+        # Coğrafi / İdari Belirteç Denetimi (±6 kelime penceresi)
+        kw_words = kw_norm.split()
+        all_words = full_norm.split()
+        for idx, w in enumerate(all_words):
+            if w == kw_words[0] and all_words[idx:idx + len(kw_words)] == kw_words:
+                window_start = max(0, idx - 6)
+                window_end = min(len(all_words), idx + len(kw_words) + 6)
+                surrounding = set(all_words[window_start:window_end])
+                matched_ind = surrounding.intersection(GEO_INDICATORS_TR | GEO_INDICATORS_EN)
+                if matched_ind:
+                    score += 25
+                    reasons.append(f"coğrafi_niteleyici({','.join(list(matched_ind)[:2])})(+25)")
+                    break
+
+        if is_tr_feed:
+            score += 10
+            reasons.append("yerel_kaynak_uyumu(+10)")
+
+        candidates[("turkey", kw)] = {"score": score, "reasons": reasons, "kw": kw, "type": "turkey"}
+
+    # Aşama 5: Hiyerarşik Çapraz Doğrulama (İlçe + İl)
+    for (ctype, kw), cdata in list(candidates.items()):
+        if ctype == "turkey":
+            kw_norm = _normalize_text(kw)
+            parent_prov = DISTRICT_TO_PROVINCE.get(kw_norm)
+            if parent_prov:
+                parent_norm = _normalize_text(parent_prov)
+                if re.search(r"\b" + re.escape(parent_norm) + r"\b", full_norm):
+                    cdata["score"] += 35
+                    cdata["reasons"].append(f"ilçe_il_çapraz_doğrulaması({parent_prov})(+35)")
+
+    # Küresel Lokasyon Adaylarını Değerlendir
+    for kw in global_keys:
+        kw_norm = _normalize_text(kw)
+        pattern = r"\b" + re.escape(kw_norm) + r"\b"
+
+        in_title = bool(re.search(pattern, norm_title))
+        in_lead = bool(re.search(pattern, norm_first_sentence))
+        in_summary = bool(re.search(pattern, norm_summary))
+
+        if not (in_title or in_lead or in_summary):
+            continue
+
+        if not _check_homonym_validity(kw_norm, full_norm, is_tr_feed):
+            continue
+
+        score = 0
+        reasons = []
+        if in_title:
+            score += 45
+            reasons.append("başlıkta_doğrulandı(+45)")
+        elif in_lead:
+            score += 30
+            reasons.append("giriş_cümlesinde_tespit(+30)")
+        elif in_summary:
+            score += 20
+            reasons.append("özette_tespit(+20)")
+
+        kw_words = kw_norm.split()
+        all_words = full_norm.split()
+        for idx, w in enumerate(all_words):
+            if w == kw_words[0] and all_words[idx:idx + len(kw_words)] == kw_words:
+                window_start = max(0, idx - 6)
+                window_end = min(len(all_words), idx + len(kw_words) + 6)
+                surrounding = set(all_words[window_start:window_end])
+                matched_ind = surrounding.intersection(GEO_INDICATORS_TR | GEO_INDICATORS_EN)
+                if matched_ind:
+                    score += 25
+                    reasons.append(f"küresel_havza_niteleyici({','.join(list(matched_ind)[:2])})(+25)")
+                    break
+
+        candidates[("global", kw)] = {"score": score, "reasons": reasons, "kw": kw, "type": "global"}
+
+    if not candidates:
+        return (None, None, None, 0, "Doğrulanmış coğrafi varlık bulunamadı")
+
+    # Aşama 6: Çoklu Aday ve Çatışma Çözümleme
+    sorted_candidates = sorted(candidates.values(), key=lambda c: c["score"], reverse=True)
+    best = sorted_candidates[0]
+
+    # Aşama 7: Güven Eşiği (Score >= 70)
+    CONFIDENCE_THRESHOLD = 70
+    if best["score"] < CONFIDENCE_THRESHOLD:
+        return (None, None, None, best["score"], f"Eşik altı güven skoru ({best['score']}<{CONFIDENCE_THRESHOLD}): {'; '.join(best['reasons'])}")
+
+    if len(sorted_candidates) > 1:
+        second = sorted_candidates[1]
+        if best["score"] - second["score"] < 10 and best["kw"] != second["kw"]:
+            b_norm = _normalize_text(best["kw"])
+            s_norm = _normalize_text(second["kw"])
+            if DISTRICT_TO_PROVINCE.get(b_norm) == s_norm or DISTRICT_TO_PROVINCE.get(s_norm) == b_norm:
+                # İlçe ile il birlikte ise daha hassas olan ilçeyi tercih et
+                if DISTRICT_TO_PROVINCE.get(s_norm) == b_norm:
+                    best = second
+            else:
+                # Farklı 3 il eşit yoğunlukta geçiyorsa genel/dağınık haberdir
+                if len(sorted_candidates) >= 3 and sorted_candidates[2]["score"] >= 65:
+                    return (None, None, None, best["score"], "Çoklu bölge genel haberi (tek konuma indirgenemez)")
+
+    ctype = best["type"]
+    kw = best["kw"]
+    if ctype == "turkey":
+        lat, lng, loc_name = TURKEY_LOCATIONS[kw]
+        kw_norm = _normalize_text(kw)
+        max_rad = 3.5 if kw_norm in DISTRICT_TO_PROVINCE else 6.5
+    else:
+        lat, lng, loc_name = GLOBAL_LOCATIONS[kw]
+        max_rad = 20.0
+
+    seed_str = f"{guid}_{title_tr}_{index_seed}"
     h = int(hashlib.md5(seed_str.encode("utf-8")).hexdigest()[:8], 16)
-    # 1 derece enlem ~111 km
-    radius_deg = (max_radius_km / 111.0) * math.sqrt((h % 1000) / 1000.0)
+    radius_deg = (max_rad / 111.0) * math.sqrt((h % 1000) / 1000.0)
     angle_rad = ((h // 1000) % 360) * (math.pi / 180.0)
-    return (radius_deg * math.sin(angle_rad), radius_deg * math.cos(angle_rad))
+    j_lat = radius_deg * math.sin(angle_rad)
+    j_lng = radius_deg * math.cos(angle_rad)
 
+    audit_str = f"Skor: {best['score']}/100 | Doğrulama: {'; '.join(best['reasons'])}"
+    return (round(lat + j_lat, 4), round(lng + j_lng, 4), loc_name, best["score"], audit_str)
 
 def geocode_article(article: Dict[str, Any], index_seed: int = 0) -> Tuple[Optional[float], Optional[float], Optional[str]]:
     """
-    Haber nesnesinden gerçek coğrafi konumu tespit eder.
-    Eğer haber metninde doğrulanmış bir coğrafi yer (şehir, ilçe, nehir, baraj, havza, ülke)
-    geçmiyorsa (None, None, None) döner. Asla yapay koordinat uydurmaz.
+    Mevcut portalla tam geriye uyumlu arayüz fonksiyonu.
+    Gelişmiş 7 aşamalı değerlendirme sonucunda eşiği aşan (doğrulanmış) konumu döner;
+    eşiği aşamayan haberler için (None, None, None) döner.
     """
-    title_tr = article.get("title_tr") or article.get("title") or ""
-    title_en = article.get("title") or ""
-    summary_tr = article.get("summary_tr") or ""
-    source = article.get("source_feed") or article.get("source") or ""
-    guid = article.get("guid") or str(article.get("id") or "")
-
-    full_text = f"{title_tr} {title_en} {summary_tr} {source}".strip()
-    norm = _normalize_turkish_text(full_text)
-    seed_str = f"{guid}_{title_tr}_{index_seed}"
-
-    # 1. Öncelik: Türkiye Barajları, Ovaları, İlleri ve İlçeleri
-    for keyword in _SORTED_TURKEY_KEYS:
-        kw_norm = _normalize_turkish_text(keyword)
-        pattern = r"\b" + re.escape(kw_norm) + r"\b"
-        if re.search(pattern, norm):
-            lat, lng, loc_name = TURKEY_LOCATIONS[keyword]
-            j_lat, j_lng = _organic_jitter(seed_str, max_radius_km=7.0)
-            return (round(lat + j_lat, 4), round(lng + j_lng, 4), loc_name)
-
-    # 2. Öncelik: Küresel Sınır-Aşan Havzalar, Ülkeler ve Barajlar
-    for keyword in _SORTED_GLOBAL_KEYS:
-        kw_norm = _normalize_turkish_text(keyword)
-        pattern = r"\b" + re.escape(kw_norm) + r"\b"
-        if re.search(pattern, norm):
-            lat, lng, loc_name = GLOBAL_LOCATIONS[keyword]
-            j_lat, j_lng = _organic_jitter(seed_str, max_radius_km=25.0)
-            return (round(lat + j_lat, 4), round(lng + j_lng, 4), loc_name)
-
-    # Coğrafi konumu olmayan haber haritaya sahte nokta olarak basılmaz!
-    return (None, None, None)
+    lat, lng, loc_name, _, _ = evaluate_article_location(article, index_seed)
+    return (lat, lng, loc_name)
