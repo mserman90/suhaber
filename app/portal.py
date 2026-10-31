@@ -317,22 +317,46 @@ def generate_newspaper_portal_html(
         </article>
         """
 
-    # Ticker items (Continuous scrolling banner - prioritizing Turkey news)
+    # Channel Ticker Configuration
+    if is_livestock:
+        channel_ticker_icon = "🐄"
+        channel_ticker_label = "HAYVANCILIK GÜNDEMİ"
+        bottom_ticker_border = "#d97706"
+        bottom_ticker_badge_bg = "linear-gradient(135deg, #b45309, #d97706)"
+        bottom_ticker_accent = "#fbbf24"
+    elif is_agri:
+        channel_ticker_icon = "🌾"
+        channel_ticker_label = "TARIM GÜNDEMİ"
+        bottom_ticker_border = "#16a34a"
+        bottom_ticker_badge_bg = "linear-gradient(135deg, #15803d, #16a34a)"
+        bottom_ticker_accent = "#4ade80"
+    else:
+        channel_ticker_icon = "💧"
+        channel_ticker_label = "SU GÜNDEMİ"
+        bottom_ticker_border = "#0284c7"
+        bottom_ticker_badge_bg = "linear-gradient(135deg, #0369a1, #0284c7)"
+        bottom_ticker_accent = "#38bdf8"
+
+    # Ticker items (Bottom fixed banner - prioritizing Turkey news of this channel)
     turkey_ticker_items = [it for it in portal_data if it.get("is_turkey")]
     merged_ticker = []
-    # Take top 3 Turkey items first for high visibility
-    merged_ticker.extend(turkey_ticker_items[:3])
-    # Then fill up to 18 items with top portal items
+    # Prioritize top 6 Turkey items of this channel
+    merged_ticker.extend(turkey_ticker_items[:6])
+    # Then fill up to 18 items with top portal items of this channel
     for it in portal_data:
         if it not in merged_ticker and len(merged_ticker) < 18:
             merged_ticker.append(it)
 
     ticker_elements = []
     for it in merged_ticker:
+        cat = it.get("category", "")
         if it.get("is_turkey"):
-            cat_badge = '<span class="ticker-cat-tag ticker-cat-turkey">[🇹🇷 Türkiye]</span>'
+            cat_badge = f'<span class="ticker-cat-tag ticker-cat-turkey">[🇹🇷 {html.escape(cat)}]</span>' if (cat and cat != "Türkiye") else '<span class="ticker-cat-tag ticker-cat-turkey">[🇹🇷 Türkiye]</span>'
+        elif it.get("is_academic") or cat == "Akademik":
+            cat_badge = f'<span class="ticker-cat-tag ticker-cat-academic">[🎓 {html.escape(cat)}]</span>'
         else:
-            cat_badge = f'<span class="ticker-cat-tag">[{html.escape(it["category"])}]</span>'
+            cat_badge = f'<span class="ticker-cat-tag">[{html.escape(cat)}]</span>' if cat else ""
+
         ticker_elements.append(
             f'<span class="ticker-item" onclick="openArticleModal({it["id"]})">'
             f'<span class="ticker-icon">⚡</span> '
@@ -955,49 +979,85 @@ def generate_newspaper_portal_html(
             transition: border-color 0.25s ease;
         }}
 
-        /* Breaking News Ticker (Integrated in Top Bar) */
-        .top-bar-ticker {{
+        /* Bottom Screen Fixed Ticker Bar */
+        body {{
+            padding-bottom: 44px;
+        }}
+        .bottom-ticker-bar {{
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            background: #0b1a30;
+            border-top: 2px solid var(--bottom-ticker-border, #0284c7);
+            box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.4);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+            transition: background 0.25s ease, border-color 0.25s ease;
+        }}
+        [data-theme="light"] .bottom-ticker-bar {{
+            background: #0f172a;
+            color: #f1f5f9;
+        }}
+        [data-theme="dark"] .bottom-ticker-bar {{
+            background: #050914;
+            color: #e2e8f0;
+        }}
+        .bottom-ticker-badge {{
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            height: 100%;
+            padding: 0 16px;
+            background: var(--bottom-ticker-badge-bg, linear-gradient(135deg, #0369a1, #0284c7));
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 11.5px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            box-shadow: 3px 0 10px rgba(0, 0, 0, 0.25);
+            z-index: 2;
+        }}
+        .ticker-live-dot {{
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+            animation: liveDotPulse 1.8s infinite;
+        }}
+        @keyframes liveDotPulse {{
+            0% {{ transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 2px #22c55e; }}
+            50% {{ transform: scale(1.25); opacity: 1; box-shadow: 0 0 10px #22c55e, 0 0 14px #4ade80; }}
+            100% {{ transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 2px #22c55e; }}
+        }}
+        .bottom-ticker-marquee {{
             flex: 1;
             min-width: 0;
-            overflow: hidden;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            margin: 0 14px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 20px;
-            padding: 0 10px;
-            transition: border-color 0.2s ease, background 0.2s ease;
-        }}
-        .top-bar-ticker:hover {{
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.22);
-        }}
-        .ticker-marquee {{
-            flex: 1;
-            overflow: hidden;
-            white-space: nowrap;
-            position: relative;
             height: 100%;
+            overflow: hidden;
+            position: relative;
             display: flex;
             align-items: center;
-            mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
-            -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+            mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
         }}
-        .ticker-track {{
+        .bottom-ticker-track {{
             display: inline-flex;
             align-items: center;
             white-space: nowrap;
             will-change: transform;
-            animation: continuousTickerScroll 68s linear infinite;
+            animation: bottomTickerScroll 160s linear infinite;
         }}
-        .ticker-track:hover,
-        .top-bar-ticker:hover .ticker-track {{
+        .bottom-ticker-bar:hover .bottom-ticker-track {{
             animation-play-state: paused;
-            cursor: pointer;
         }}
-        @keyframes continuousTickerScroll {{
+        @keyframes bottomTickerScroll {{
             0% {{
                 transform: translateX(0);
             }}
@@ -1008,17 +1068,17 @@ def generate_newspaper_portal_html(
         .ticker-item {{
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            margin-right: 28px;
+            gap: 7px;
+            margin-right: 32px;
             cursor: pointer;
-            color: var(--top-bar-color);
-            font-size: 12px;
+            color: #e2e8f0;
+            font-size: 13px;
             font-weight: 500;
             text-decoration: none;
             transition: color 0.15s ease;
         }}
         .ticker-item:hover {{
-            color: #38bdf8;
+            color: var(--bottom-ticker-accent, #38bdf8);
         }}
         .ticker-item:hover .ticker-text {{
             text-decoration: underline;
@@ -1028,22 +1088,48 @@ def generate_newspaper_portal_html(
             font-size: 11px;
         }}
         .ticker-cat-tag {{
-            font-size: 10.5px;
+            font-size: 11px;
             font-weight: 700;
-            color: #38bdf8;
+            color: var(--bottom-ticker-accent, #38bdf8);
             opacity: 0.95;
         }}
         .ticker-cat-turkey {{
             color: #f87171 !important;
             font-weight: 800 !important;
         }}
-        [data-theme="dark"] .ticker-cat-turkey {{
-            color: #f87171 !important;
+        .ticker-cat-academic {{
+            color: #a78bfa !important;
+            font-weight: 700 !important;
         }}
         .ticker-sep {{
-            margin-left: 18px;
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 12px;
+            margin-left: 20px;
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 13px;
+        }}
+        .bottom-ticker-controls {{
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.25);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 2;
+        }}
+        .btn-ticker-ctrl {{
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            color: #cbd5e1;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+        }}
+        .btn-ticker-ctrl:hover {{
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            transform: scale(1.1);
         }}
 
 
@@ -1907,30 +1993,42 @@ def generate_newspaper_portal_html(
         }}
         @media (max-width: 860px) {{
             .top-bar-inner {{
-                flex-direction: column;
-                align-items: stretch;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
                 gap: 8px;
             }}
             .top-bar-left {{
-                justify-content: space-between;
-                width: 100%;
-                font-size: 11.5px;
-            }}
-            .top-bar-ticker {{
-                margin: 2px 0;
-                width: 100%;
-                order: 2;
+                font-size: 11px;
+                overflow: hidden;
+                text-overflow: ellipsis;
             }}
             .top-bar-right {{
-                justify-content: space-between;
-                width: 100%;
-                order: 3;
-            }}
-            .top-search-box {{
-                flex: 1;
+                gap: 6px;
             }}
             .top-search-box input {{
-                width: 100% !important;
+                width: 140px;
+            }}
+            .top-search-box input:focus {{
+                width: 170px;
+            }}
+            body {{
+                padding-bottom: 40px;
+            }}
+            .bottom-ticker-bar {{
+                height: 36px;
+            }}
+            .bottom-ticker-badge {{
+                padding: 0 10px;
+                font-size: 10.5px;
+                gap: 5px;
+            }}
+            .ticker-item {{
+                font-size: 12px;
+                margin-right: 22px;
+            }}
+            .bottom-ticker-controls {{
+                padding: 0 8px;
             }}
         }}
     </style>
@@ -1943,13 +2041,6 @@ def generate_newspaper_portal_html(
             <div class="top-bar-left">
                 <span>🗓️ {today_str}</span>
                 {top_stat_html}
-            </div>
-            <div class="top-bar-ticker">
-                <div class="ticker-marquee" title="Akışı durdurmak için imleci üzerine getirebilirsiniz">
-                    <div class="ticker-track" id="tickerTrack">
-                        {ticker_track_content}
-                    </div>
-                </div>
             </div>
             <div class="top-bar-right">
                 <div class="top-search-box">
@@ -2394,7 +2485,38 @@ def generate_newspaper_portal_html(
                 checkLiveFeed();
                 setInterval(checkLiveFeed, 90000);
             }}, 45000);
+            let isTickerPaused = false;
+            window.toggleTickerPause = function() {{
+                const track = document.getElementById('tickerTrack');
+                const btn = document.getElementById('tickerPauseBtn');
+                if (!track) return;
+                isTickerPaused = !isTickerPaused;
+                if (isTickerPaused) {{
+                    track.style.animationPlayState = 'paused';
+                    if (btn) btn.innerHTML = '▶️';
+                }} else {{
+                    track.style.animationPlayState = 'running';
+                    if (btn) btn.innerHTML = '⏸️';
+                }}
+            }};
         }})();
     </script>
+
+    <!-- Bottom Screen Fixed Ticker Bar -->
+    <div class="bottom-ticker-bar" id="bottomTickerBar" style="--bottom-ticker-border: {bottom_ticker_border}; --bottom-ticker-badge-bg: {bottom_ticker_badge_bg}; --bottom-ticker-accent: {bottom_ticker_accent};" role="region" aria-label="{channel_ticker_label} Canlı Akış">
+        <div class="bottom-ticker-badge">
+            <span class="ticker-live-dot" aria-hidden="true"></span>
+            <span class="badge-icon">{channel_ticker_icon}</span>
+            <span class="badge-text">{channel_ticker_label}</span>
+        </div>
+        <div class="bottom-ticker-marquee" title="Akışı durdurmak için imleci üzerine getirebilir veya duraklat düğmesini kullanabilirsiniz">
+            <div class="bottom-ticker-track" id="tickerTrack">
+                {ticker_track_content}
+            </div>
+        </div>
+        <div class="bottom-ticker-controls">
+            <button type="button" id="tickerPauseBtn" class="btn-ticker-ctrl" onclick="toggleTickerPause()" title="Akışı Duraklat / Devam Ettir" aria-label="Akışı Duraklat veya Devam Ettir">⏸️</button>
+        </div>
+    </div>
 </body>
 </html>"""
