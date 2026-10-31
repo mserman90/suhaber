@@ -394,57 +394,15 @@ def generate_newspaper_portal_html(
                 </div>
             </div>
 
-            <!-- Map Toolbar: Layer Switchers & Controls -->
+            <!-- Map Toolbar: Side Panel Toggle & View Controls -->
             <div class="map-toolbar">
-                <div class="map-layers-group" id="mapLayersGroup">
-                    <span class="toolbar-label">HABER KATMANLARI:</span>
-
-                    <label class="layer-toggle-btn active" data-layer="water" id="layerBtn_water" title="Su Gündemi haberleri (Varsayılan aktif katman)">
-                        <input type="checkbox" id="layerWaterCheck" checked onchange="toggleMapLayer('water')">
-                        <span class="layer-dot layer-dot-water"></span>
-                        <span class="layer-text">💧 Su Gündemi</span>
-                        <span class="layer-count" id="countWaterNews">{len(water_map_data)}</span>
-                    </label>
-
-                    <label class="layer-toggle-btn" data-layer="agri" id="layerBtn_agri" title="Tarım Gündemi haber katmanı">
-                        <input type="checkbox" id="layerAgriCheck" onchange="toggleMapLayer('agri')">
-                        <span class="layer-dot layer-dot-agri"></span>
-                        <span class="layer-text">🌾 Tarım Gündemi</span>
-                        <span class="layer-count" id="countAgriNews">{len(agri_map_data)}</span>
-                    </label>
-
-                    <label class="layer-toggle-btn" data-layer="livestock" id="layerBtn_livestock" title="Hayvancılık Gündemi haber katmanı">
-                        <input type="checkbox" id="layerLivestockCheck" onchange="toggleMapLayer('livestock')">
-                        <span class="layer-dot layer-dot-livestock"></span>
-                        <span class="layer-text">🐄 Hayvancılık Gündemi</span>
-                        <span class="layer-count" id="countLivestockNews">{len(livestock_map_data)}</span>
-                    </label>
-
-                    <div class="toolbar-divider"></div>
-                    <span class="toolbar-label">HİDROPOLİTİK VERİ:</span>
-
-                    <label class="layer-toggle-btn" data-layer="agreements" id="layerBtn_agreements" title="1820'den günümüze sınır aşan su anlaşmaları (TFDD / Oregon State Univ.)">
-                        <input type="checkbox" id="layerAgreementsCheck" onchange="toggleMapLayer('agreements')">
-                        <span class="layer-dot layer-dot-agreements"></span>
-                        <span class="layer-text">🌊 Su Anlaşmaları (TFDD)</span>
-                        <span class="layer-count">3.059</span>
-                    </label>
-
-                    <label class="layer-toggle-btn" data-layer="conflicts" id="layerBtn_conflicts" title="Tarihi su uyuşmazlıkları ve olaylar (Pacific Institute / BAR)">
-                        <input type="checkbox" id="layerConflictsCheck" onchange="toggleMapLayer('conflicts')">
-                        <span class="layer-dot layer-dot-conflicts"></span>
-                        <span class="layer-text">⚡ Su Olayları &amp; Krizler</span>
-                        <span class="layer-count">2.809</span>
-                    </label>
-
-                    <label class="layer-toggle-btn" data-layer="basins" id="layerBtn_basins" title="310 uluslararası sınır aşan nehir ve göl havzası poligonları">
-                        <input type="checkbox" id="layerBasinsCheck" onchange="toggleMapLayer('basins')">
-                        <span class="layer-dot layer-dot-basins"></span>
-                        <span class="layer-text">🗺️ 310 Sınır Aşan Havza</span>
-                        <span class="layer-count">310</span>
-                    </label>
+                <div class="map-toolbar-left">
+                    <button type="button" class="btn-toggle-layers-bar" onclick="toggleMapSidePanel()" title="Katman Filtreleri Panelini Aç / Kapat">
+                        <span class="icon">🗂️</span>
+                        <span>Katman Filtreleri</span>
+                        <span class="layer-pill-active" id="activeLayersBadge">💧 Su Gündemi Aktif</span>
+                    </button>
                 </div>
-
                 <div class="map-view-controls">
                     <button type="button" class="btn-map-view" onclick="zoomMapTo('turkey')" title="Türkiye ve Çevresine Yakınlaş">
                         🇹🇷 Türkiye
@@ -458,26 +416,136 @@ def generate_newspaper_portal_html(
                 </div>
             </div>
 
-            <!-- Map Canvas Container -->
+            <!-- Map Canvas Container with Collapsible Left Side Panel -->
             <div class="map-canvas-wrapper" id="mapCanvasWrapper">
+                <!-- Collapsible Left Side Panel for All News & Data Layers -->
+                <aside class="map-side-panel open" id="mapSidePanel" aria-label="Harita Katman Filtreleri">
+                    <div class="side-panel-header">
+                        <div class="side-panel-title-wrap">
+                            <span class="side-panel-icon">🗂️</span>
+                            <h3 class="side-panel-title">Katman Filtreleri</h3>
+                        </div>
+                        <button type="button" class="btn-close-side-panel" onclick="toggleMapSidePanel(false)" title="Paneli Gizle (Kapat)">
+                            ✕
+                        </button>
+                    </div>
+
+                    <div class="side-panel-body">
+                        <!-- Haber Katmanları Grubu -->
+                        <div class="panel-section">
+                            <div class="panel-section-header">
+                                <span class="panel-section-tag">HABER KATMANLARI</span>
+                                <span class="panel-section-help">Haber akışları</span>
+                            </div>
+
+                            <label class="panel-layer-card active" data-layer="water" id="layerBtn_water" title="Su Gündemi haberleri (Varsayılan aktif katman)">
+                                <div class="layer-card-left">
+                                    <input type="checkbox" id="layerWaterCheck" checked onchange="toggleMapLayer('water')">
+                                    <span class="layer-dot layer-dot-water"></span>
+                                    <div class="layer-card-info">
+                                        <span class="layer-name">💧 Su Gündemi</span>
+                                        <span class="layer-desc">Barajlar, kuraklık, su politikaları</span>
+                                    </div>
+                                </div>
+                                <span class="layer-count" id="countWaterNews">{len(water_map_data)}</span>
+                            </label>
+
+                            <label class="panel-layer-card" data-layer="agri" id="layerBtn_agri" title="Tarım Gündemi haber katmanı">
+                                <div class="layer-card-left">
+                                    <input type="checkbox" id="layerAgriCheck" onchange="toggleMapLayer('agri')">
+                                    <span class="layer-dot layer-dot-agri"></span>
+                                    <div class="layer-card-info">
+                                        <span class="layer-name">🌾 Tarım Gündemi</span>
+                                        <span class="layer-desc">Bitkisel üretim, hasat, agritech</span>
+                                    </div>
+                                </div>
+                                <span class="layer-count" id="countAgriNews">{len(agri_map_data)}</span>
+                            </label>
+
+                            <label class="panel-layer-card" data-layer="livestock" id="layerBtn_livestock" title="Hayvancılık Gündemi haber katmanı">
+                                <div class="layer-card-left">
+                                    <input type="checkbox" id="layerLivestockCheck" onchange="toggleMapLayer('livestock')">
+                                    <span class="layer-dot layer-dot-livestock"></span>
+                                    <div class="layer-card-info">
+                                        <span class="layer-name">🐄 Hayvancılık Gündemi</span>
+                                        <span class="layer-desc">Süt, besi, yem, hayvancılık</span>
+                                    </div>
+                                </div>
+                                <span class="layer-count" id="countLivestockNews">{len(livestock_map_data)}</span>
+                            </label>
+                        </div>
+
+                        <!-- Hidropolitik Veri Grubu -->
+                        <div class="panel-section">
+                            <div class="panel-section-header">
+                                <span class="panel-section-tag">HİDROPOLİTİK VERİ ATLASI</span>
+                                <span class="panel-section-help">Uluslararası arşivler</span>
+                            </div>
+
+                            <label class="panel-layer-card" data-layer="agreements" id="layerBtn_agreements" title="1820'den günümüze sınır aşan su anlaşmaları (TFDD / Oregon State Univ.)">
+                                <div class="layer-card-left">
+                                    <input type="checkbox" id="layerAgreementsCheck" onchange="toggleMapLayer('agreements')">
+                                    <span class="layer-dot layer-dot-agreements"></span>
+                                    <div class="layer-card-info">
+                                        <span class="layer-name">🌊 Su Anlaşmaları (TFDD)</span>
+                                        <span class="layer-desc">Uluslararası ikili/çoklu metinler</span>
+                                    </div>
+                                </div>
+                                <span class="layer-count">3.059</span>
+                            </label>
+
+                            <label class="panel-layer-card" data-layer="conflicts" id="layerBtn_conflicts" title="Tarihi su uyuşmazlıkları ve olaylar (Pacific Institute / BAR)">
+                                <div class="layer-card-left">
+                                    <input type="checkbox" id="layerConflictsCheck" onchange="toggleMapLayer('conflicts')">
+                                    <span class="layer-dot layer-dot-conflicts"></span>
+                                    <div class="layer-card-info">
+                                        <span class="layer-name">⚡ Su Olayları &amp; Krizler</span>
+                                        <span class="layer-desc">Pacific Institute kronolojisi</span>
+                                    </div>
+                                </div>
+                                <span class="layer-count">2.809</span>
+                            </label>
+
+                            <label class="panel-layer-card" data-layer="basins" id="layerBtn_basins" title="310 uluslararası sınır aşan nehir ve göl havzası poligonları">
+                                <div class="layer-card-left">
+                                    <input type="checkbox" id="layerBasinsCheck" onchange="toggleMapLayer('basins')">
+                                    <span class="layer-dot layer-dot-basins"></span>
+                                    <div class="layer-card-info">
+                                        <span class="layer-name">🗺️ 310 Sınır Aşan Havza</span>
+                                        <span class="layer-desc">Nehir &amp; göl sınır poligonları</span>
+                                    </div>
+                                </div>
+                                <span class="layer-count">310</span>
+                            </label>
+                        </div>
+
+                        <!-- Panel Alt Eylemler -->
+                        <div class="panel-footer-actions">
+                            <button type="button" class="btn-panel-action" onclick="resetToDefaultLayer()" title="Yalnızca Su Gündemi katmanını açık bırak">
+                                ↺ Varsayılana Dön (Su Gündemi)
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Floating Canvas Open Toggle Button (Visible when side panel is closed) -->
+                <button type="button" class="map-canvas-toggle-btn" id="mapCanvasToggleBtn" onclick="toggleMapSidePanel(true)" title="Katman Filtrelerini Aç" style="display: none;">
+                    <span class="toggle-icon">☰</span>
+                    <span class="toggle-txt">Katmanlar</span>
+                    <span class="toggle-badge" id="canvasActiveBadge">1</span>
+                </button>
+
                 <div id="portalLeafletMap" class="portal-leaflet-map"></div>
 
-                <!-- Floating In-Map Search Box -->
+                <!-- Floating In-Map Search Box (Top-Right) -->
                 <div class="map-search-bar" id="mapSearchBar">
-                    <input type="text" id="mapSearchInput" placeholder="🔎 Haritada Şehir, Havza veya Nehir Ara..." onkeydown="if(event.key==='Enter') executeMapSearch()">
+                    <input type="text" id="mapSearchInput" placeholder="🔎 Şehir, Havza veya Nehir Ara..." onkeydown="if(event.key==='Enter') executeMapSearch()">
                     <button type="button" onclick="executeMapSearch()" title="Konuma Git">Odaklan</button>
                 </div>
 
                 <div id="mapLoadingIndicator" class="map-loading-overlay" style="display: none;">
                     <div class="map-spinner"></div>
                     <span id="mapLoadingText">Veri katmanı yükleniyor...</span>
-                </div>
-                <div class="map-legend-overlay">
-                    <div class="legend-item"><span class="legend-circle dot-water"></span> 💧 Su Gündemi</div>
-                    <div class="legend-item"><span class="legend-circle dot-agri"></span> 🌾 Tarım Gündemi</div>
-                    <div class="legend-item"><span class="legend-circle dot-livestock"></span> 🐄 Hayvancılık Gündemi</div>
-                    <div class="legend-item"><span class="legend-circle dot-agreement"></span> 🌊 Anlaşma (TFDD)</div>
-                    <div class="legend-item"><span class="legend-circle dot-conflict"></span> ⚡ Kriz (BAR)</div>
                 </div>
             </div>
         </section>
@@ -2310,67 +2378,50 @@ def generate_newspaper_portal_html(
             margin-bottom: 14px;
             flex-wrap: wrap;
         }}
-        .map-layers-group {{
+        .map-toolbar-left {{
             display: flex;
             align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
+            gap: 10px;
         }}
-        .toolbar-label {{
-            font-size: 11px;
-            font-weight: 800;
-            color: var(--ink-light);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }}
-        .toolbar-divider {{
-            width: 1px;
-            height: 22px;
-            background: var(--border-line);
-            margin: 0 4px;
-        }}
-        .layer-toggle-btn {{
+        .btn-toggle-layers-bar {{
             display: inline-flex;
             align-items: center;
-            gap: 7px;
-            padding: 6px 12px;
-            border-radius: 20px;
+            gap: 8px;
+            padding: 7px 14px;
+            border-radius: 8px;
             background: var(--paper-bg);
             border: 1px solid var(--border-line);
-            font-size: 12px;
-            font-weight: 600;
             color: var(--ink-dark);
+            font-size: 12.5px;
+            font-weight: 700;
             cursor: pointer;
-            user-select: none;
-            transition: all 0.2s ease;
+            transition: all 0.18s ease;
         }}
-        .layer-toggle-btn:hover {{
-            border-color: #0284c7;
-            transform: translateY(-1px);
-        }}
-        .layer-toggle-btn.active {{
-            background: rgba(2, 132, 199, 0.12);
+        .btn-toggle-layers-bar:hover {{
             border-color: #0284c7;
             color: #0284c7;
+            transform: translateY(-1px);
+        }}
+        .layer-pill-active {{
+            background: rgba(2, 132, 199, 0.12);
+            color: #0284c7;
+            font-size: 11px;
             font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(2, 132, 199, 0.25);
         }}
-        [data-theme="dark"] .layer-toggle-btn.active {{
-            background: rgba(56, 189, 248, 0.16);
-            border-color: #38bdf8;
+        [data-theme="dark"] .layer-pill-active {{
+            background: rgba(56, 189, 248, 0.18);
             color: #38bdf8;
-        }}
-        .layer-toggle-btn input[type="checkbox"] {{
-            cursor: pointer;
-            accent-color: #0284c7;
-            width: 14px;
-            height: 14px;
-            margin: 0;
+            border-color: rgba(56, 189, 248, 0.35);
         }}
         .layer-dot {{
             width: 9px;
             height: 9px;
             border-radius: 50%;
             display: inline-block;
+            flex-shrink: 0;
         }}
         .layer-dot-water {{ background: #0284c7; box-shadow: 0 0 6px rgba(2, 132, 199, 0.6); }}
         .layer-dot-agri {{ background: #16a34a; box-shadow: 0 0 6px rgba(22, 163, 74, 0.6); }}
@@ -2379,15 +2430,11 @@ def generate_newspaper_portal_html(
         .layer-dot-conflicts {{ background: #dc2626; box-shadow: 0 0 6px rgba(220, 38, 38, 0.6); }}
         .layer-dot-basins {{ background: #0891b2; box-shadow: 0 0 6px rgba(8, 145, 178, 0.6); }}
         .layer-count {{
-            font-size: 10px;
+            font-size: 10.5px;
             font-weight: 700;
-            background: rgba(0, 0, 0, 0.08);
-            padding: 1px 6px;
-            border-radius: 10px;
-            color: var(--ink-light);
-        }}
-        [data-theme="dark"] .layer-count {{
             background: rgba(255, 255, 255, 0.12);
+            padding: 2px 7px;
+            border-radius: 10px;
             color: #cbd5e1;
         }}
         .map-view-controls {{
@@ -2413,7 +2460,7 @@ def generate_newspaper_portal_html(
         .map-canvas-wrapper {{
             position: relative;
             width: 100%;
-            height: 560px;
+            height: 580px;
             border-radius: 10px;
             overflow: hidden;
             border: 1px solid var(--border-line);
@@ -2436,11 +2483,221 @@ def generate_newspaper_portal_html(
             background: #1e293b;
         }}
 
-        /* Floating Search in Map */
-        .map-search-bar {{
+        /* ==========================================
+           COLLAPSIBLE LEFT SIDE PANEL (GIS LAYERS)
+           ========================================== */
+        .map-side-panel {{
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 320px;
+            max-width: 88%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+            z-index: 1002;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateX(-100%);
+        }}
+        .map-side-panel.open {{
+            transform: translateX(0);
+        }}
+        .side-panel-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(30, 41, 59, 0.5);
+        }}
+        .side-panel-title-wrap {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        .side-panel-icon {{
+            font-size: 15px;
+        }}
+        .side-panel-title {{
+            margin: 0;
+            font-size: 13.5px;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            color: #ffffff;
+            text-transform: uppercase;
+        }}
+        .btn-close-side-panel {{
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #cbd5e1;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.15s ease;
+        }}
+        .btn-close-side-panel:hover {{
+            background: rgba(239, 68, 68, 0.8);
+            color: #ffffff;
+        }}
+        .side-panel-body {{
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 16px;
+        }}
+        .side-panel-body::-webkit-scrollbar {{
+            width: 6px;
+        }}
+        .side-panel-body::-webkit-scrollbar-thumb {{
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }}
+        .panel-section {{
+            margin-bottom: 16px;
+        }}
+        .panel-section-header {{
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }}
+        .panel-section-tag {{
+            font-size: 10.5px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            color: #38bdf8;
+            text-transform: uppercase;
+        }}
+        .panel-section-help {{
+            font-size: 10px;
+            color: #94a3b8;
+        }}
+        .panel-layer-card {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 11px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 7px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.18s ease;
+        }}
+        .panel-layer-card:hover {{
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }}
+        .panel-layer-card.active {{
+            background: rgba(2, 132, 199, 0.18);
+            border-color: rgba(56, 189, 248, 0.5);
+        }}
+        .layer-card-left {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        .layer-card-left input[type="checkbox"] {{
+            width: 15px;
+            height: 15px;
+            accent-color: #0284c7;
+            cursor: pointer;
+            margin: 0;
+        }}
+        .layer-card-info {{
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }}
+        .layer-name {{
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #f1f5f9;
+            line-height: 1.3;
+        }}
+        .layer-desc {{
+            font-size: 10.5px;
+            color: #94a3b8;
+            line-height: 1.25;
+        }}
+        .panel-footer-actions {{
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }}
+        .btn-panel-action {{
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #e2e8f0;
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }}
+        .btn-panel-action:hover {{
+            background: rgba(2, 132, 199, 0.25);
+            border-color: #38bdf8;
+            color: #ffffff;
+        }}
+
+        /* Floating Open Button on Map Canvas */
+        .map-canvas-toggle-btn {{
             position: absolute;
             top: 14px;
             left: 56px;
+            z-index: 1000;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 7px 13px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+            transition: all 0.2s ease;
+        }}
+        .map-canvas-toggle-btn:hover {{
+            background: rgba(2, 132, 199, 0.95);
+            border-color: #38bdf8;
+            transform: translateY(-1px);
+        }}
+        .map-canvas-toggle-btn .toggle-badge {{
+            background: #0284c7;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 10px;
+        }}
+
+        /* Floating Search in Map (Top-Right) */
+        .map-search-bar {{
+            position: absolute;
+            top: 14px;
+            right: 14px;
             z-index: 999;
             display: flex;
             align-items: center;
@@ -2481,7 +2738,7 @@ def generate_newspaper_portal_html(
 
         .map-loading-overlay {{
             position: absolute;
-            top: 14px;
+            top: 58px;
             right: 14px;
             z-index: 1000;
             background: rgba(15, 23, 42, 0.88);
@@ -2508,41 +2765,6 @@ def generate_newspaper_portal_html(
         @keyframes mapSpin {{
             to {{ transform: rotate(360deg); }}
         }}
-        .map-legend-overlay {{
-            position: absolute;
-            bottom: 16px;
-            left: 16px;
-            z-index: 1000;
-            background: rgba(15, 23, 42, 0.88);
-            backdrop-filter: blur(6px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 8px 14px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            font-size: 11.5px;
-            color: #f1f5f9;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
-            flex-wrap: wrap;
-        }}
-        .legend-item {{
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-weight: 600;
-        }}
-        .legend-circle {{
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-        }}
-        .dot-water {{ background: #0284c7; border: 1.5px solid #fff; }}
-        .dot-agri {{ background: #16a34a; border: 1.5px solid #fff; }}
-        .dot-livestock {{ background: #d97706; border: 1.5px solid #fff; }}
-        .dot-agreement {{ background: #2563eb; border: 1.5px solid #fff; }}
-        .dot-conflict {{ background: #dc2626; border: 1.5px solid #fff; }}
 
         /* Custom Cluster Markers (Channel Themed - NO LIME GREEN!) */
         .portal-cluster-wrapper {{
@@ -2689,9 +2911,7 @@ def generate_newspaper_portal_html(
             .map-canvas-wrapper {{
                 height: 400px;
             }}
-            .map-legend-overlay {{
-                display: none;
-            }}
+
         }}
 
         /* Responsive */
@@ -3064,6 +3284,10 @@ def generate_newspaper_portal_html(
                 livestockCluster.addLayer(marker);
             }});
             mapLayers['livestock'] = livestockCluster;
+            updateActiveLayersBadges();
+            if (window.innerWidth <= 800) {{
+                toggleMapSidePanel(false);
+            }}
         }}
 
         function executeMapSearch() {{
@@ -3096,7 +3320,67 @@ def generate_newspaper_portal_html(
             }}
         }}
 
-async function toggleMapLayer(layerId) {{
+function toggleMapSidePanel(forceState) {{
+            const panel = document.getElementById('mapSidePanel');
+            const toggleBtn = document.getElementById('mapCanvasToggleBtn');
+            if (!panel) return;
+            if (typeof forceState === 'boolean') {{
+                if (forceState) panel.classList.add('open');
+                else panel.classList.remove('open');
+            }} else {{
+                panel.classList.toggle('open');
+            }}
+            const isOpen = panel.classList.contains('open');
+            if (toggleBtn) {{
+                toggleBtn.style.display = isOpen ? 'none' : 'inline-flex';
+            }}
+        }}
+
+        function updateActiveLayersBadges() {{
+            const layerIds = ['water', 'agri', 'livestock', 'agreements', 'conflicts', 'basins'];
+            const active = [];
+            layerIds.forEach(id => {{
+                const chk = document.getElementById('layer' + id.charAt(0).toUpperCase() + id.slice(1) + 'Check');
+                if (chk && chk.checked) active.push(id);
+            }});
+            const count = active.length;
+            const canvasBadge = document.getElementById('canvasActiveBadge');
+            const barBadge = document.getElementById('activeLayersBadge');
+            if (canvasBadge) canvasBadge.innerText = count;
+            if (barBadge) {{
+                if (count === 1 && active[0] === 'water') {{
+                    barBadge.innerText = '💧 Su Gündemi Aktif';
+                }} else if (count === 0) {{
+                    barBadge.innerText = 'Katmanlar Kapalı';
+                }} else {{
+                    barBadge.innerText = count + ' Katman Aktif';
+                }}
+            }}
+        }}
+
+        function resetToDefaultLayer() {{
+            const otherIds = ['agri', 'livestock', 'agreements', 'conflicts', 'basins'];
+            otherIds.forEach(id => {{
+                const chk = document.getElementById('layer' + id.charAt(0).toUpperCase() + id.slice(1) + 'Check');
+                const card = document.getElementById('layerBtn_' + id);
+                if (chk && chk.checked) {{
+                    chk.checked = false;
+                    if (card) card.classList.remove('active');
+                    if (mapLayers[id] && portalMap) portalMap.removeLayer(mapLayers[id]);
+                }}
+            }});
+
+            const waterChk = document.getElementById('layerWaterCheck');
+            const waterCard = document.getElementById('layerBtn_water');
+            if (waterChk && !waterChk.checked) {{
+                waterChk.checked = true;
+                if (waterCard) waterCard.classList.add('active');
+                if (mapLayers['water'] && portalMap) portalMap.addLayer(mapLayers['water']);
+            }}
+            updateActiveLayersBadges();
+        }}
+
+        async function toggleMapLayer(layerId) {{
             if (!portalMap) return;
             const chk = document.getElementById('layer' + layerId.charAt(0).toUpperCase() + layerId.slice(1) + 'Check');
             const btn = document.getElementById('layerBtn_' + layerId);
@@ -3118,12 +3402,14 @@ async function toggleMapLayer(layerId) {{
                 }} else {{
                     portalMap.removeLayer(cluster);
                 }}
+                updateActiveLayersBadges();
                 return;
             }}
 
             if (layerId === 'agreements') {{
                 if (!isChecked) {{
                     if (mapLayers['agreements']) portalMap.removeLayer(mapLayers['agreements']);
+                    updateActiveLayersBadges();
                     return;
                 }}
                 if (mapLayers['agreements']) {{
@@ -3178,6 +3464,7 @@ async function toggleMapLayer(layerId) {{
             if (layerId === 'conflicts') {{
                 if (!isChecked) {{
                     if (mapLayers['conflicts']) portalMap.removeLayer(mapLayers['conflicts']);
+                    updateActiveLayersBadges();
                     return;
                 }}
                 if (mapLayers['conflicts']) {{
@@ -3233,6 +3520,7 @@ async function toggleMapLayer(layerId) {{
             if (layerId === 'basins') {{
                 if (!isChecked) {{
                     if (mapLayers['basins']) portalMap.removeLayer(mapLayers['basins']);
+                    updateActiveLayersBadges();
                     return;
                 }}
                 if (mapLayers['basins']) {{
