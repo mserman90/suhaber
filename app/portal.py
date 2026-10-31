@@ -2927,8 +2927,15 @@ def generate_newspaper_portal_html(
         /* 2-Column Newspaper Section */
         .newspaper-columns {{
             display: grid;
-            grid-template-columns: 2.3fr 1fr;
+            grid-template-columns: minmax(0, 2.3fr) minmax(0, 1fr);
             gap: 28px;
+        }}
+        .main-articles-col,
+        .events-hub-col,
+        .prices-hub-col,
+        .newspaper-sidebar {{
+            min-width: 0;
+            max-width: 100%;
         }}
 
         /* Section Headings */
@@ -3877,26 +3884,25 @@ def generate_newspaper_portal_html(
             background: #0369a1;
         }}
 
-        @media (max-width: 768px) {{
-            .map-section-header {{
-                flex-direction: column;
-                align-items: stretch;
+        /* ========================================================
+           COMPREHENSIVE RESPONSIVE & MOBILE DESIGN SYSTEM
+           ======================================================== */
+        @media (max-width: 992px) {{
+            .main-headline-banner {{
+                grid-template-columns: minmax(0, 1fr);
             }}
-            .map-toolbar {{
-                flex-direction: column;
-                align-items: stretch;
+            .newspaper-columns {{
+                grid-template-columns: minmax(0, 1fr);
+                gap: 22px;
+            }}
+            .portal-layout {{
+                padding: 0 14px;
             }}
             .map-canvas-wrapper {{
-                height: 400px;
+                height: 420px;
             }}
-
         }}
 
-        /* Responsive */
-        @media (max-width: 900px) {{
-            .main-headline-banner {{ grid-template-columns: 1fr; }}
-            .newspaper-columns {{ grid-template-columns: 1fr; }}
-        }}
         @media (max-width: 860px) {{
             .top-bar-inner {{
                 flex-direction: row;
@@ -3908,33 +3914,376 @@ def generate_newspaper_portal_html(
                 font-size: 11px;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 45%;
             }}
             .top-bar-right {{
                 gap: 6px;
             }}
             .top-search-box input {{
-                width: 140px;
+                width: 120px;
             }}
             .top-search-box input:focus {{
-                width: 170px;
+                width: 150px;
             }}
+            .events-cards-grid {{
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }}
+        }}
+
+        @media (max-width: 768px) {{
+            .map-section-header {{
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }}
+            .map-toolbar {{
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 6px;
+            }}
+            .map-toolbar button, .map-toolbar a {{
+                flex: 1 1 auto;
+                justify-content: center;
+                text-align: center;
+            }}
+            .hero-grid {{
+                grid-template-columns: 1fr;
+            }}
+            .secondary-headlines {{
+                grid-template-columns: 1fr;
+            }}
+            .articles-news-grid {{
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }}
+        }}
+
+        @media (max-width: 640px) {{
             body {{
-                padding-bottom: 40px;
+                padding-bottom: 60px !important;
             }}
+            .portal-layout {{
+                padding: 0 10px 30px 10px;
+            }}
+
+            /* Top Bar */
+            .top-bar {{
+                padding: 6px 10px;
+            }}
+            .top-bar-left {{
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 11px;
+                max-width: 50%;
+            }}
+            .top-stat-link {{
+                display: none;
+            }}
+            .top-search-box {{
+                display: none;
+            }}
+
+            /* Channel Switcher Buttons */
+            .channel-switcher-container {{
+                margin: 12px 0 16px 0;
+            }}
+            .channel-switcher-inner {{
+                flex-direction: column;
+                width: 100%;
+                gap: 6px;
+            }}
+            .channel-tab-btn {{
+                width: 100%;
+                justify-content: space-between;
+                padding: 9px 14px;
+                min-height: 42px;
+                box-sizing: border-box;
+            }}
+
+            /* Masthead & Logo */
+            .newspaper-masthead {{
+                padding: 16px 0 12px 0;
+            }}
+            .newspaper-logo {{
+                font-size: clamp(1.85rem, 8vw, 2.75rem);
+                letter-spacing: 0.5px;
+                margin-bottom: 6px;
+                word-break: break-word;
+            }}
+            .newspaper-sub-logo {{
+                font-size: 11px;
+                letter-spacing: 0.4px;
+                line-height: 1.4;
+                margin-bottom: 6px;
+            }}
+            .newspaper-motto {{
+                font-size: 11px;
+                padding: 0 6px;
+            }}
+
+            /* Category Filter Pills */
+            .category-bar-wrapper {{
+                margin-bottom: 16px;
+            }}
+            .category-pills {{
+                gap: 6px;
+                justify-content: center;
+            }}
+            .cat-btn {{
+                font-size: 11.5px;
+                padding: 6px 11px;
+                min-height: 36px;
+            }}
+
+            /* View Mode Switcher Tabs */
+            .view-mode-tabs-bar {{
+                margin-bottom: 16px;
+            }}
+            .view-mode-tabs-inner {{
+                width: 100%;
+                flex-direction: column;
+                gap: 6px;
+            }}
+            .view-tab-btn {{
+                width: 100%;
+                justify-content: space-between;
+                padding: 10px 14px;
+                font-size: 12.5px;
+                min-height: 42px;
+                box-sizing: border-box;
+            }}
+            .view-tab-badge {{
+                margin-left: auto;
+            }}
+
+            /* GIS Map Section on Mobile */
+            .map-canvas-wrapper {{
+                height: 380px !important;
+            }}
+            .map-canvas-toggle-btn {{
+                top: 10px !important;
+                left: 10px !important;
+                padding: 6px 11px !important;
+                font-size: 11.5px !important;
+            }}
+            .map-search-bar {{
+                top: 10px !important;
+                right: 10px !important;
+                max-width: calc(100% - 130px) !important;
+                padding: 3px 6px 3px 10px !important;
+            }}
+            .map-search-bar input {{
+                width: 100% !important;
+                min-width: 60px !important;
+                font-size: 11px !important;
+            }}
+            .map-search-bar button {{
+                padding: 3px 8px !important;
+                font-size: 11px !important;
+            }}
+            .leaflet-top.leaflet-left {{
+                top: 56px !important;
+                left: 10px !important;
+            }}
+
+            /* Events Hub on Mobile */
+            .events-hub-header {{
+                padding: 16px 14px !important;
+                margin-bottom: 14px !important;
+            }}
+            .events-hub-title {{
+                font-size: clamp(1.15rem, 4.5vw, 1.45rem) !important;
+                word-break: break-word !important;
+            }}
+            .events-hub-desc {{
+                font-size: 12.5px !important;
+            }}
+            .events-subtabs-bar {{
+                padding: 6px !important;
+                gap: 6px !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
+            }}
+            .events-subtabs-bar::-webkit-scrollbar {{
+                display: none !important;
+            }}
+            .event-subtab-btn {{
+                font-size: 12px !important;
+                padding: 6px 11px !important;
+                white-space: nowrap !important;
+            }}
+            .events-cards-grid {{
+                grid-template-columns: 1fr !important;
+                gap: 14px !important;
+            }}
+            .event-card {{
+                padding: 16px 14px !important;
+            }}
+            .event-card-title {{
+                font-size: 16px !important;
+                word-break: break-word !important;
+            }}
+            .event-meta-grid {{
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+            }}
+            .event-card-actions {{
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+            }}
+            .btn-event-link, .btn-event-map, .btn-event-cal {{
+                width: 100% !important;
+                min-height: 40px !important;
+                justify-content: center !important;
+            }}
+
+            /* Prices Hub on Mobile */
+            .prices-hub-header {{
+                padding: 16px 14px !important;
+                margin-bottom: 14px !important;
+            }}
+            .prices-hub-title {{
+                font-size: clamp(1.15rem, 4.5vw, 1.45rem) !important;
+                word-break: break-word !important;
+            }}
+            .prices-hub-desc {{
+                font-size: 12.5px !important;
+            }}
+            .prices-fx-strip {{
+                padding: 8px 10px !important;
+                font-size: 11px !important;
+                gap: 6px 8px !important;
+            }}
+            .prices-subtabs-bar {{
+                padding: 6px !important;
+                gap: 6px !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
+            }}
+            .prices-subtabs-bar::-webkit-scrollbar {{
+                display: none !important;
+            }}
+            .price-subtab-btn {{
+                font-size: 12px !important;
+                padding: 6px 11px !important;
+                white-space: nowrap !important;
+            }}
+            .price-compare-card {{
+                padding: 16px 14px !important;
+            }}
+            .price-card-title {{
+                font-size: 16px !important;
+                word-break: break-word !important;
+            }}
+            .price-card-header {{
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }}
+            .price-header-left {{
+                width: 100% !important;
+                justify-content: space-between !important;
+            }}
+            .price-diff-badge {{
+                align-self: flex-start !important;
+                font-size: 11px !important;
+            }}
+            .price-comparison-grid {{
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+            }}
+            .price-cell {{
+                padding: 10px 12px !important;
+            }}
+            .price-card-analysis {{
+                font-size: 11.5px !important;
+                padding: 8px 10px !important;
+            }}
+
+            /* Reading Modal on Mobile */
+            .modal-window {{
+                width: 96% !important;
+                max-width: 96% !important;
+                max-height: 88vh !important;
+                padding: 16px 14px !important;
+                border-radius: 8px !important;
+            }}
+            .modal-title-tr {{
+                font-size: 17px !important;
+                line-height: 1.35 !important;
+            }}
+            .modal-title-en {{
+                font-size: 13px !important;
+            }}
+            .modal-meta-bar {{
+                flex-direction: column !important;
+                gap: 4px !important;
+                font-size: 11px !important;
+            }}
+            .modal-img {{
+                max-height: 200px !important;
+            }}
+            .modal-text {{
+                font-size: 13.5px !important;
+                line-height: 1.6 !important;
+            }}
+            .modal-footer {{
+                flex-direction: column !important;
+                gap: 8px !important;
+            }}
+            .modal-footer button, .modal-footer a {{
+                width: 100% !important;
+                min-height: 40px !important;
+                justify-content: center !important;
+                text-align: center !important;
+            }}
+
+            /* Bottom Ticker on Mobile */
             .bottom-ticker-bar {{
-                height: 36px;
+                height: 38px !important;
             }}
             .bottom-ticker-badge {{
-                padding: 0 10px;
-                font-size: 10.5px;
-                gap: 5px;
+                font-size: 10px !important;
+                padding: 0 8px !important;
+                white-space: nowrap !important;
             }}
             .ticker-item {{
-                font-size: 12px;
-                margin-right: 22px;
+                font-size: 11.5px !important;
+                margin-right: 18px !important;
             }}
             .bottom-ticker-controls {{
-                padding: 0 8px;
+                padding: 0 6px !important;
+            }}
+        }}
+
+        @media (max-width: 420px) {{
+            .top-bar-left {{
+                font-size: 10px;
+            }}
+            .btn-lang-pill {{
+                padding: 3px 6px;
+                font-size: 10.5px;
+            }}
+            .channel-tab-name {{
+                font-size: 12px;
+            }}
+            .newspaper-logo {{
+                font-size: 1.7rem !important;
+            }}
+            .hero-title {{
+                font-size: 1.3rem !important;
+            }}
+            .map-canvas-wrapper {{
+                height: 340px !important;
+            }}
+            .price-cell .cell-main-price {{
+                font-size: 15px !important;
             }}
         }}
     </style>
