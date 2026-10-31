@@ -3,6 +3,14 @@ import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from app.quotes import get_daily_water_quote
+import json
+from app.events_data import (
+    get_channel_events,
+    render_events_hub_html,
+    render_sidebar_events_widget,
+    CHANNEL_EVENTS_METADATA,
+    EVENT_CATEGORIES
+)
 
 def clean_html_tags(text: str) -> str:
     if not text:
@@ -26,6 +34,13 @@ def generate_newspaper_portal_html(
     today_str = datetime.now(timezone.utc).strftime("%d.%m.%Y")
     is_agri = (channel == "agriculture")
     is_livestock = (channel == "livestock")
+    curr_channel_key = "livestock" if is_livestock else ("agriculture" if is_agri else "water")
+    channel_events = get_channel_events(curr_channel_key)
+    events_hub_html = render_events_hub_html(curr_channel_key, channel_events)
+    sidebar_events_widget_html = render_sidebar_events_widget(curr_channel_key, channel_events)
+    tab_news_label = "GÜNCEL HABER AKIŞI"
+    tab_events_label = "ULUSLARARASI ZİRVELER & TOPLANTILAR"
+    events_badge_text = "Zirve" 
 
     if is_livestock:
         channel_key = "livestock"
@@ -504,6 +519,18 @@ def generate_newspaper_portal_html(
                                 </div>
                                 <span class="layer-count" id="countLivestockNews">{len(livestock_map_data)}</span>
                             </label>
+
+                            <label class="panel-layer-card active" data-layer="events" id="layerBtn_events" title="Uluslararası Zirveler &amp; Toplantılar Katmanı">
+                                <div class="layer-card-left">
+                                    <input type="checkbox" id="layerEventsCheck" checked onchange="toggleMapLayer('events')">
+                                    <span class="layer-dot" style="background:#d97706; box-shadow:0 0 6px #d97706;"></span>
+                                    <div class="layer-card-info">
+                                        <span class="layer-name">🌐 Uluslararası Zirveler</span>
+                                        <span class="layer-desc">Küresel kongreler, BM &amp; zirveler</span>
+                                    </div>
+                                </div>
+                                <span class="layer-count" style="background:rgba(217,119,6,0.18); color:#d97706;">{len(channel_events)}</span>
+                            </label>
                         </div>
 
                         <!-- Hidropolitik Veri Grubu -->
@@ -796,6 +823,8 @@ def generate_newspaper_portal_html(
                 <button type="button" class="cat-btn" data-slug="teknoloji" onclick="filterCategory('teknoloji')">🤖 Hayvancılık Teknolojileri</button>
                 <button type="button" class="cat-btn" data-slug="destek" onclick="filterCategory('destek')">📊 Destek &amp; Fiyat</button>
                 <button type="button" class="cat-btn" data-slug="akademik" onclick="filterCategory('akademik')">🎓 Akademik Yayınlar</button>
+                <button type="button" class="cat-btn cat-btn-events" data-slug="events" onclick="filterCategory('events')" title="Uluslararası Zirveler &amp; Toplantılar">🌐 <span data-i18n="nav_events_pill">Uluslararası Zirveler</span></button>
+                <button type="button" class="cat-btn cat-btn-events" data-slug="events" onclick="filterCategory('events')" title="Uluslararası Zirveler &amp; Toplantılar">🌐 <span data-i18n="nav_events_pill">Uluslararası Zirveler</span></button>
         """.strip()
         section_title = "🐄 Son Hayvancılık Haberleri, Piyasa Raporları &amp; Araştırmalar"
         empty_icon = "🐄"
@@ -923,6 +952,7 @@ def generate_newspaper_portal_html(
                 <button type="button" class="cat-btn" data-slug="kaynak" onclick="filterCategory('kaynak')">💧 Su Kaynakları</button>
                 <button type="button" class="cat-btn" data-slug="iklim" onclick="filterCategory('iklim')">🌍 İklim &amp; Kuraklık</button>
                 <button type="button" class="cat-btn" data-slug="politika" onclick="filterCategory('politika')">⚖️ Su Politikaları</button>
+                <button type="button" class="cat-btn cat-btn-events" data-slug="events" onclick="filterCategory('events')" title="Uluslararası Zirveler &amp; Toplantılar">🌐 <span data-i18n="nav_events_pill">Uluslararası Zirveler</span></button>
         """.strip()
         section_title = "🌊 Son Bilimsel Araştırmalar &amp; Raporlar"
         empty_icon = "💧"
@@ -2017,6 +2047,408 @@ def generate_newspaper_portal_html(
             line-height: 1.4;
         }}
 
+
+        /* View Mode Switcher Tabs Bar */
+        .view-mode-tabs-bar {{
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 22px;
+            border-bottom: 2px solid var(--border-line);
+            padding-bottom: 0px;
+        }}
+        .view-mode-tabs-inner {{
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }}
+        .view-tab-btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--ink-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            bottom: -2px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+        }}
+        .view-tab-btn:hover {{
+            color: var(--ink-primary);
+            background: var(--cat-btn-hover);
+        }}
+        .view-tab-btn.active {{
+            color: var(--accent-primary, #0284c7);
+            border-bottom-color: var(--accent-primary, #0284c7);
+            background: var(--paper-card);
+        }}
+        .view-tab-badge {{
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 12px;
+            background: var(--cat-btn-bg);
+            color: var(--ink-muted);
+        }}
+        .view-tab-btn.active .view-tab-badge {{
+            background: var(--accent-primary, #0284c7);
+            color: #ffffff;
+        }}
+        .events-count-badge {{
+            background: rgba(217, 119, 6, 0.15) !important;
+            color: #d97706 !important;
+            border: 1px solid rgba(217, 119, 6, 0.3);
+        }}
+        .view-tab-btn.active .events-count-badge {{
+            background: #d97706 !important;
+            color: #ffffff !important;
+        }}
+
+        /* Events Hub Layout */
+        .events-hub-col {{
+            animation: fadeIn 0.25s ease-out;
+        }}
+        @keyframes fadeIn {{
+            from {{ opacity: 0; transform: translateY(6px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        .events-hub-header {{
+            margin-bottom: 20px;
+            padding: 18px 22px;
+            background: linear-gradient(135deg, rgba(2,132,199,0.06), rgba(217,119,6,0.06));
+            border: 1px solid var(--border-line);
+            border-left: 4px solid #d97706;
+            border-radius: 8px;
+        }}
+        .events-hub-badge {{
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            color: #d97706;
+            margin-bottom: 6px;
+        }}
+        .events-hub-title {{
+            font-family: 'Playfair Display', serif;
+            font-size: 1.55rem;
+            color: var(--newspaper-navy);
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            line-height: 1.3;
+        }}
+        .events-hub-desc {{
+            font-size: 13.5px;
+            color: var(--ink-muted);
+            line-height: 1.6;
+            margin: 0;
+        }}
+
+        /* Events Sub-Tabs (Sekmeler) */
+        .events-subtabs-bar {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 22px;
+            padding: 8px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-line);
+            border-radius: 8px;
+        }}
+        .event-subtab-btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: var(--cat-btn-bg);
+            border: 1px solid var(--cat-btn-border);
+            border-radius: 6px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--cat-btn-color);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }}
+        .event-subtab-btn:hover {{
+            background: var(--cat-btn-hover);
+        }}
+        .event-subtab-btn.active {{
+            background: #d97706 !important;
+            border-color: #d97706 !important;
+            color: #ffffff !important;
+        }}
+        .subtab-count {{
+            font-size: 11px;
+            opacity: 0.85;
+        }}
+
+        /* Events Cards Grid */
+        .events-cards-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }}
+        .event-card {{
+            background: var(--paper-card);
+            border: 1px solid var(--border-line);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            position: relative;
+        }}
+        .event-card:hover {{
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+            border-color: #d97706;
+        }}
+        .event-card-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }}
+        .event-header-left {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }}
+        .event-acronym-badge {{
+            font-size: 12px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(217, 119, 6, 0.12);
+            color: #b45309;
+            border: 1px solid rgba(217, 119, 6, 0.25);
+        }}
+        [data-theme="dark"] .event-acronym-badge {{
+            background: rgba(245, 158, 11, 0.18);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.35);
+        }}
+        .event-cat-badge {{
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: var(--cat-btn-bg);
+            color: var(--ink-muted);
+        }}
+        .event-cycle-badge {{
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-light);
+            background: rgba(0,0,0,0.04);
+            padding: 2px 7px;
+            border-radius: 10px;
+        }}
+        [data-theme="dark"] .event-cycle-badge {{
+            background: rgba(255,255,255,0.06);
+        }}
+        .event-card-title {{
+            font-family: 'Playfair Display', serif;
+            font-size: 1.18rem;
+            font-weight: 700;
+            color: var(--newspaper-navy);
+            line-height: 1.35;
+            margin: 0 0 8px 0;
+        }}
+        .event-card-org {{
+            font-size: 12px;
+            color: var(--ink-light);
+            margin-bottom: 14px;
+            line-height: 1.4;
+        }}
+        .event-meta-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border-line);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+        }}
+        .event-meta-item {{
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }}
+        .meta-icon {{
+            font-size: 14px;
+            line-height: 1;
+        }}
+        .meta-content {{
+            display: flex;
+            flex-direction: column;
+        }}
+        .meta-label {{
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--ink-light);
+            letter-spacing: 0.5px;
+        }}
+        .meta-val {{
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-primary);
+            line-height: 1.3;
+        }}
+        .event-card-desc {{
+            font-size: 12.5px;
+            color: var(--ink-muted);
+            line-height: 1.6;
+            margin: 0 0 14px 0;
+            flex-grow: 1;
+        }}
+        .event-topics-tags {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }}
+        .event-topic-pill {{
+            font-size: 11px;
+            padding: 2px 7px;
+            background: var(--cat-btn-bg);
+            color: var(--ink-light);
+            border-radius: 4px;
+        }}
+        .event-card-actions {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-top: 1px solid var(--border-line);
+            padding-top: 14px;
+        }}
+        .btn-event-link {{
+            flex: 1.2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 7px 12px;
+            background: var(--newspaper-navy);
+            color: #ffffff !important;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 6px;
+            transition: opacity 0.15s ease;
+        }}
+        .btn-event-link:hover {{
+            opacity: 0.9;
+        }}
+        .btn-event-map, .btn-event-cal {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 7px 10px;
+            background: var(--cat-btn-bg);
+            border: 1px solid var(--cat-btn-border);
+            color: var(--ink-primary) !important;
+            text-decoration: none;
+            font-size: 11.5px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }}
+        .btn-event-map:hover, .btn-event-cal:hover {{
+            background: var(--cat-btn-hover);
+        }}
+
+        /* Sidebar Events Card */
+        .sidebar-events-card {{
+            border-left: 3px solid #d97706 !important;
+        }}
+        .sidebar-events-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }}
+        .sidebar-events-count {{
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(217, 119, 6, 0.15);
+            color: #d97706;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }}
+        .sidebar-events-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            margin-bottom: 12px;
+        }}
+        .sidebar-event-item {{
+            padding: 8px 10px;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border-line);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }}
+        .sidebar-event-item:hover {{
+            border-color: #d97706;
+            transform: translateX(2px);
+        }}
+        .sidebar-event-date {{
+            font-size: 11px;
+            font-weight: 700;
+            color: #d97706;
+            margin-bottom: 2px;
+        }}
+        .sidebar-event-title {{
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--newspaper-navy);
+            line-height: 1.3;
+            margin-bottom: 2px;
+        }}
+        .sidebar-event-loc {{
+            font-size: 11px;
+            color: var(--ink-light);
+        }}
+        .btn-all-events-hub {{
+            width: 100%;
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px solid #d97706;
+            color: #d97706;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }}
+        .btn-all-events-hub:hover {{
+            background: #d97706;
+            color: #ffffff;
+        }}
+        .cat-btn-events {{
+            border-color: #d97706 !important;
+            color: #d97706 !important;
+            font-weight: 700 !important;
+        }}
+        .cat-btn-events:hover {{
+            background: rgba(217, 119, 6, 0.12) !important;
+        }}
+
         /* 2-Column Newspaper Section */
         .newspaper-columns {{
             display: grid;
@@ -3091,11 +3523,27 @@ def generate_newspaper_portal_html(
         <!-- Interactive Map Section -->
         {interactive_map_html}
 
+        <!-- View Mode Switcher Tabs (Haber Akışı vs Uluslararası Zirveler) -->
+        <div class="view-mode-tabs-bar" id="portalViewTabs">
+            <div class="view-mode-tabs-inner">
+                <button type="button" class="view-tab-btn active" id="tabModeNews" onclick="switchPortalMainView('news')">
+                    <span class="view-tab-icon">📰</span>
+                    <span class="view-tab-label" data-i18n="tab_mode_news">{tab_news_label}</span>
+                    <span class="view-tab-badge" id="newsBadgeCount">{len(items)}</span>
+                </button>
+                <button type="button" class="view-tab-btn" id="tabModeEvents" onclick="switchPortalMainView('events')">
+                    <span class="view-tab-icon">🌐</span>
+                    <span class="view-tab-label" data-i18n="tab_mode_events">{tab_events_label}</span>
+                    <span class="view-tab-badge events-count-badge" id="eventsBadgeCount">{len(channel_events)} {events_badge_text}</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Columns Section -->
         <div class="newspaper-columns">
             
             <!-- Left Main Column: News Grid -->
-            <div class="main-articles-col">
+            <div class="main-articles-col" id="newsGridCol">
                 <div class="section-headline" id="mainNewsSection">
                     <h3 id="sectionTitle">{section_title}</h3>
                     <span id="sectionCount">Toplam <strong>{len(items)}</strong> makale</span>
@@ -3113,6 +3561,9 @@ def generate_newspaper_portal_html(
                     {grid_html}
                 </div>
             </div>
+
+            <!-- Left Main Column: Events Hub (Switched with News Grid) -->
+            {events_hub_html}
 
             <!-- Right Sidebar: Editorial & Infographics -->
             <aside class="newspaper-sidebar">
@@ -3142,6 +3593,9 @@ def generate_newspaper_portal_html(
                         <a href="{json_url}" target="_blank" style="color:#15803d; font-weight:bold;">JSON Feed</a>
                     </div>
                 </div>
+
+                <!-- Upcoming Events Widget -->
+                {sidebar_events_widget_html}
 
                 <!-- Sources Card -->
                 {sidebar_sources_html}
@@ -3359,6 +3813,36 @@ def generate_newspaper_portal_html(
                 livestockCluster.addLayer(marker);
             }});
             mapLayers['livestock'] = livestockCluster;
+            // 4. International Summits Layer
+            const eventsGroup = L.layerGroup();
+            const eventIcon = L.divIcon({{
+                className: 'custom-event-map-pin',
+                html: '<div style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.35); cursor: pointer;">🌐</div>',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -16]
+            }});
+            channelEventsData.forEach(ev => {{
+                if (!ev.lat || !ev.lng) return;
+                const marker = L.marker([ev.lat, ev.lng], {{ icon: eventIcon, title: ev.title_tr }});
+                const popupContent = `
+                    <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif; min-width:240px; max-width:300px; padding:2px;">
+                        <div style="background:linear-gradient(135deg,#d97706,#b45309); color:#fff; padding:6px 10px; border-radius:6px; font-weight:800; font-size:11.5px; margin-bottom:8px;">
+                            ${{ev.flag}} ${{ev.acronym}} &bull; ULUSLARARASI ZİRVE
+                        </div>
+                        <h4 style="margin:0 0 6px 0; font-size:14px; font-weight:700; color:#0f172a; line-height:1.3;">${{ev.title_tr}}</h4>
+                        <div style="font-size:12px; color:#d97706; font-weight:700; margin-bottom:4px;">🗓️ ${{ev.date_display_tr}}</div>
+                        <div style="font-size:11.5px; color:#64748b; margin-bottom:8px;">📍 ${{ev.location_city}}, ${{ev.location_country_tr}} &bull; 🏛️ ${{ev.organizer_tr}}</div>
+                        <p style="font-size:12px; line-height:1.45; color:#334155; margin:0 0 10px 0;">${{ev.summary_tr.slice(0, 150)}}...</p>
+                        <a href="${{ev.url}}" target="_blank" rel="noopener noreferrer" style="display:inline-block; font-size:12px; font-weight:700; color:#d97706; text-decoration:none;">Resmi Web Sitesini İncele &rarr;</a>
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+                eventsGroup.addLayer(marker);
+            }});
+            portalMap.addLayer(eventsGroup);
+            mapLayers['events'] = eventsGroup;
+
             updateActiveLayersBadges();
             toggleMapSidePanel(false);
         }}
@@ -3410,7 +3894,7 @@ function toggleMapSidePanel(forceState) {{
         }}
 
         function updateActiveLayersBadges() {{
-            const layerIds = ['water', 'agri', 'livestock', 'agreements', 'conflicts', 'basins'];
+            const layerIds = ['water', 'agri', 'livestock', 'events', 'agreements', 'conflicts', 'basins'];
             const active = [];
             layerIds.forEach(id => {{
                 const chk = document.getElementById('layer' + id.charAt(0).toUpperCase() + id.slice(1) + 'Check');
@@ -3432,7 +3916,7 @@ function toggleMapSidePanel(forceState) {{
         }}
 
         function resetToDefaultLayer() {{
-            const otherIds = ['agri', 'livestock', 'agreements', 'conflicts', 'basins'];
+            const otherIds = ['agri', 'livestock', 'events', 'agreements', 'conflicts', 'basins'];
             otherIds.forEach(id => {{
                 const chk = document.getElementById('layer' + id.charAt(0).toUpperCase() + id.slice(1) + 'Check');
                 const card = document.getElementById('layerBtn_' + id);
@@ -3467,7 +3951,7 @@ function toggleMapSidePanel(forceState) {{
             const loader = document.getElementById('mapLoadingIndicator');
             const loaderText = document.getElementById('mapLoadingText');
 
-            if (layerId === 'water' || layerId === 'agri' || layerId === 'livestock') {{
+            if (layerId === 'water' || layerId === 'agri' || layerId === 'livestock' || layerId === 'events') {{
                 const cluster = mapLayers[layerId];
                 if (!cluster) return;
                 if (isChecked) {{
@@ -3926,6 +4410,56 @@ function toggleMapSidePanel(forceState) {{
                 }}
             }}
 
+            
+            // 12. Update View Tabs & International Events Hub Elements
+            const tabNewsLabel = document.querySelector('[data-i18n="tab_mode_news"]');
+            const tabEventsLabel = document.querySelector('[data-i18n="tab_mode_events"]');
+            const navEventsPill = document.querySelector('[data-i18n="nav_events_pill"]');
+            if (tabNewsLabel) tabNewsLabel.innerText = isEn ? 'LATEST NEWS FEED' : 'GÜNCEL HABER AKIŞI';
+            if (tabEventsLabel) tabEventsLabel.innerText = isEn ? 'INTERNATIONAL SUMMITS & CONFERENCES' : 'ULUSLARARASI ZİRVELER & TOPLANTILAR';
+            if (navEventsPill) navEventsPill.innerText = isEn ? 'International Summits' : 'Uluslararası Zirveler';
+
+            const evBadge = document.getElementById('eventsSectionBadge');
+            const evSectionTitle = document.getElementById('eventsSectionTitle');
+            const evSectionDesc = document.getElementById('eventsSectionDesc');
+            if (evBadge && typeof CHANNEL_EVENTS_CONFIG !== 'undefined') evBadge.innerText = isEn ? CHANNEL_EVENTS_CONFIG.badge_en : CHANNEL_EVENTS_CONFIG.badge_tr;
+            if (evSectionTitle && typeof CHANNEL_EVENTS_CONFIG !== 'undefined') evSectionTitle.innerText = isEn ? CHANNEL_EVENTS_CONFIG.title_en : CHANNEL_EVENTS_CONFIG.title_tr;
+            if (evSectionDesc && typeof CHANNEL_EVENTS_CONFIG !== 'undefined') evSectionDesc.innerText = isEn ? CHANNEL_EVENTS_CONFIG.desc_en : CHANNEL_EVENTS_CONFIG.desc_tr;
+
+            document.querySelectorAll('.event-subtab-btn[data-event-cat]').forEach(btn => {{
+                const cat = btn.getAttribute('data-event-cat');
+                if (typeof EVENT_CAT_TRANSLATIONS !== 'undefined' && EVENT_CAT_TRANSLATIONS[cat]) {{
+                    const labelSpan = btn.querySelector('span');
+                    if (labelSpan) {{
+                        labelSpan.innerText = isEn ? EVENT_CAT_TRANSLATIONS[cat].en : EVENT_CAT_TRANSLATIONS[cat].tr;
+                    }}
+                }}
+            }});
+
+            document.querySelectorAll('[data-event-card-id]').forEach(card => {{
+                const eid = card.getAttribute('data-event-card-id');
+                const evData = (typeof channelEventsData !== 'undefined') ? channelEventsData.find(e => e.id === eid) : null;
+                if (evData) {{
+                    const titleEl = card.querySelector('.event-card-title');
+                    const orgEl = card.querySelector('.event-org-text');
+                    const dateEl = card.querySelector('.event-date-text');
+                    const locEl = card.querySelector('.event-loc-text');
+                    const descEl = card.querySelector('.event-card-desc');
+                    const cycleEl = card.querySelector('.event-cycle-badge');
+                    const catBadge = card.querySelector('.event-cat-badge');
+
+                    if (titleEl) titleEl.innerText = isEn ? evData.title_en : evData.title_tr;
+                    if (orgEl) orgEl.innerText = isEn ? evData.organizer_en : evData.organizer_tr;
+                    if (dateEl) dateEl.innerText = isEn ? evData.date_display_en : evData.date_display_tr;
+                    if (locEl) locEl.innerText = `${{evData.location_city}}, ${{isEn ? evData.location_country_en : evData.location_country_tr}}`;
+                    if (descEl) descEl.innerText = isEn ? evData.summary_en : evData.summary_tr;
+                    if (cycleEl) cycleEl.innerText = isEn ? evData.cycle_en : evData.cycle_tr;
+                    if (catBadge && typeof EVENT_CAT_TRANSLATIONS !== 'undefined' && EVENT_CAT_TRANSLATIONS[evData.category]) {{
+                        catBadge.innerText = isEn ? EVENT_CAT_TRANSLATIONS[evData.category].en : EVENT_CAT_TRANSLATIONS[evData.category].tr;
+                    }}
+                }}
+            }});
+
             // 11. If an article modal is currently open, refresh it in the active language
             if (window.currentModalArticleId !== null && window.currentModalArticleId !== undefined) {{
                 openArticleModal(window.currentModalArticleId);
@@ -3937,6 +4471,79 @@ function toggleMapSidePanel(forceState) {{
             setPortalLanguage(window.currentPortalLang);
         }});
 
+
+        const channelEventsData = {json.dumps(channel_events, ensure_ascii=False)};
+        const CHANNEL_EVENTS_CONFIG = {json.dumps(CHANNEL_EVENTS_METADATA.get(curr_channel_key, {}), ensure_ascii=False)};
+        const EVENT_CAT_TRANSLATIONS = {json.dumps(EVENT_CATEGORIES, ensure_ascii=False)};
+
+        function switchPortalMainView(viewMode) {{
+            const tabNews = document.getElementById('tabModeNews');
+            const tabEvents = document.getElementById('tabModeEvents');
+            const newsCol = document.getElementById('newsGridCol');
+            const eventsCol = document.getElementById('eventsHubCol');
+            const heroEl = document.getElementById('heroSection');
+            const subEl = document.getElementById('subHeadlinesSection');
+
+            // Update category button active states
+            document.querySelectorAll('.cat-btn').forEach(btn => {{
+                if (btn.dataset.slug === 'events') {{
+                    btn.classList.toggle('active', viewMode === 'events');
+                }} else if (viewMode === 'events') {{
+                    btn.classList.remove('active');
+                }}
+            }});
+
+            if (viewMode === 'events') {{
+                if (tabNews) tabNews.classList.remove('active');
+                if (tabEvents) tabEvents.classList.add('active');
+                if (newsCol) newsCol.style.display = 'none';
+                if (eventsCol) eventsCol.style.display = 'block';
+                if (heroEl) heroEl.style.display = 'none';
+                if (subEl) subEl.style.display = 'none';
+                eventsCol.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+            }} else {{
+                if (tabNews) tabNews.classList.add('active');
+                if (tabEvents) tabEvents.classList.remove('active');
+                if (newsCol) newsCol.style.display = '';
+                if (eventsCol) eventsCol.style.display = 'none';
+                if (currentSlug === 'all') {{
+                    if (heroEl) heroEl.style.display = '';
+                    if (subEl) subEl.style.display = '';
+                }}
+            }}
+        }}
+
+        function filterEventCategory(catSlug) {{
+            document.querySelectorAll('.event-subtab-btn').forEach(btn => {{
+                btn.classList.toggle('active', btn.getAttribute('data-event-cat') === catSlug);
+            }});
+            const cards = document.querySelectorAll('.event-card');
+            let visibleCount = 0;
+            cards.forEach(card => {{
+                const cCat = card.getAttribute('data-event-cat');
+                if (catSlug === 'all' || cCat === catSlug) {{
+                    card.style.display = '';
+                    visibleCount++;
+                }} else {{
+                    card.style.display = 'none';
+                }}
+            }});
+            const emptyEl = document.getElementById('eventsEmptyState');
+            if (emptyEl) {{
+                emptyEl.style.display = (visibleCount === 0) ? 'block' : 'none';
+            }}
+        }}
+
+        function focusEventOnMap(lat, lng, acronym) {{
+            const mapEl = document.getElementById('portalLeafletMap');
+            if (mapEl && window.portalMapInstance) {{
+                mapEl.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+                setTimeout(() => {{
+                    window.portalMapInstance.setView([lat, lng], 8, {{ animate: true }});
+                }}, 350);
+            }}
+        }}
+
         let currentSlug = 'all';
 
         const CATEGORY_TITLES = {{
@@ -3944,6 +4551,12 @@ function toggleMapSidePanel(forceState) {{
         }};
 
         function filterCategory(slug) {{
+            if (slug === 'events') {{
+                switchPortalMainView('events');
+                return;
+            }} else {{
+                switchPortalMainView('news');
+            }}
             currentSlug = slug;
 
             // Clear search input if present
