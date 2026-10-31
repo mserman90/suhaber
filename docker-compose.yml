@@ -1,9 +1,9 @@
 version: "3.8"
 
 services:
-  suhaberportali:
+  suhaber:
     build: .
-    container_name: suhaberportali
+    container_name: suhaber
     restart: unless-stopped
     ports:
       - "8000:8000"

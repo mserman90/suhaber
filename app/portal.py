@@ -28,20 +28,20 @@ def generate_newspaper_portal_html(
     is_livestock = (channel == "livestock")
 
     if is_livestock:
-        portal_name = "HAYVANCILIK BÜLTENİ"
+        portal_name = "HAYVANCILIK GÜNDEMİ"
         portal_sub_name = "Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi"
         portal_motto = '"Köylünün refahı ve milletin gıdası, güçlü ve yerli hayvancılıkla mümkündür."'
-        portal_title_tag = "Hayvancılık Bülteni — Türkiye ve Dünya Hayvancılık & Süt Endüstrisi Gazetesi"
+        portal_title_tag = "Hayvancılık Gündemi — Türkiye ve Dünya Hayvancılık & Süt Endüstrisi Gazetesi"
     elif is_agri:
-        portal_name = "TARIM HABER BÜLTENİ"
+        portal_name = "TARIM GÜNDEMİ"
         portal_sub_name = "Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi"
         portal_motto = '"Milli ekonominin temeli tarımdır." &mdash; Mustafa Kemal Atatürk'
-        portal_title_tag = "Tarım Haber Bülteni — Türkiye ve Dünya Tarım, Hayvancılık & Akıllı Tarım Gazetesi"
+        portal_title_tag = "Tarım Gündemi — Türkiye ve Dünya Tarım, Hayvancılık & Akıllı Tarım Gazetesi"
     else:
-        portal_name = "SU HABER BÜLTENİ"
+        portal_name = "SU GÜNDEMİ"
         portal_sub_name = "Türkiye ve Dünya Su, Sulama ve Çevre Araştırmaları Gazetesi"
         portal_motto = '"Geleceğin dünyasında en stratejik güç sudur."'
-        portal_title_tag = "Su Haber Bülteni — Türkiye ve Dünya Su & Sulama Gazetesi"
+        portal_title_tag = "Su Gündemi — Türkiye ve Dünya Su & Sulama Gazetesi"
     
     # Günün Sözü (Su / Tarım / Hayvancılık Yönetimi Öğütleri)
     if is_livestock:
@@ -331,7 +331,7 @@ def generate_newspaper_portal_html(
                 "title_en": l_it.get("title", ""),
                 "summary_tr": summary_tr,
                 "category": cat,
-                "channel_name": "Hayvancılık Bülteni",
+                "channel_name": "Hayvancılık Gündemi",
                 "slug": "hayvancilik",
                 "source": source,
                 "author": l_it.get("author", "Zootekni Uzmanı"),
@@ -387,24 +387,24 @@ def generate_newspaper_portal_html(
                 <div class="map-layers-group" id="mapLayersGroup">
                     <span class="toolbar-label">HABER KATMANLARI:</span>
 
-                    <label class="layer-toggle-btn active" data-layer="water" id="layerBtn_water" title="Su Haber Bülteni haberleri (Varsayılan aktif katman)">
+                    <label class="layer-toggle-btn active" data-layer="water" id="layerBtn_water" title="Su Gündemi haberleri (Varsayılan aktif katman)">
                         <input type="checkbox" id="layerWaterCheck" checked onchange="toggleMapLayer('water')">
                         <span class="layer-dot layer-dot-water"></span>
-                        <span class="layer-text">💧 Su Haberleri</span>
+                        <span class="layer-text">💧 Su Gündemi</span>
                         <span class="layer-count" id="countWaterNews">{len(water_map_data)}</span>
                     </label>
 
-                    <label class="layer-toggle-btn" data-layer="agri" id="layerBtn_agri" title="Tarım Haber Bülteni haber katmanı">
+                    <label class="layer-toggle-btn" data-layer="agri" id="layerBtn_agri" title="Tarım Gündemi haber katmanı">
                         <input type="checkbox" id="layerAgriCheck" onchange="toggleMapLayer('agri')">
                         <span class="layer-dot layer-dot-agri"></span>
-                        <span class="layer-text">🌾 Tarım Haberleri</span>
+                        <span class="layer-text">🌾 Tarım Gündemi</span>
                         <span class="layer-count" id="countAgriNews">{len(agri_map_data)}</span>
                     </label>
 
-                    <label class="layer-toggle-btn" data-layer="livestock" id="layerBtn_livestock" title="Hayvancılık Bülteni haber katmanı">
+                    <label class="layer-toggle-btn" data-layer="livestock" id="layerBtn_livestock" title="Hayvancılık Gündemi haber katmanı">
                         <input type="checkbox" id="layerLivestockCheck" onchange="toggleMapLayer('livestock')">
                         <span class="layer-dot layer-dot-livestock"></span>
-                        <span class="layer-text">🐄 Hayvancılık Haberleri</span>
+                        <span class="layer-text">🐄 Hayvancılık Gündemi</span>
                         <span class="layer-count" id="countLivestockNews">{len(livestock_map_data)}</span>
                     </label>
 
@@ -461,9 +461,9 @@ def generate_newspaper_portal_html(
                     <span id="mapLoadingText">Veri katmanı yükleniyor...</span>
                 </div>
                 <div class="map-legend-overlay">
-                    <div class="legend-item"><span class="legend-circle dot-water"></span> 💧 Su Haberi</div>
-                    <div class="legend-item"><span class="legend-circle dot-agri"></span> 🌾 Tarım Haberi</div>
-                    <div class="legend-item"><span class="legend-circle dot-livestock"></span> 🐄 Hayvancılık Haberi</div>
+                    <div class="legend-item"><span class="legend-circle dot-water"></span> 💧 Su Gündemi</div>
+                    <div class="legend-item"><span class="legend-circle dot-agri"></span> 🌾 Tarım Gündemi</div>
+                    <div class="legend-item"><span class="legend-circle dot-livestock"></span> 🐄 Hayvancılık Gündemi</div>
                     <div class="legend-item"><span class="legend-circle dot-agreement"></span> 🌊 Anlaşma (TFDD)</div>
                     <div class="legend-item"><span class="legend-circle dot-conflict"></span> ⚡ Kriz (BAR)</div>
                 </div>
@@ -640,19 +640,19 @@ def generate_newspaper_portal_html(
     channel_tabs_html = f"""
     <div class="channel-switcher-container">
         <div class="channel-switcher-inner">
-            <a href="index.html" class="channel-tab-btn {water_active_cls}" title="Su Haber Bülteni (Ana Sayfa)">
+            <a href="index.html" class="channel-tab-btn {water_active_cls}" title="Su Gündemi (Ana Sayfa)">
                 <span class="channel-tab-icon">💧</span>
-                <span class="channel-tab-name">SU HABER BÜLTENİ</span>
+                <span class="channel-tab-name">SU GÜNDEMİ</span>
                 {water_badge_count}
             </a>
-            <a href="tarim.html" class="channel-tab-btn {agri_active_cls}" title="Tarım Haber Bülteni">
+            <a href="tarim.html" class="channel-tab-btn {agri_active_cls}" title="Tarım Gündemi">
                 <span class="channel-tab-icon">🌾</span>
-                <span class="channel-tab-name">TARIM HABER BÜLTENİ</span>
+                <span class="channel-tab-name">TARIM GÜNDEMİ</span>
                 {agri_badge_count}
             </a>
-            <a href="hayvancilik.html" class="channel-tab-btn {livestock_active_cls}" title="Hayvancılık Bülteni">
+            <a href="hayvancilik.html" class="channel-tab-btn {livestock_active_cls}" title="Hayvancılık Gündemi">
                 <span class="channel-tab-icon">🐄</span>
-                <span class="channel-tab-name">HAYVANCILIK BÜLTENİ</span>
+                <span class="channel-tab-name">HAYVANCILIK GÜNDEMİ</span>
                 {livestock_badge_count}
             </a>
         </div>
@@ -2885,7 +2885,7 @@ def generate_newspaper_portal_html(
             <h4>{portal_name}</h4>
             <p>{footer_sub_text}</p>
             <p style="font-size:11.5px; opacity:0.75;">
-                Otomasyon: GitHub Actions ile 30 dakikada bir güncellenir &bull; Son Güncelleme: {last_updated} &bull; Depo: mserman90/suhaberportali
+                Otomasyon: GitHub Actions ile 30 dakikada bir güncellenir &bull; Son Güncelleme: {last_updated} &bull; Depo: mserman90/suhaber
             </p>
         </div>
     </footer>
@@ -3015,7 +3015,7 @@ def generate_newspaper_portal_html(
             waterMapData.forEach(item => {{
                 if (!item.lat || !item.lng) return;
                 const marker = L.marker([item.lat, item.lng], {{ icon: waterIcon, title: item.title }});
-                marker.bindPopup(buildNewsPopup(item, '💧 SU HABERİ', '#0284c7'));
+                marker.bindPopup(buildNewsPopup(item, '💧 SU GÜNDEMİ', '#0284c7'));
                 waterCluster.addLayer(marker);
             }});
             portalMap.addLayer(waterCluster);
@@ -3033,7 +3033,7 @@ def generate_newspaper_portal_html(
             agriMapData.forEach(item => {{
                 if (!item.lat || !item.lng) return;
                 const marker = L.marker([item.lat, item.lng], {{ icon: agriIcon, title: item.title }});
-                marker.bindPopup(buildNewsPopup(item, '🌾 TARIM HABERİ', '#16a34a'));
+                marker.bindPopup(buildNewsPopup(item, '🌾 TARIM GÜNDEMİ', '#16a34a'));
                 agriCluster.addLayer(marker);
             }});
             mapLayers['agri'] = agriCluster;
@@ -3050,7 +3050,7 @@ def generate_newspaper_portal_html(
             livestockMapData.forEach(item => {{
                 if (!item.lat || !item.lng) return;
                 const marker = L.marker([item.lat, item.lng], {{ icon: livestockIcon, title: item.title }});
-                marker.bindPopup(buildNewsPopup(item, '🐄 HAYVANCILIK HABERİ', '#d97706'));
+                marker.bindPopup(buildNewsPopup(item, '🐄 HAYVANCILIK GÜNDEMİ', '#d97706'));
                 livestockCluster.addLayer(marker);
             }});
             mapLayers['livestock'] = livestockCluster;

@@ -20,7 +20,7 @@ Buna karşılık ilgili akışın web görünümü (`/view/html?cs=m`) herkese a
 ## 📁 Proje Dizin Yapısı
 
 ```text
-suhaberportali/
+suhaber/
 ├── app/
 │   ├── __init__.py
 │   ├── config.py             # Konfigürasyon ve ortam değişkenleri

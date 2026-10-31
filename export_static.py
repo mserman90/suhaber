@@ -2,10 +2,12 @@
 """
 export_static.py
 Inoreader akışını ve açık veri kaynaklarını tarayıp 'dist/' dizinine:
-- Türkçe gazete temalı 'Su Haber Bülteni' web portalını (dist/index.html)
-- Türkçe gazete temalı 'Tarım Haber Bülteni' web portalını (dist/tarim.html)
-- Su bülteni beslemeleri: dist/rss.xml, dist/atom.xml, dist/feed.json
-- Tarım bülteni beslemeleri: dist/rss_tarim.xml, dist/atom_tarim.xml, dist/feed_tarim.json
+- Türkçe gazete temalı 'Su Gündemi' web portalını (dist/index.html)
+- Türkçe gazete temalı 'Tarım Gündemi' web portalını (dist/tarim.html)
+- Türkçe gazete temalı 'Hayvancılık Gündemi' web portalını (dist/hayvancilik.html)
+- Su Gündemi beslemeleri: dist/rss.xml, dist/atom.xml, dist/feed.json
+- Tarım Gündemi beslemeleri: dist/rss_tarim.xml, dist/atom_tarim.xml, dist/feed_tarim.json
+- Hayvancılık Gündemi beslemeleri: dist/rss_hayvancilik.xml, dist/atom_hayvancilik.xml, dist/feed_hayvancilik.json
 dosyalarını üretir.
 """
 
@@ -450,7 +452,7 @@ def main():
     # ==========================================
     # 6. DOSYA VE BESLEME ÜRETİMLERİ
     # ==========================================
-    public_url = config.PUBLIC_BASE_URL or "https://mserman90.github.io/suhaberportali"
+    public_url = config.PUBLIC_BASE_URL or "https://mserman90.github.io/suhaber"
     now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
 
     # Harita jeo-uzamsal veri setlerini (Sınır aşan su anlaşmaları, çatışmalar, havzalar) dist/data dizinine kopyala
@@ -462,7 +464,7 @@ def main():
             shutil.copy2(geo_file, dist_geo_dir / geo_file.name)
         print(f"[+] Harita jeo-uzamsal veri setleri kopyalandı: {dist_geo_dir}")
 
-    # --- A) SU HABER BÜLTENİ BESLEMELERİ & PORTALI ---
+    # --- A) SU GÜNDEMİ BESLEMELERİ & PORTALI ---
     rss_water_self = f"{public_url}/rss.xml"
     atom_water_self = f"{public_url}/atom.xml"
     json_water_self = f"{public_url}/feed.json"
@@ -471,7 +473,7 @@ def main():
 
     # 1. Su RSS 2.0
     rss_content = generate_rss_2_xml(
-        feed_title="Su Haber Bülteni - Su & Sulama Gazetesi",
+        feed_title="Su Gündemi - Su & Sulama Gazetesi",
         feed_description="Türkiye ve Dünya Su, Sulama, Çevre ve Hidroloji Araştırmaları Gazetesi",
         feed_link=public_url,
         self_rss_url=rss_water_self,
@@ -483,7 +485,7 @@ def main():
 
     # 2. Su Atom 1.0
     atom_content = generate_atom_xml(
-        feed_title="Su Haber Bülteni",
+        feed_title="Su Gündemi",
         feed_description="Türkiye ve Dünya Su, Sulama, Çevre ve Hidroloji Araştırmaları Gazetesi",
         feed_link=public_url,
         self_atom_url=atom_water_self,
@@ -494,7 +496,7 @@ def main():
 
     # 3. Su JSON Feed
     json_data = generate_json_feed(
-        feed_title="Su Haber Bülteni",
+        feed_title="Su Gündemi",
         feed_description="Türkiye ve Dünya Su, Sulama, Çevre ve Hidroloji Araştırmaları Gazetesi",
         feed_link=public_url,
         self_json_url=json_water_self,
@@ -518,9 +520,9 @@ def main():
         livestock_items=livestock_items
     )
     (dist_dir / "index.html").write_text(portal_html, encoding="utf-8")
-    print(f"[+] Üretildi: {dist_dir / 'index.html'} ('Su Haber Bülteni' Modern Gazete Portalı)")
+    print(f"[+] Üretildi: {dist_dir / 'index.html'} ('Su Gündemi' Modern Gazete Portalı)")
 
-    # --- B) TARIM HABER BÜLTENİ BESLEMELERİ & PORTALI ---
+    # --- B) TARIM GÜNDEMİ BESLEMELERİ & PORTALI ---
     rss_agri_self = f"{public_url}/rss_tarim.xml"
     atom_agri_self = f"{public_url}/atom_tarim.xml"
     json_agri_self = f"{public_url}/feed_tarim.json"
@@ -529,7 +531,7 @@ def main():
 
     # 1. Tarım RSS 2.0
     rss_agri_content = generate_rss_2_xml(
-        feed_title="Tarım Haber Bülteni - Tarım & Bitkisel Üretim Gazetesi",
+        feed_title="Tarım Gündemi - Tarım & Bitkisel Üretim Gazetesi",
         feed_description="Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi",
         feed_link=f"{public_url}/tarim.html",
         self_rss_url=rss_agri_self,
@@ -541,7 +543,7 @@ def main():
 
     # 2. Tarım Atom 1.0
     atom_agri_content = generate_atom_xml(
-        feed_title="Tarım Haber Bülteni",
+        feed_title="Tarım Gündemi",
         feed_description="Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi",
         feed_link=f"{public_url}/tarim.html",
         self_atom_url=atom_agri_self,
@@ -552,7 +554,7 @@ def main():
 
     # 3. Tarım JSON Feed
     json_agri_data = generate_json_feed(
-        feed_title="Tarım Haber Bülteni",
+        feed_title="Tarım Gündemi",
         feed_description="Türkiye ve Dünya Tarım, Hayvancılık, Bitkisel Üretim ve Akıllı Tarım Gazetesi",
         feed_link=f"{public_url}/tarim.html",
         self_json_url=json_agri_self,
@@ -574,9 +576,9 @@ def main():
         livestock_count=len(livestock_items)
     )
     (dist_dir / "tarim.html").write_text(tarim_portal_html, encoding="utf-8")
-    print(f"[+] Üretildi: {dist_dir / 'tarim.html'} ('Tarım Haber Bülteni' Modern Gazete Portalı)")
+    print(f"[+] Üretildi: {dist_dir / 'tarim.html'} ('Tarım Gündemi' Modern Gazete Portalı)")
 
-    # --- C) HAYVANCILIK BÜLTENİ BESLEMELERİ & PORTALI ---
+    # --- C) HAYVANCILIK GÜNDEMİ BESLEMELERİ & PORTALI ---
     rss_livestock_self = f"{public_url}/rss_hayvancilik.xml"
     atom_livestock_self = f"{public_url}/atom_hayvancilik.xml"
     json_livestock_self = f"{public_url}/feed_hayvancilik.json"
@@ -585,7 +587,7 @@ def main():
 
     # 1. Hayvancılık RSS 2.0
     rss_livestock_content = generate_rss_2_xml(
-        feed_title="Hayvancılık Bülteni - Süt & Et Endüstrisi Gazetesi",
+        feed_title="Hayvancılık Gündemi - Süt & Et Endüstrisi Gazetesi",
         feed_description="Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi",
         feed_link=f"{public_url}/hayvancilik.html",
         self_rss_url=rss_livestock_self,
@@ -597,7 +599,7 @@ def main():
 
     # 2. Hayvancılık Atom 1.0
     atom_livestock_content = generate_atom_xml(
-        feed_title="Hayvancılık Bülteni",
+        feed_title="Hayvancılık Gündemi",
         feed_description="Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi",
         feed_link=f"{public_url}/hayvancilik.html",
         self_atom_url=atom_livestock_self,
@@ -608,7 +610,7 @@ def main():
 
     # 3. Hayvancılık JSON Feed
     json_livestock_data = generate_json_feed(
-        feed_title="Hayvancılık Bülteni",
+        feed_title="Hayvancılık Gündemi",
         feed_description="Türkiye ve Dünya Hayvancılık, Süt, Besi, Yem ve Hayvan Sağlığı Gazetesi",
         feed_link=f"{public_url}/hayvancilik.html",
         self_json_url=json_livestock_self,
@@ -630,7 +632,7 @@ def main():
         livestock_count=len(livestock_items)
     )
     (dist_dir / "hayvancilik.html").write_text(hayvancilik_portal_html, encoding="utf-8")
-    print(f"[+] Üretildi: {dist_dir / 'hayvancilik.html'} ('Hayvancılık Bülteni' Modern Gazete Portalı)")
+    print(f"[+] Üretildi: {dist_dir / 'hayvancilik.html'} ('Hayvancılık Gündemi' Modern Gazete Portalı)")
 
     print("[*] Tüm 3 kanallı gazete portalları (Su, Tarım, Hayvancılık) ve yayın akışları başarıyla tamamlandı!")
 
