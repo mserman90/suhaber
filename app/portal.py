@@ -4,6 +4,14 @@ from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from app.quotes import get_daily_water_quote
 import json
+from app.prices_data import (
+    get_channel_prices,
+    render_prices_hub_html,
+    render_sidebar_prices_widget,
+    PRICE_CATEGORIES,
+    CHANNEL_PRICES_METADATA,
+    FX_RATES
+)
 from app.events_data import (
     get_channel_events,
     render_events_hub_html,
@@ -38,6 +46,19 @@ def generate_newspaper_portal_html(
     channel_events = get_channel_events(curr_channel_key)
     events_hub_html = render_events_hub_html(curr_channel_key, channel_events)
     sidebar_events_widget_html = render_sidebar_events_widget(curr_channel_key, channel_events)
+    channel_prices = get_channel_prices(curr_channel_key)
+    has_prices = (curr_channel_key in ("agriculture", "livestock"))
+    prices_hub_html = render_prices_hub_html(curr_channel_key, channel_prices) if has_prices else ""
+    sidebar_prices_widget_html = render_sidebar_prices_widget(curr_channel_key) if has_prices else ""
+    tab_prices_label = "TARIMSAL EMTİA FİYATLARI (TR / DÜNYA)" if is_agri else ("HAYVANSAL ÜRÜN & YEM FİYATLARI (TR / DÜNYA)" if is_livestock else "PİYASA FİYATLARI")
+    prices_badge_text = "Ürün"
+    prices_tab_btn_html = f"""
+                <button type="button" class="view-tab-btn" id="tabModePrices" onclick="switchPortalMainView('prices')">
+                    <span class="view-tab-icon">📊</span>
+                    <span class="view-tab-label" data-i18n="tab_mode_prices">{tab_prices_label}</span>
+                    <span class="view-tab-badge prices-count-badge" id="pricesBadgeCount">{len(channel_prices)} {prices_badge_text}</span>
+                </button>
+    """ if has_prices else ""
     tab_news_label = "GÜNCEL HABER AKIŞI"
     tab_events_label = "ULUSLARARASI ZİRVELER & TOPLANTILAR"
     events_badge_text = "Zirve" 
@@ -824,7 +845,7 @@ def generate_newspaper_portal_html(
                 <button type="button" class="cat-btn" data-slug="destek" onclick="filterCategory('destek')">📊 Destek &amp; Fiyat</button>
                 <button type="button" class="cat-btn" data-slug="akademik" onclick="filterCategory('akademik')">🎓 Akademik Yayınlar</button>
                 <button type="button" class="cat-btn cat-btn-events" data-slug="events" onclick="filterCategory('events')" title="Uluslararası Zirveler &amp; Toplantılar">🌐 <span data-i18n="nav_events_pill">Uluslararası Zirveler</span></button>
-                <button type="button" class="cat-btn cat-btn-events" data-slug="events" onclick="filterCategory('events')" title="Uluslararası Zirveler &amp; Toplantılar">🌐 <span data-i18n="nav_events_pill">Uluslararası Zirveler</span></button>
+                <button type="button" class="cat-btn cat-btn-prices" data-slug="prices" onclick="filterCategory('prices')" title="Hayvansal Ürün &amp; Yem Fiyatları (TR vs Dünya)">📊 <span data-i18n="nav_prices_pill">Ürün Fiyatları</span></button>
         """.strip()
         section_title = "🐄 Son Hayvancılık Haberleri, Piyasa Raporları &amp; Araştırmalar"
         empty_icon = "🐄"
@@ -890,6 +911,8 @@ def generate_newspaper_portal_html(
                 <button type="button" class="cat-btn" data-slug="destek" onclick="filterCategory('destek')">📊 Tarımsal Destekler</button>
                 <button type="button" class="cat-btn" data-slug="kuresel" onclick="filterCategory('kuresel')">🌍 Küresel Tarım</button>
                 <button type="button" class="cat-btn" data-slug="akademik" onclick="filterCategory('akademik')">🎓 Akademik Yayınlar</button>
+                <button type="button" class="cat-btn cat-btn-events" data-slug="events" onclick="filterCategory('events')" title="Uluslararası Zirveler &amp; Kongreler">🌐 <span data-i18n="nav_events_pill">Uluslararası Zirveler</span></button>
+                <button type="button" class="cat-btn cat-btn-prices" data-slug="prices" onclick="filterCategory('prices')" title="Tarımsal Ürün &amp; Emtia Fiyatları (TR vs Dünya)">📊 <span data-i18n="nav_prices_pill">Emtia Fiyatları</span></button>
         """.strip()
         section_title = "🌾 Son Tarım Haberleri, Raporlar &amp; Araştırmalar"
         empty_icon = "🌾"
@@ -2438,7 +2461,459 @@ def generate_newspaper_portal_html(
         }}
         .btn-all-events-hub:hover {{
             background: #d97706;
+            color: #ffffff !important;
+        }}
+
+        /* ========================================================
+           PRICE COMPARISON & MARKETS HUB CSS
+           ======================================================== */
+        .cat-btn-prices {{
+            background: rgba(16, 185, 129, 0.08) !important;
+            color: #059669 !important;
+            border-color: rgba(16, 185, 129, 0.3) !important;
+        }}
+        [data-theme="dark"] .cat-btn-prices {{
+            background: rgba(16, 185, 129, 0.16) !important;
+            color: #34d399 !important;
+            border-color: rgba(16, 185, 129, 0.4) !important;
+        }}
+        .prices-count-badge {{
+            background: #059669 !important;
+            color: #fff !important;
+        }}
+
+        .prices-hub-col {{
+            display: none;
+            width: 100%;
+            animation: fadeInPrices 0.3s ease-in-out;
+        }}
+        @keyframes fadeInPrices {{
+            from {{ opacity: 0; transform: translateY(6px); }}
+            to {{ opacity: 1; transform: translateY(0); }}
+        }}
+
+        .prices-hub-header {{
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(6, 95, 70, 0.03));
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-left: 4px solid #059669;
+            border-radius: 8px;
+            padding: 22px 24px;
+            margin-bottom: 16px;
+        }}
+        [data-theme="dark"] .prices-hub-header {{
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 78, 59, 0.18));
+            border-color: rgba(16, 185, 129, 0.3);
+            border-left-color: #10b981;
+        }}
+        .prices-hub-badge {{
+            display: inline-block;
+            font-size: 11.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #059669;
+            background: rgba(16, 185, 129, 0.12);
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }}
+        [data-theme="dark"] .prices-hub-badge {{
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.22);
+        }}
+        .prices-hub-title {{
+            font-family: 'Playfair Display', serif;
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: var(--newspaper-navy);
+            margin: 0 0 8px 0;
+            line-height: 1.3;
+        }}
+        .prices-hub-desc {{
+            font-size: 13.5px;
+            color: var(--ink-muted);
+            margin: 0;
+            line-height: 1.6;
+        }}
+
+        /* FX Strip */
+        .prices-fx-strip {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: var(--bg-card);
+            border: 1px solid var(--border-line);
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            font-size: 12.5px;
+        }}
+        .fx-strip-item {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }}
+        .fx-label {{
+            color: var(--ink-muted);
+            font-weight: 600;
+        }}
+        .fx-val {{
+            color: var(--ink-main);
+            font-weight: 800;
+            font-family: monospace, sans-serif;
+        }}
+        .fx-strip-sep {{
+            color: var(--ink-light);
+        }}
+
+        /* Sub-tabs Bar */
+        .prices-subtabs-bar {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-line);
+            border-radius: 8px;
+            background: var(--bg-canvas);
+        }}
+        .price-subtab-btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: var(--cat-btn-bg);
+            border: 1px solid var(--cat-btn-border);
+            border-radius: 6px;
+            color: var(--ink-muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }}
+        .price-subtab-btn:hover {{
+            color: var(--ink-main);
+            border-color: #059669;
+        }}
+        .price-subtab-btn.active {{
+            background: #059669;
+            color: #ffffff !important;
+            border-color: #059669;
+        }}
+        .price-subtab-count {{
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.08);
+        }}
+        .price-subtab-btn.active .price-subtab-count {{
+            background: rgba(255, 255, 255, 0.25);
             color: #ffffff;
+        }}
+
+        /* Cards Grid */
+        .prices-cards-grid {{
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }}
+        .price-compare-card {{
+            background: var(--bg-card);
+            border: 1px solid var(--border-line);
+            border-radius: 8px;
+            padding: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }}
+        .price-compare-card:hover {{
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+            border-color: #059669;
+        }}
+        .price-card-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }}
+        .price-header-left {{
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }}
+        .price-category-pill {{
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: var(--cat-btn-bg);
+            color: var(--ink-muted);
+        }}
+        .price-trend-tag {{
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }}
+        .trend-up {{
+            background: rgba(220, 38, 38, 0.1);
+            color: #dc2626;
+        }}
+        .trend-down {{
+            background: rgba(16, 185, 129, 0.1);
+            color: #059669;
+        }}
+        .trend-stable {{
+            background: rgba(100, 116, 139, 0.1);
+            color: #64748b;
+        }}
+        .price-diff-badge {{
+            font-size: 12px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 4px;
+            letter-spacing: 0.3px;
+        }}
+        .diff-badge-premium {{
+            background: rgba(217, 119, 6, 0.12);
+            color: #b45309;
+            border: 1px solid rgba(217, 119, 6, 0.3);
+        }}
+        [data-theme="dark"] .diff-badge-premium {{
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.4);
+        }}
+        .diff-badge-discount {{
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }}
+        [data-theme="dark"] .diff-badge-discount {{
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.4);
+        }}
+        .diff-badge-neutral {{
+            background: rgba(100, 116, 139, 0.12);
+            color: #475569;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }}
+
+        .price-card-title {{
+            font-family: 'Playfair Display', serif;
+            font-size: 1.22rem;
+            font-weight: 700;
+            color: var(--newspaper-navy);
+            margin: 0 0 4px 0;
+        }}
+        .price-card-unit {{
+            font-size: 12px;
+            color: var(--ink-light);
+            margin-bottom: 14px;
+        }}
+
+        /* Comparison 4-Cell Grid */
+        .price-comparison-grid {{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 14px;
+        }}
+        @media (max-width: 900px) {{
+            .price-comparison-grid {{
+                grid-template-columns: repeat(2, 1fr);
+            }}
+        }}
+        @media (max-width: 540px) {{
+            .price-comparison-grid {{
+                grid-template-columns: 1fr;
+            }}
+        }}
+        .price-cell {{
+            background: var(--bg-hover);
+            border: 1px solid var(--border-line);
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }}
+        .price-cell-tr {{
+            border-color: rgba(220, 38, 38, 0.3);
+            background: rgba(220, 38, 38, 0.03);
+        }}
+        [data-theme="dark"] .price-cell-tr {{
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.4);
+        }}
+        .price-cell-eu {{
+            border-color: rgba(37, 99, 235, 0.25);
+            background: rgba(37, 99, 235, 0.03);
+        }}
+        [data-theme="dark"] .price-cell-eu {{
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.35);
+        }}
+        .price-cell-us {{
+            border-color: rgba(99, 102, 241, 0.25);
+            background: rgba(99, 102, 241, 0.03);
+        }}
+        [data-theme="dark"] .price-cell-us {{
+            background: rgba(99, 102, 241, 0.08);
+            border-color: rgba(99, 102, 241, 0.35);
+        }}
+        .price-cell-world {{
+            border-color: rgba(16, 185, 129, 0.25);
+            background: rgba(16, 185, 129, 0.03);
+        }}
+        [data-theme="dark"] .price-cell-world {{
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.35);
+        }}
+
+        .cell-country {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ink-main);
+            margin-bottom: 6px;
+        }}
+        .cell-flag {{
+            font-size: 14px;
+        }}
+        .cell-main-price {{
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--ink-main);
+            font-family: monospace, sans-serif;
+            margin-bottom: 2px;
+        }}
+        .price-cell-tr .cell-main-price {{
+            color: #b91c1c;
+        }}
+        [data-theme="dark"] .price-cell-tr .cell-main-price {{
+            color: #f87171;
+        }}
+        .cell-usd-equiv {{
+            font-size: 11.5px;
+            color: var(--ink-muted);
+            margin-bottom: 8px;
+        }}
+        .cell-source {{
+            font-size: 10.5px;
+            color: var(--ink-light);
+            border-top: 1px dashed var(--border-line);
+            padding-top: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }}
+
+        .price-card-analysis {{
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.02);
+            border-left: 3px solid #059669;
+            padding: 8px 12px;
+            border-radius: 0 4px 4px 0;
+            font-size: 12.5px;
+            line-height: 1.45;
+            color: var(--ink-muted);
+        }}
+        [data-theme="dark"] .price-card-analysis {{
+            background: rgba(255, 255, 255, 0.03);
+        }}
+        .analysis-icon {{
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }}
+
+        /* Sidebar Prices Widget */
+        .sidebar-prices-card {{
+            border-left: 3px solid #059669 !important;
+        }}
+        .side-prices-list {{
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+        }}
+        .side-price-row {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-line);
+            font-size: 12px;
+        }}
+        .side-price-row:last-child {{
+            border-bottom: none;
+            padding-bottom: 0;
+        }}
+        .side-price-name {{
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-weight: 600;
+            color: var(--ink-main);
+        }}
+        .side-price-diff {{
+            font-size: 10.5px;
+            font-weight: 700;
+        }}
+        .pill-prem {{
+            color: #d97706;
+        }}
+        .pill-disc {{
+            color: #059669;
+        }}
+        .side-price-vals {{
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }}
+        .side-price-tr {{
+            font-weight: 800;
+            color: var(--ink-main);
+        }}
+        .side-price-world {{
+            font-size: 11px;
+            color: var(--ink-light);
+        }}
+        .btn-sidebar-view-prices {{
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 4px;
+            color: #059669;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }}
+        .btn-sidebar-view-prices:hover {{
+            background: #059669;
+            color: #fff !important;
+        }}
+        [data-theme="dark"] .btn-sidebar-view-prices {{
+            background: rgba(16, 185, 129, 0.16);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.4);
+        }}
+        [data-theme="dark"] .btn-sidebar-view-prices:hover {{
+            background: #059669;
+            color: #fff !important;
         }}
         .cat-btn-events {{
             border-color: #d97706 !important;
@@ -3536,6 +4011,7 @@ def generate_newspaper_portal_html(
                     <span class="view-tab-label" data-i18n="tab_mode_events">{tab_events_label}</span>
                     <span class="view-tab-badge events-count-badge" id="eventsBadgeCount">{len(channel_events)} {events_badge_text}</span>
                 </button>
+                {prices_tab_btn_html}
             </div>
         </div>
 
@@ -3565,6 +4041,9 @@ def generate_newspaper_portal_html(
             <!-- Left Main Column: Events Hub (Switched with News Grid) -->
             {events_hub_html}
 
+            <!-- Left Main Column: Prices Hub (Switched with News Grid) -->
+            {prices_hub_html}
+
             <!-- Right Sidebar: Editorial & Infographics -->
             <aside class="newspaper-sidebar">
                 
@@ -3593,6 +4072,9 @@ def generate_newspaper_portal_html(
                         <a href="{json_url}" target="_blank" style="color:#15803d; font-weight:bold;">JSON Feed</a>
                     </div>
                 </div>
+
+                <!-- Commodity & Livestock Prices Widget -->
+                {sidebar_prices_widget_html}
 
                 <!-- Upcoming Events Widget -->
                 {sidebar_events_widget_html}
@@ -4238,6 +4720,8 @@ function toggleMapSidePanel(forceState) {{
 
         const CHANNEL_CONFIG = {{
             channel_key: '{channel_key}',
+            is_agri: {'true' if is_agri else 'false'},
+            is_livestock: {'true' if is_livestock else 'false'},
             portal_name_tr: `{portal_name_tr}`,
             portal_name_en: `{portal_name_en}`,
             portal_sub_name_tr: `{portal_sub_name_tr}`,
@@ -4460,6 +4944,73 @@ function toggleMapSidePanel(forceState) {{
                 }}
             }});
 
+            // 13. Update Prices Hub Elements
+            const tabPricesLabel = document.querySelector('[data-i18n="tab_mode_prices"]');
+            const navPricesPill = document.querySelector('[data-i18n="nav_prices_pill"]');
+            if (tabPricesLabel) tabPricesLabel.innerText = isEn ? (CHANNEL_CONFIG.is_agri ? 'AGRI COMMODITY PRICES (TR / WORLD)' : 'LIVESTOCK & FEED PRICES (TR / WORLD)') : (CHANNEL_CONFIG.is_agri ? 'TARIMSAL EMTİA FİYATLARI (TR / DÜNYA)' : 'HAYVANSAL ÜRÜN & YEM FİYATLARI (TR / DÜNYA)');
+            if (navPricesPill) navPricesPill.innerText = isEn ? (CHANNEL_CONFIG.is_agri ? 'Commodity Prices' : 'Product Prices') : (CHANNEL_CONFIG.is_agri ? 'Emtia Fiyatları' : 'Ürün Fiyatları');
+
+            const prBadge = document.getElementById('pricesSectionBadge');
+            const prSectionTitle = document.getElementById('pricesSectionTitle');
+            const prSectionDesc = document.getElementById('pricesSectionDesc');
+            if (prBadge && typeof CHANNEL_PRICES_CONFIG !== 'undefined') prBadge.innerText = isEn ? CHANNEL_PRICES_CONFIG.badge_en : CHANNEL_PRICES_CONFIG.badge_tr;
+            if (prSectionTitle && typeof CHANNEL_PRICES_CONFIG !== 'undefined') prSectionTitle.innerText = isEn ? CHANNEL_PRICES_CONFIG.title_en : CHANNEL_PRICES_CONFIG.title_tr;
+            if (prSectionDesc && typeof CHANNEL_PRICES_CONFIG !== 'undefined') prSectionDesc.innerText = isEn ? CHANNEL_PRICES_CONFIG.desc_en : CHANNEL_PRICES_CONFIG.desc_tr;
+
+            document.querySelectorAll('.price-subtab-btn[data-price-cat]').forEach(btn => {{
+                const cat = btn.getAttribute('data-price-cat');
+                if (typeof PRICE_CAT_TRANSLATIONS !== 'undefined' && PRICE_CAT_TRANSLATIONS[cat]) {{
+                    const labelSpan = btn.querySelector('span');
+                    if (labelSpan) {{
+                        labelSpan.innerText = isEn ? PRICE_CAT_TRANSLATIONS[cat].en : PRICE_CAT_TRANSLATIONS[cat].tr;
+                    }}
+                }}
+            }});
+
+            document.querySelectorAll('[data-price-card-id]').forEach(card => {{
+                const pid = card.getAttribute('data-price-card-id');
+                const pData = (typeof channelPricesData !== 'undefined') ? channelPricesData.find(p => p.id === pid) : null;
+                if (pData) {{
+                    const titleEl = card.querySelector('.price-card-title');
+                    const unitEl = card.querySelector('.price-card-unit');
+                    const noteEl = card.querySelector('.analysis-text');
+                    const trendEl = card.querySelector('.price-trend-tag');
+                    const diffBadge = card.querySelector('.price-diff-badge');
+
+                    if (titleEl) titleEl.innerText = isEn ? pData.name_en : pData.name_tr;
+                    if (unitEl) unitEl.innerHTML = isEn ? `Unit: <strong>${{pData.unit_en}}</strong>` : `Birim: <strong>${{pData.unit_tr}}</strong>`;
+                    if (noteEl) noteEl.innerText = isEn ? pData.note_en : pData.note_tr;
+                    if (trendEl) {{
+                        const icon = pData.trend === 'up' ? '▲' : (pData.trend === 'down' ? '▼' : '▬');
+                        trendEl.innerText = `${{icon}} ${{isEn ? pData.change_en : pData.change_tr}}`;
+                    }}
+                    if (diffBadge) {{
+                        if (pData.diff_status === 'premium') {{
+                            diffBadge.innerText = isEn ? `🇹🇷 ${{pData.diff_vs_world_pct}} Premium vs World` : `🇹🇷 ${{pData.diff_vs_world_pct}} Primli (TR Yüksek)`;
+                        }} else if (pData.diff_status === 'discount') {{
+                            diffBadge.innerText = isEn ? `🇹🇷 ${{pData.diff_vs_world_pct}} Discount vs World` : `🇹🇷 ${{pData.diff_vs_world_pct}} İskontolu (TR Uygun)`;
+                        }} else {{
+                            diffBadge.innerText = isEn ? `🇹🇷 ${{pData.diff_vs_world_pct}} Parity` : `🇹🇷 ${{pData.diff_vs_world_pct}} Başa Baş / Dengeli`;
+                        }}
+                    }}
+
+                    // Country names in cells
+                    const cellTR = card.querySelector('.price-cell-tr .cell-country-name');
+                    const cellEU = card.querySelector('.price-cell-eu .cell-country-name');
+                    const cellUS = card.querySelector('.price-cell-us .cell-country-name');
+                    const cellWorld = card.querySelector('.price-cell-world .cell-country-name');
+                    if (cellTR) cellTR.innerText = isEn ? 'Turkey' : 'Türkiye';
+                    if (cellEU) cellEU.innerText = isEn ? 'European Union' : 'Avrupa Birliği';
+                    if (cellUS) cellUS.innerText = isEn ? 'United States' : 'ABD';
+                    if (cellWorld) cellWorld.innerText = isEn ? pData.world_name_en : pData.world_name_tr;
+                }}
+            }});
+
+            const sidePrTitle = document.getElementById('sidePricesTitle');
+            const sidePrBtn = document.getElementById('sidePricesBtn');
+            if (sidePrTitle) sidePrTitle.innerText = isEn ? (CHANNEL_CONFIG.is_agri ? 'Commodity Markets (TR / World)' : 'Livestock & Feed Markets') : (CHANNEL_CONFIG.is_agri ? '🌾 Emtia Piyasaları (TR / Dünya)' : '🐄 Hayvancılık & Yem Piyasası');
+            if (sidePrBtn) sidePrBtn.innerText = isEn ? 'View Full Comparison Table →' : 'Tam Karşılaştırma Tablosunu Gör →';
+
             // 11. If an article modal is currently open, refresh it in the active language
             if (window.currentModalArticleId !== null && window.currentModalArticleId !== undefined) {{
                 openArticleModal(window.currentModalArticleId);
@@ -4476,11 +5027,17 @@ function toggleMapSidePanel(forceState) {{
         const CHANNEL_EVENTS_CONFIG = {json.dumps(CHANNEL_EVENTS_METADATA.get(curr_channel_key, {}), ensure_ascii=False)};
         const EVENT_CAT_TRANSLATIONS = {json.dumps(EVENT_CATEGORIES, ensure_ascii=False)};
 
+        const channelPricesData = {json.dumps(channel_prices, ensure_ascii=False)};
+        const CHANNEL_PRICES_CONFIG = {json.dumps(CHANNEL_PRICES_METADATA.get(curr_channel_key, {}), ensure_ascii=False)};
+        const PRICE_CAT_TRANSLATIONS = {json.dumps(PRICE_CATEGORIES.get(curr_channel_key, {}), ensure_ascii=False)};
+
         function switchPortalMainView(viewMode) {{
             const tabNews = document.getElementById('tabModeNews');
             const tabEvents = document.getElementById('tabModeEvents');
+            const tabPrices = document.getElementById('tabModePrices');
             const newsCol = document.getElementById('newsGridCol');
             const eventsCol = document.getElementById('eventsHubCol');
+            const pricesCol = document.getElementById('pricesHubCol');
             const heroEl = document.getElementById('heroSection');
             const subEl = document.getElementById('subHeadlinesSection');
 
@@ -4488,7 +5045,9 @@ function toggleMapSidePanel(forceState) {{
             document.querySelectorAll('.cat-btn').forEach(btn => {{
                 if (btn.dataset.slug === 'events') {{
                     btn.classList.toggle('active', viewMode === 'events');
-                }} else if (viewMode === 'events') {{
+                }} else if (btn.dataset.slug === 'prices') {{
+                    btn.classList.toggle('active', viewMode === 'prices');
+                }} else if (viewMode === 'events' || viewMode === 'prices') {{
                     btn.classList.remove('active');
                 }}
             }});
@@ -4496,20 +5055,55 @@ function toggleMapSidePanel(forceState) {{
             if (viewMode === 'events') {{
                 if (tabNews) tabNews.classList.remove('active');
                 if (tabEvents) tabEvents.classList.add('active');
+                if (tabPrices) tabPrices.classList.remove('active');
                 if (newsCol) newsCol.style.display = 'none';
                 if (eventsCol) eventsCol.style.display = 'block';
+                if (pricesCol) pricesCol.style.display = 'none';
                 if (heroEl) heroEl.style.display = 'none';
                 if (subEl) subEl.style.display = 'none';
                 eventsCol.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+            }} else if (viewMode === 'prices') {{
+                if (tabNews) tabNews.classList.remove('active');
+                if (tabEvents) tabEvents.classList.remove('active');
+                if (tabPrices) tabPrices.classList.add('active');
+                if (newsCol) newsCol.style.display = 'none';
+                if (eventsCol) eventsCol.style.display = 'none';
+                if (pricesCol) pricesCol.style.display = 'block';
+                if (heroEl) heroEl.style.display = 'none';
+                if (subEl) subEl.style.display = 'none';
+                pricesCol.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
             }} else {{
                 if (tabNews) tabNews.classList.add('active');
                 if (tabEvents) tabEvents.classList.remove('active');
+                if (tabPrices) tabPrices.classList.remove('active');
                 if (newsCol) newsCol.style.display = '';
                 if (eventsCol) eventsCol.style.display = 'none';
+                if (pricesCol) pricesCol.style.display = 'none';
                 if (currentSlug === 'all') {{
                     if (heroEl) heroEl.style.display = '';
                     if (subEl) subEl.style.display = '';
                 }}
+            }}
+        }}
+
+        function filterPriceCategory(catSlug) {{
+            document.querySelectorAll('.price-subtab-btn').forEach(btn => {{
+                btn.classList.toggle('active', btn.getAttribute('data-price-cat') === catSlug);
+            }});
+            const cards = document.querySelectorAll('.price-compare-card');
+            let visibleCount = 0;
+            cards.forEach(card => {{
+                const cCat = card.getAttribute('data-price-cat');
+                if (catSlug === 'all' || cCat === catSlug) {{
+                    card.style.display = '';
+                    visibleCount++;
+                }} else {{
+                    card.style.display = 'none';
+                }}
+            }});
+            const emptyEl = document.getElementById('pricesEmptyState');
+            if (emptyEl) {{
+                emptyEl.style.display = (visibleCount === 0) ? 'block' : 'none';
             }}
         }}
 
@@ -4553,6 +5147,9 @@ function toggleMapSidePanel(forceState) {{
         function filterCategory(slug) {{
             if (slug === 'events') {{
                 switchPortalMainView('events');
+                return;
+            }} else if (slug === 'prices') {{
+                switchPortalMainView('prices');
                 return;
             }} else {{
                 switchPortalMainView('news');
