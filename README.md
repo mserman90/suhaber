@@ -21,6 +21,7 @@ Aşağıdaki bağlantılardan yayındaki canlı dijital gazete portallarına do�
 | 🌾 **Tarım Gündemi** | Bitkisel Üretim, Tohumculuk, Gübre, Destekler ve Akıllı Tarım | [**Canlı Aç (tarim.html)**](https://mserman90.github.io/suhaber/tarim.html) | [🔗 `rss_tarim.xml`](https://mserman90.github.io/suhaber/rss_tarim.xml) |
 | 🐄 **Hayvancılık Gündemi** | Büyükbaş & Küçükbaş Besicilik, Çiğ Süt, Yem ve Hayvan Sağlığı | [**Canlı Aç (hayvancilik.html)**](https://mserman90.github.io/suhaber/hayvancilik.html) | [🔗 `rss_hayvancilik.xml`](https://mserman90.github.io/suhaber/rss_hayvancilik.xml) |
 | 🌐 **Su Anlaşmaları Portalı** | Küresel Sınıraşan Sular ve İkili Anlaşmalar Veritabanı | [**Canlı Aç (External)**](https://mserman90.github.io/water-agreements-portal/) | — |
+| ⚖️ **Yasal & KVKK Portalı** | Yasal Sorumluluk Reddi, 6698 Sayılı KVKK ve Gizlilik Politikası | [**Canlı Aç (yasal.html)**](https://mserman90.github.io/suhaber/yasal.html) | — |
 
 ---
 
@@ -67,6 +68,14 @@ Kullanıcılar tek bir butona tıklayarak web portalındaki tüm başlıkları, 
 * **Google Rich Results:** `NewsMediaOrganization`, `WebSite` (SearchAction) ve `CollectionPage` Schema.org JSON-LD yapısal verileri.
 * **Open Graph & Twitter Cards:** WhatsApp, LinkedIn, Twitter ve Facebook'ta 1200x630 piksel yüksek çözünürlüklü görsel önizlemeleri.
 * **Keşif Dosyaları:** Otomatik üretilen `sitemap.xml` ve arama botlarına yol gösteren `robots.txt`.
+
+---
+
+### 8. ⚖️ Hukuki Şeffaflık, Yasal Sorumluluk Reddi & 6698 Sayılı KVKK Uyumluluğu
+* **Yasal Sorumluluk Reddi (Disclaimer):** Portalda sunulan tarımsal ve hayvansal emtia fiyatlarının, borsa göstergelerinin ve haber analizlerinin yatırım tavsiyesi, portföy danışmanlığı veya ticari taahhüt taşımadığına dair 6362 sayılı Kanun uyumlu sarih yasal bildirim.
+* **6698 Sayılı KVKK & Gizlilik Politikası:** Sitede kullanıcı hesabı, üyelik veya e-bülten bulunmadığından ziyaretçilerden sıfır kişisel veri toplama prensibi. Ticari veya davranışsal reklam çerezlerinin kesinlikle kullanılmadığı, yalnızca tema ve dil tercihleri için cihazınızda yerel depolama (`localStorage`) tutulduğu güvencesi.
+* **Künye, Telif Hakları ve Atıf (5846 Sayılı FSEK):** Habercilikte kamuoyunun haber alma hürriyeti ve adil kullanım (fair use) prensibiyle orijinal yayıncılara eksiksiz atıf.
+* **Erişim Kolaylığı:** Sayfa altbilgisinden tek tıkla açılan sekmeli Türkçe/İngilizce modal pencere (`#legalModal`) ve arama motorlarınca taranabilen müstakil [yasal.html](https://mserman90.github.io/suhaber/yasal.html) sayfası.
 
 ---
 
@@ -134,6 +143,7 @@ Tarayıcınızda `http://localhost:8000/` adresine giderek portala göz atabilir
 │   ├── index.html                # Su Gündemi
 │   ├── tarim.html                # Tarım Gündemi
 │   ├── hayvancilik.html          # Hayvancılık Gündemi
+│   ├── yasal.html                # Yasal Sorumluluk Reddi ve KVKK Beyanı
 │   ├── sitemap.xml               # Google Arama Motoru Haritası
 │   ├── robots.txt                # Arama Motoru Robot Yönergeleri
 │   └── *.xml / *.json            # RSS, Atom ve JSON Feed dosyaları

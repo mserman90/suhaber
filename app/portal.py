@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from app.quotes import get_daily_water_quote
+from app.legal_data import render_footer_legal_bar_html, render_legal_modal_html
 import json
 from app.prices_data import (
     get_channel_prices,
@@ -3349,6 +3350,239 @@ def generate_newspaper_portal_html(
         }}
         .btn-doi-link:hover {{ background: var(--newspaper-blue); }}
 
+        /* Footer Legal Bar & Micro Disclaimer */
+        .footer-legal-bar {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px 14px;
+            margin: 20px auto 14px auto;
+            padding: 12px 18px;
+            max-width: 980px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-line);
+            border-radius: 8px;
+        }}
+        .footer-legal-btn {{
+            background: none;
+            border: none;
+            color: var(--primary-blue);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }}
+        .footer-legal-btn:hover {{
+            color: var(--primary-hover);
+            background: rgba(2, 132, 199, 0.08);
+        }}
+        .footer-legal-link {{
+            color: var(--primary-blue);
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }}
+        .footer-legal-link:hover {{
+            color: var(--primary-hover);
+            background: rgba(2, 132, 199, 0.08);
+        }}
+        .footer-sep {{
+            color: var(--border-line);
+            font-size: 14px;
+            opacity: 0.6;
+        }}
+        .footer-disclaimer-preview {{
+            max-width: 980px;
+            margin: 0 auto 12px auto;
+        }}
+        .footer-micro-disclaimer {{
+            font-size: 11.5px;
+            line-height: 1.6;
+            opacity: 0.85;
+            color: var(--footer-text);
+            background: rgba(0, 0, 0, 0.03);
+            padding: 10px 14px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-blue);
+            text-align: left;
+        }}
+        [data-theme="dark"] .footer-micro-disclaimer {{
+            background: rgba(255, 255, 255, 0.03);
+        }}
+
+        /* Legal Modal Window & Elements */
+        .legal-modal-window {{
+            max-width: 900px;
+            max-height: 88vh;
+        }}
+        .legal-modal-header {{
+            padding: 20px 24px 14px 24px;
+            border-bottom: 1px solid var(--border-line);
+        }}
+        .legal-header-titles {{
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }}
+        .legal-badge {{
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--primary-blue);
+        }}
+        .legal-modal-title {{
+            font-family: 'Playfair Display', serif;
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: var(--ink-black);
+            margin: 0;
+        }}
+        .legal-modal-tabs {{
+            display: flex;
+            background: var(--surface-bg);
+            border-bottom: 2px solid var(--border-line);
+            padding: 0 16px;
+            gap: 8px;
+            overflow-x: auto;
+        }}
+        .legal-tab-btn {{
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 12px 16px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--newspaper-text);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }}
+        .legal-tab-btn:hover {{
+            color: var(--primary-blue);
+        }}
+        .legal-tab-btn.active {{
+            color: var(--primary-blue);
+            border-bottom-color: var(--primary-blue);
+            background: rgba(2, 132, 199, 0.06);
+        }}
+        .legal-modal-body {{
+            padding: 24px;
+            overflow-y: auto;
+            max-height: 58vh;
+        }}
+        .legal-section {{
+            margin-bottom: 24px;
+        }}
+        .legal-section h4 {{
+            font-family: 'Playfair Display', serif;
+            font-size: 1.15rem;
+            color: var(--ink-black);
+            margin-bottom: 10px;
+        }}
+        .legal-section p {{
+            font-size: 13.5px;
+            line-height: 1.7;
+            color: var(--newspaper-text);
+            margin-bottom: 10px;
+        }}
+        .legal-alert-box {{
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            color: var(--newspaper-text);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin: 12px 0;
+        }}
+        .legal-badge-pill {{
+            display: inline-block;
+            background: rgba(2, 132, 199, 0.12);
+            color: var(--primary-blue);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }}
+        .legal-list {{
+            margin-left: 20px;
+            margin-bottom: 14px;
+            font-size: 13.5px;
+            line-height: 1.65;
+            color: var(--newspaper-text);
+        }}
+        .legal-list li {{ margin-bottom: 6px; }}
+        .legal-table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin: 12px 0;
+        }}
+        .legal-table td {{
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-line);
+            color: var(--newspaper-text);
+        }}
+        .legal-table td:first-child {{
+            width: 28%;
+            font-weight: 600;
+            color: var(--ink-black);
+        }}
+        .legal-modal-footer {{
+            padding: 14px 24px;
+            border-top: 1px solid var(--border-line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            background: var(--surface-bg);
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }}
+        .btn-legal-standalone {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary-blue);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }}
+        .btn-legal-close {{
+            background: var(--primary-blue);
+            color: #ffffff;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }}
+        .btn-legal-close:hover {{
+            background: var(--primary-hover);
+        }}
+
         /* Footer */
         .newspaper-footer {{
             border-top: 3px solid var(--footer-border);
@@ -4564,13 +4798,18 @@ def generate_newspaper_portal_html(
         </div>
     </div>
 
+    {render_legal_modal_html()}
+
     <!-- Newspaper Footer -->
-    <footer class="newspaper-footer">
+    <footer class="newspaper-footer" role="contentinfo">
         <div class="footer-inner">
-            <h4>{portal_name}</h4>
-            <p>{footer_sub_text}</p>
-            <p style="font-size:11.5px; opacity:0.75;">
-                Otomasyon: GitHub Actions ile 30 dakikada bir güncellenir &bull; Son Güncelleme: {last_updated} &bull; Depo: mserman90/suhaber
+            <h4 id="footerPortalName">{portal_name}</h4>
+            <p id="footerSubText">{footer_sub_text}</p>
+            {render_footer_legal_bar_html()}
+            <p class="footer-meta-info" style="font-size:11.5px; opacity:0.8; margin-top:16px;">
+                <span data-i18n="footer_automation">Otomasyon: GitHub Actions ile periyodik olarak derlenir</span> &bull; 
+                <span data-i18n="footer_last_update">Son Güncelleme:</span> {last_updated} &bull; 
+                <span>Depo: <a href="https://github.com/mserman90/suhaber" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:underline;">mserman90/suhaber</a></span>
             </p>
         </div>
     </footer>
@@ -5156,8 +5395,40 @@ function toggleMapSidePanel(forceState) {{
         }}
 
         document.addEventListener('keydown', function(e) {{
-            if (e.key === 'Escape') closeArticleModal();
+            if (e.key === 'Escape') {{
+                closeArticleModal();
+                closeLegalModal();
+            }}
         }});
+
+        function openLegalModal(tabName) {{
+            const m = document.getElementById('legalModal');
+            if (m) {{
+                m.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                switchLegalTab(tabName || 'disclaimer');
+            }}
+        }}
+
+        function closeLegalModal(e) {{
+            if (e && e.target && e.target.closest && e.target.closest('.legal-modal-window') && !e.target.classList.contains('btn-close-modal') && !e.target.classList.contains('btn-legal-close')) {{
+                return;
+            }}
+            const m = document.getElementById('legalModal');
+            if (m) {{
+                m.style.display = 'none';
+                document.body.style.overflow = '';
+            }}
+        }}
+
+        function switchLegalTab(tabName) {{
+            ['disclaimer', 'kvkk', 'imprint'].forEach(t => {{
+                const btn = document.getElementById('btnLegalTab_' + t);
+                const pane = document.getElementById('legalPane_' + t);
+                if (btn) btn.classList.toggle('active', t === tabName);
+                if (pane) pane.style.display = (t === tabName) ? 'block' : 'none';
+            }});
+        }}
 
                 // Bilingual (Turkish / English) Engine
         window.currentPortalLang = localStorage.getItem('portal_language') || 'tr';
@@ -5459,6 +5730,54 @@ function toggleMapSidePanel(forceState) {{
             if (window.currentModalArticleId !== null && window.currentModalArticleId !== undefined) {{
                 openArticleModal(window.currentModalArticleId);
             }}
+
+            // 11. Legal & KVKK Footer & Modal i18n
+            const disclaimerBtn = document.querySelector('[data-i18n="legal_disclaimer_btn"]');
+            if (disclaimerBtn) disclaimerBtn.innerText = isEn ? 'Legal Disclaimer' : 'Yasal Sorumluluk Reddi';
+
+            const kvkkBtn = document.querySelector('[data-i18n="legal_kvkk_btn"]');
+            if (kvkkBtn) kvkkBtn.innerText = isEn ? 'Privacy & Data Protection' : 'KVKK & Gizlilik Beyanı';
+
+            const imprintBtn = document.querySelector('[data-i18n="legal_imprint_btn"]');
+            if (imprintBtn) imprintBtn.innerText = isEn ? 'Imprint & Copyright' : 'Künye & Atıf Politikası';
+
+            const standaloneLink = document.querySelector('[data-i18n="legal_standalone_link"]');
+            if (standaloneLink) standaloneLink.innerText = isEn ? 'Full Text (Separate Page)' : 'Tam Metin (Ayrı Sayfa)';
+
+            const footerAuto = document.querySelector('[data-i18n="footer_automation"]');
+            if (footerAuto) footerAuto.innerText = isEn ? 'Automated: Built regularly via GitHub Actions' : 'Otomasyon: GitHub Actions ile düzenli derlenir';
+
+            const footerLastUp = document.querySelector('[data-i18n="footer_last_update"]');
+            if (footerLastUp) footerLastUp.innerText = isEn ? 'Last Updated:' : 'Son Güncelleme:';
+
+            const microDisclaimer = document.getElementById('footerMicroDisclaimer');
+            if (microDisclaimer) {{
+                microDisclaimer.innerHTML = isEn
+                    ? '<strong>⚖️ Legal Notice:</strong> All market, commodity and news data are curated from open public sources and do not constitute financial or investment advice. In compliance with KVKK, no personal data is collected on this portal.'
+                    : '<strong>⚖️ Yasal Uyarı:</strong> Bu portalda yer alan haber, emtia ve borsa verileri açık kaynaklardan derlenmiş olup, yatırım veya ticari danışmanlık niteliği taşımaz. 6698 sayılı KVKK kapsamında ziyaretçilerden kişisel veri toplanmamaktadır.';
+            }}
+
+            const modalBadge = document.getElementById('legalModalBadge');
+            if (modalBadge) modalBadge.innerText = isEn ? 'LEGAL DISCLOSURE & TRANSPARENCY NOTICE' : 'HUKUKİ BİLGİLENDİRME & ŞEFFAFLIK BEYANI';
+
+            const modalTitle = document.getElementById('legalModalTitle');
+            if (modalTitle) modalTitle.innerText = isEn ? 'Legal Disclaimer and Privacy Notice' : 'Yasal Sorumluluk Reddi ve KVKK Bildirimi';
+
+            const tabDisc = document.querySelector('[data-i18n="legal_tab_disclaimer"]');
+            if (tabDisc) tabDisc.innerText = isEn ? 'Legal Disclaimer' : 'Yasal Sorumluluk Reddi';
+
+            const tabKVKK = document.querySelector('[data-i18n="legal_tab_kvkk"]');
+            if (tabKVKK) tabKVKK.innerText = isEn ? 'Privacy & KVKK' : 'KVKK & Gizlilik Beyanı';
+
+            const tabImp = document.querySelector('[data-i18n="legal_tab_imprint"]');
+            if (tabImp) tabImp.innerText = isEn ? 'Imprint & Attribution' : 'Künye & Atıf Politikası';
+
+            const btnCloseLegal = document.querySelector('[data-i18n="legal_close_btn"]');
+            if (btnCloseLegal) btnCloseLegal.innerText = isEn ? 'Understood & Close' : 'Anladım ve Kapat';
+
+            // Toggle language inside modal
+            document.querySelectorAll('.legal-lang-tr').forEach(el => el.style.display = isEn ? 'none' : 'block');
+            document.querySelectorAll('.legal-lang-en').forEach(el => el.style.display = isEn ? 'block' : 'none');
         }}
 
         // Initialize language immediately

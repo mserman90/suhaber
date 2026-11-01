@@ -138,6 +138,12 @@ Sitemap: {public_url}/sitemap.xml
         <priority>1.0</priority>
     </url>
     <url>
+        <loc>{public_url}/yasal.html</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
+    </url>
+    <url>
         <loc>{public_url}/tarim.html</loc>
         <lastmod>{today_iso}</lastmod>
         <changefreq>daily</changefreq>
@@ -740,7 +746,13 @@ def main():
     (dist_dir / "hayvancilik.html").write_text(hayvancilik_portal_html, encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'hayvancilik.html'} ('Hayvancılık Gündemi' Modern Gazete Portalı)")
 
-    # --- D) GOOGLE SEO & SITEMAP / ROBOTS DOSYALARI ---
+    # --- D) YASAL SORUMLULUK REDDİ VE KVKK BEYANI (yasal.html) ---
+    from app.legal_data import generate_standalone_legal_html
+    legal_html_content = generate_standalone_legal_html(now_str)
+    (dist_dir / "yasal.html").write_text(legal_html_content, encoding="utf-8")
+    print(f"[+] Üretildi: {dist_dir / 'yasal.html'} (Müstakil Yasal Sorumluluk Reddi ve KVKK Beyanı)")
+
+    # --- E) GOOGLE SEO & SITEMAP / ROBOTS DOSYALARI ---
     generate_sitemap_and_robots(dist_dir, public_url)
 
     print("[*] Tüm 3 kanallı gazete portalları (Su, Tarım, Hayvancılık) ve yayın akışları başarıyla tamamlandı!")
