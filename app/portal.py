@@ -1,4 +1,4 @@
-import html
+﻿import html
 import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
@@ -26,6 +26,107 @@ def clean_html_tags(text: str) -> str:
         return ""
     clean = re.sub(r'<[^>]+>', ' ', text)
     return " ".join(clean.split())
+
+
+
+# ── Su Diplomasisi Bilgi Kartları Widget ─────────────────────────────────────
+# Source: github.com/mserman90/SuDiplomasisiBilgiKartlari
+_WATER_DIPLOMACY_CARDS = [
+    {"soru": "Su Diplomasisi Çerçevesi (WDF) su sorunlarının teşhisinde hangi aracı 'kaldıraç' olarak kullanır?", "cevap": "Çeşitli bakış açılarını, belirsizliği ve değişen talepleri uzlaştırmak için 'müzakere'yi (negotiation) teşhis ve müdahalenin merkez kaldıracı olarak kullanır.", "kategori": "Su Diplomasisi"},
+    {"soru": "Büyük Etiyopya Rönesans Barajı (GERD) inşası karşısında Mısır'ın temel argümanı nedir?", "cevap": "Mısır, mansap su payının azalacağını ve 1929/1959 anlaşmalarına dayanan tarihsel su haklarının ihlal edileceğini savunmaktadır.", "kategori": "Havza Yönetimi"},
+    {"soru": "Su diplomasisinde 'Karşılıklı Kazanım' (Mutual Gains) yaklaşımı ne anlama gelir?", "cevap": "Sabit pozisyonlar üzerinden yürütülen sıfır toplamlı politikaların aksine, ortak çıkarları merkeze alan ve değişen koşullara uyarlanabilen esnek çözümler üretme stratejisidir.", "kategori": "Su Diplomasisi"},
+    {"soru": "1997 BM Su Yolları Sözleşmesi su paylaşımında hangi temel prensibi benimser?", "cevap": "'Hakkaniyete Uygun ve Makul Kullanım' (Equitable and Reasonable Utilization) ve 'Önemli Zarar Vermeme' (No Significant Harm) prensiplerini eşgüdümlü olarak benimser.", "kategori": "Uluslararası Hukuk"},
+    {"soru": "Tacikistan-Özbekistan arasındaki Rogun Barajı projesinde su diplomasisi nasıl bir dönüşüm sağladı?", "cevap": "Başlangıçta ciddi jeopolitik çatışma kaynağıyken, proaktif su diplomasisi ve pragmatik fayda paylaşımı (kış-kömür, yaz-sulama suyu takası) ile işbirliği platformuna dönüştü.", "kategori": "Su Diplomasisi"},
+    {"soru": "Entegre Su Kaynakları Yönetimi (IWRM) nedir?", "cevap": "Su, arazi ve ilgili kaynakların koordineli gelişimini, ekosistemlerin sürdürülebilirliğinden ödün vermeden ekonomik ve sosyal refahı maksimize edecek şekilde teşvik eden süreçtir.", "kategori": "Havza Yönetimi"},
+    {"soru": "Su diplomasisi geleneksel 'yangın söndürme' modelinden nasıl farklılaşır?", "cevap": "Kriz anında devreye giren tepkisel bir araç değil; uzun vadeli güven inşası ve istikrar yaratmak amacıyla sürekli uygulanan proaktif bir politika alanıdır.", "kategori": "Su Diplomasisi"},
+    {"soru": "Küresel iklim değişikliği transsınır su anlaşmalarını nasıl tehdit etmektedir?", "cevap": "Bir 'tehdit çarpanı' (threat multiplier) olarak akış rejimlerini öngörülemez şekilde değiştirerek statik ve eski kotalı anlaşmaları işlevsiz hale getirmektedir.", "kategori": "Çevresel Etkiler"},
+    {"soru": "Türkiye ile Irak arasındaki ilk kapsamlı su anlaşması hangisidir?", "cevap": "1946 Dostluk ve İyi Komşuluk Antlaşması'na ekli 1 No'lu Protokol; Dicle, Fırat ve kollarının sularının düzenlenmesine ilişkin hükümleri içermektedir.", "kategori": "Uluslararası Hukuk"},
+    {"soru": "Su diplomasisinde 'Sıfır Toplamlı' (Zero-Sum) yaklaşım ne anlama gelir?", "cevap": "Havzadaki su miktarının sabit olduğu varsayımıyla, bir kıyıdaş ülkenin kazandığı her bir damla suyun, otomatik olarak diğer kıyıdaşın kaybı olarak algılandığı statik çatışma modelidir.", "kategori": "Su Diplomasisi"},
+    {"soru": "Orta Asya'da Aral Gölü krizine yol açan 'Beyaz Altın' politikası nedir?", "cevap": "Sovyetler döneminde Ceyhun ve Seyhun nehirlerini çöl ortasında devasa pamuk tarlalarını sulamak için yönlendiren; Aral Gölü'nü kurumasına neden olan politikadır.", "kategori": "Çevresel Etkiler"},
+    {"soru": "Transsınır sularda 'Hidrosolidarite' (Hydrosolidarity) kavramı neyi ifade eder?", "cevap": "Suyun ulusal sınırlar ve milliyetçi çıkarlar ötesinde, tüm havza paydaşlarının ortak çıkarı ve dayanışması çerçevesinde yönetilmesini ifade eder.", "kategori": "Havza Yönetimi"},
+]
+
+def _build_diplomacy_flashcards_widget() -> str:
+    """Builds an inline flashcard widget for Su Gundemi right sidebar."""
+    import json as _json
+    total = len(_WATER_DIPLOMACY_CARDS)
+    cards_json = _json.dumps(_WATER_DIPLOMACY_CARDS, ensure_ascii=False)
+
+    return f"""
+                <div class="sidebar-card sdiplomasi-widget-card">
+                    <div class="sdiplomasi-header">
+                        <h4 class="sidebar-title" style="margin-bottom:4px;">💧 Su Diplomasisi Bilgi Kartları</h4>
+                        <span class="sdiplomasi-badge">{total} Kart</span>
+                    </div>
+                    <p class="sdiplomasi-desc">Sınıraşan su yönetimi ve uluslararası su hukukuna dair temel kavramlar</p>
+                    <div class="sdiplomasi-card-wrap" id="sdcardWrap">
+                        <div class="sdiplomasi-card" id="sdCard" onclick="sdFlipCard()">
+                            <div class="sdiplomasi-card-inner" id="sdCardInner">
+                                <div class="sdiplomasi-front">
+                                    <span class="sd-category-tag" id="sdCategoryTag">Kategori</span>
+                                    <div class="sd-card-icon" id="sdIcon">💧</div>
+                                    <p class="sd-question" id="sdQuestion">Yükleniyor...</p>
+                                    <span class="sd-flip-hint">Cevap için tıklayın ↩</span>
+                                </div>
+                                <div class="sdiplomasi-back">
+                                    <span class="sd-category-tag sd-cat-back" id="sdCategoryTagBack">Kategori</span>
+                                    <p class="sd-answer" id="sdAnswer">Cevap burada görünecek.</p>
+                                    <span class="sd-flip-hint sd-flip-hint-back">Soruya dönmek için tıklayın ↩</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sdiplomasi-nav">
+                        <button class="sd-nav-btn" onclick="sdPrevCard()" title="Önceki Kart">◀</button>
+                        <span class="sd-progress" id="sdProgress">1 / {total}</span>
+                        <button class="sd-nav-btn" onclick="sdNextCard()" title="Sonraki Kart">▶</button>
+                    </div>
+                    <div class="sdiplomasi-footer-row">
+                        <button class="sd-shuffle-btn" onclick="sdShuffle()" title="Kartları karıştır">🔀 Karıştır</button>
+                        <a href="https://mserman90.github.io/SuDiplomasisiBilgiKartlari/" target="_blank" rel="noopener noreferrer" class="sd-full-link">Tüm Kartlar ↗</a>
+                    </div>
+                    <script>
+                    (function(){{
+                        var SD = {cards_json};
+                        var idx=0, flipped=false, deck=SD.slice();
+                        var ICONS={{"Su Diplomasisi":"🌐","Havza Yönetimi":"💧","Uluslararası Hukuk":"⚖️","Çevresel Etkiler":"🌿"}};
+                        var COLORS={{"Su Diplomasisi":"#0ea5e9","Havza Yönetimi":"#0284c7","Uluslararası Hukuk":"#7c3aed","Çevresel Etkiler":"#059669"}};
+                        function render(){{
+                            var c=deck[idx]; if(!c) return;
+                            var cat=c.kategori||"Su";
+                            document.getElementById("sdQuestion").textContent=c.soru;
+                            document.getElementById("sdAnswer").textContent=c.cevap;
+                            ["sdCategoryTag","sdCategoryTagBack"].forEach(function(id){{
+                                var el=document.getElementById(id);
+                                if(el){{ el.textContent=cat; el.style.background=COLORS[cat]||"#0284c7"; }}
+                            }});
+                            var ico=document.getElementById("sdIcon"); if(ico) ico.textContent=ICONS[cat]||"💧";
+                            var pr=document.getElementById("sdProgress"); if(pr) pr.textContent=(idx+1)+" / "+deck.length;
+                            flipped=false;
+                            var inn=document.getElementById("sdCardInner"); if(inn) inn.style.transform="rotateY(0deg)";
+                        }}
+                        window.sdFlipCard=function(){{
+                            var inn=document.getElementById("sdCardInner"); if(!inn) return;
+                            flipped=!flipped; inn.style.transform=flipped?"rotateY(180deg)":"rotateY(0deg)";
+                        }};
+                        window.sdNextCard=function(){{
+                            if(flipped){{ window.sdFlipCard(); setTimeout(function(){{ idx=(idx+1)%deck.length; render(); }},300); }}
+                            else{{ idx=(idx+1)%deck.length; render(); }}
+                        }};
+                        window.sdPrevCard=function(){{
+                            if(flipped){{ window.sdFlipCard(); setTimeout(function(){{ idx=(idx-1+deck.length)%deck.length; render(); }},300); }}
+                            else{{ idx=(idx-1+deck.length)%deck.length; render(); }}
+                        }};
+                        window.sdShuffle=function(){{
+                            for(var i=deck.length-1;i>0;i--){{ var j=Math.floor(Math.random()*(i+1)); var t=deck[i]; deck[i]=deck[j]; deck[j]=t; }}
+                            idx=0; render();
+                        }};
+                        if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",render);
+                        else render();
+                    }})();
+                    </script>
+                </div>""".strip()
+
 
 def generate_newspaper_portal_html(
     items: List[Dict[str, Any]],
@@ -871,6 +972,7 @@ def generate_newspaper_portal_html(
                     </div>
                 </div>
         """.strip()
+        sidebar_diplomacy_cards_html = ""
         sidebar_sources_html = """
                 <div class="sidebar-card">
                     <h4 class="sidebar-title">Taranan Hayvancılık Kaynakları</h4>
@@ -938,6 +1040,7 @@ def generate_newspaper_portal_html(
                     </div>
                 </div>
         """.strip()
+        sidebar_diplomacy_cards_html = ""
         sidebar_sources_html = """
                 <div class="sidebar-card">
                     <h4 class="sidebar-title">Taranan Tarımsal Kaynaklar</h4>
@@ -1001,6 +1104,7 @@ def generate_newspaper_portal_html(
                     </div>
                 </div>
         """.strip()
+        sidebar_diplomacy_cards_html = _build_diplomacy_flashcards_widget()
         sidebar_sources_html = """
                 <div class="sidebar-card">
                     <h4 class="sidebar-title">Taranan Bilimsel Kaynaklar</h4>
@@ -2933,6 +3037,152 @@ def generate_newspaper_portal_html(
             margin-top: 1px;
         }}
 
+        /* Su Diplomasisi Flashcard Widget */
+        .sdiplomasi-widget-card {
+            border-left: 3px solid #0284c7 !important;
+            padding: 16px !important;
+        }
+        .sdiplomasi-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .sdiplomasi-badge {
+            background: #0ea5e9;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+        .sdiplomasi-desc {
+            font-size: 11px;
+            color: var(--ink-muted);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .sdiplomasi-card-wrap {
+            perspective: 900px;
+            height: 170px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .sdiplomasi-card { width: 100%; height: 100%; position: relative; }
+        .sdiplomasi-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.45s cubic-bezier(.4,.2,.2,1);
+        }
+        .sdiplomasi-front,
+        .sdiplomasi-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .sdiplomasi-front {
+            background: linear-gradient(135deg, #0369a1 0%, #0284c7 60%, #0ea5e9 100%);
+            color: white;
+        }
+        .sdiplomasi-back {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+            color: var(--ink-dark);
+            border: 1px solid #bae6fd;
+            transform: rotateY(180deg);
+        }
+        .sd-category-tag {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: #0ea5e9;
+            color: white;
+            margin-bottom: 6px;
+            flex-shrink: 0;
+        }
+        .sd-card-icon { font-size: 20px; margin-bottom: 6px; opacity: 0.65; flex-shrink: 0; }
+        .sd-question {
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1.4;
+            color: white;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+        .sd-answer {
+            font-size: 10.5px;
+            line-height: 1.45;
+            color: #0c4a6e;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+        }
+        .sd-flip-hint { font-size: 9px; opacity: 0.6; margin-top: 4px; flex-shrink: 0; color: rgba(255,255,255,0.75); }
+        .sd-flip-hint-back { color: #64748b; }
+        .sdiplomasi-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .sd-nav-btn {
+            background: var(--paper-card);
+            border: 1px solid var(--border-line);
+            color: var(--newspaper-blue);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .sd-nav-btn:hover { background: #e0f2fe; border-color: #0284c7; }
+        .sd-progress { font-size: 11px; font-weight: 700; color: var(--ink-muted); flex-grow: 1; text-align: center; }
+        .sdiplomasi-footer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .sd-shuffle-btn {
+            background: none;
+            border: 1px solid var(--border-line);
+            color: var(--ink-muted);
+            border-radius: 4px;
+            font-size: 11px;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .sd-shuffle-btn:hover { background: #f0f9ff; color: #0284c7; border-color: #0284c7; }
+        .sd-full-link { font-size: 11px; color: #0284c7; text-decoration: none; font-weight: 600; }
+        .sd-full-link:hover { text-decoration: underline; }
         /* Sidebar Prices Widget */
         .sidebar-prices-card {{
             border-left: 3px solid #059669 !important;
@@ -4754,7 +5004,10 @@ def generate_newspaper_portal_html(
                 <!-- Commodity & Livestock Prices Widget -->
                 {sidebar_prices_widget_html}
 
-                <!-- Upcoming Events Widget -->
+                <!-- Su Diplomasisi Bilgi Kartlari Widget (Su Gundemi only) -->
+                {sidebar_diplomacy_cards_html}
+
+                                <!-- Upcoming Events Widget -->
                 {sidebar_events_widget_html}
 
                 <!-- Sources Card -->
