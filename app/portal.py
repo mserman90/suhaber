@@ -52,11 +52,11 @@ def _build_diplomacy_flashcards_widget() -> str:
     total = len(_WATER_DIPLOMACY_CARDS)
     cards_json = _json.dumps(_WATER_DIPLOMACY_CARDS, ensure_ascii=False)
 
-    return f"""
+    template = """
                 <div class="sidebar-card sdiplomasi-widget-card">
                     <div class="sdiplomasi-header">
                         <h4 class="sidebar-title" style="margin-bottom:4px;">💧 Su Diplomasisi Bilgi Kartları</h4>
-                        <span class="sdiplomasi-badge">{total} Kart</span>
+                        <span class="sdiplomasi-badge">__TOTAL__ Kart</span>
                     </div>
                     <p class="sdiplomasi-desc">Sınıraşan su yönetimi ve uluslararası su hukukuna dair temel kavramlar</p>
                     <div class="sdiplomasi-card-wrap" id="sdcardWrap">
@@ -78,7 +78,7 @@ def _build_diplomacy_flashcards_widget() -> str:
                     </div>
                     <div class="sdiplomasi-nav">
                         <button class="sd-nav-btn" onclick="sdPrevCard()" title="Önceki Kart">◀</button>
-                        <span class="sd-progress" id="sdProgress">1 / {total}</span>
+                        <span class="sd-progress" id="sdProgress">1 / __TOTAL__</span>
                         <button class="sd-nav-btn" onclick="sdNextCard()" title="Sonraki Kart">▶</button>
                     </div>
                     <div class="sdiplomasi-footer-row">
@@ -86,47 +86,47 @@ def _build_diplomacy_flashcards_widget() -> str:
                         <a href="https://mserman90.github.io/SuDiplomasisiBilgiKartlari/" target="_blank" rel="noopener noreferrer" class="sd-full-link">Tüm Kartlar ↗</a>
                     </div>
                     <script>
-                    (function(){{
-                        var SD = {cards_json};
+                    (function(){
+                        var SD = __CARDS_JSON__;
                         var idx=0, flipped=false, deck=SD.slice();
-                        var ICONS={{"Su Diplomasisi":"🌐","Havza Yönetimi":"💧","Uluslararası Hukuk":"⚖️","Çevresel Etkiler":"🌿"}};
-                        var COLORS={{"Su Diplomasisi":"#0ea5e9","Havza Yönetimi":"#0284c7","Uluslararası Hukuk":"#7c3aed","Çevresel Etkiler":"#059669"}};
-                        function render(){{
+                        var ICONS={"Su Diplomasisi":"🌐","Havza Yönetimi":"💧","Uluslararası Hukuk":"⚖️","Çevresel Etkiler":"🌿"};
+                        var COLORS={"Su Diplomasisi":"#0ea5e9","Havza Yönetimi":"#0284c7","Uluslararası Hukuk":"#7c3aed","Çevresel Etkiler":"#059669"};
+                        function render(){
                             var c=deck[idx]; if(!c) return;
                             var cat=c.kategori||"Su";
                             document.getElementById("sdQuestion").textContent=c.soru;
                             document.getElementById("sdAnswer").textContent=c.cevap;
-                            ["sdCategoryTag","sdCategoryTagBack"].forEach(function(id){{
+                            ["sdCategoryTag","sdCategoryTagBack"].forEach(function(id){
                                 var el=document.getElementById(id);
-                                if(el){{ el.textContent=cat; el.style.background=COLORS[cat]||"#0284c7"; }}
-                            }});
+                                if(el){ el.textContent=cat; el.style.background=COLORS[cat]||"#0284c7"; }
+                            });
                             var ico=document.getElementById("sdIcon"); if(ico) ico.textContent=ICONS[cat]||"💧";
                             var pr=document.getElementById("sdProgress"); if(pr) pr.textContent=(idx+1)+" / "+deck.length;
                             flipped=false;
                             var inn=document.getElementById("sdCardInner"); if(inn) inn.style.transform="rotateY(0deg)";
-                        }}
-                        window.sdFlipCard=function(){{
+                        }
+                        window.sdFlipCard=function(){
                             var inn=document.getElementById("sdCardInner"); if(!inn) return;
                             flipped=!flipped; inn.style.transform=flipped?"rotateY(180deg)":"rotateY(0deg)";
-                        }};
-                        window.sdNextCard=function(){{
-                            if(flipped){{ window.sdFlipCard(); setTimeout(function(){{ idx=(idx+1)%deck.length; render(); }},300); }}
-                            else{{ idx=(idx+1)%deck.length; render(); }}
-                        }};
-                        window.sdPrevCard=function(){{
-                            if(flipped){{ window.sdFlipCard(); setTimeout(function(){{ idx=(idx-1+deck.length)%deck.length; render(); }},300); }}
-                            else{{ idx=(idx-1+deck.length)%deck.length; render(); }}
-                        }};
-                        window.sdShuffle=function(){{
-                            for(var i=deck.length-1;i>0;i--){{ var j=Math.floor(Math.random()*(i+1)); var t=deck[i]; deck[i]=deck[j]; deck[j]=t; }}
+                        };
+                        window.sdNextCard=function(){
+                            if(flipped){ window.sdFlipCard(); setTimeout(function(){ idx=(idx+1)%deck.length; render(); },300); }
+                            else{ idx=(idx+1)%deck.length; render(); }
+                        };
+                        window.sdPrevCard=function(){
+                            if(flipped){ window.sdFlipCard(); setTimeout(function(){ idx=(idx-1+deck.length)%deck.length; render(); },300); }
+                            else{ idx=(idx-1+deck.length)%deck.length; render(); }
+                        };
+                        window.sdShuffle=function(){
+                            for(var i=deck.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=deck[i]; deck[i]=deck[j]; deck[j]=t; }
                             idx=0; render();
-                        }};
+                        };
                         if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",render);
                         else render();
-                    }})();
+                    })();
                     </script>
-                </div>""".strip()
-
+                </div>"""
+    return template.replace("__TOTAL__", str(total)).replace("__CARDS_JSON__", cards_json).strip()
 
 def generate_newspaper_portal_html(
     items: List[Dict[str, Any]],
@@ -3038,18 +3038,18 @@ def generate_newspaper_portal_html(
         }}
 
         /* Su Diplomasisi Flashcard Widget */
-        .sdiplomasi-widget-card {
+        .sdiplomasi-widget-card {{
             border-left: 3px solid #0284c7 !important;
             padding: 16px !important;
-        }
-        .sdiplomasi-header {
+        }}
+        .sdiplomasi-header {{
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
             gap: 8px;
             margin-bottom: 4px;
-        }
-        .sdiplomasi-badge {
+        }}
+        .sdiplomasi-badge {{
             background: #0ea5e9;
             color: white;
             font-size: 10px;
@@ -3059,29 +3059,29 @@ def generate_newspaper_portal_html(
             white-space: nowrap;
             flex-shrink: 0;
             margin-top: 4px;
-        }
-        .sdiplomasi-desc {
+        }}
+        .sdiplomasi-desc {{
             font-size: 11px;
             color: var(--ink-muted);
             margin-bottom: 12px;
             line-height: 1.4;
-        }
-        .sdiplomasi-card-wrap {
+        }}
+        .sdiplomasi-card-wrap {{
             perspective: 900px;
             height: 170px;
             margin-bottom: 10px;
             cursor: pointer;
-        }
-        .sdiplomasi-card { width: 100%; height: 100%; position: relative; }
-        .sdiplomasi-card-inner {
+        }}
+        .sdiplomasi-card {{ width: 100%; height: 100%; position: relative; }}
+        .sdiplomasi-card-inner {{
             position: relative;
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
             transition: transform 0.45s cubic-bezier(.4,.2,.2,1);
-        }
+        }}
         .sdiplomasi-front,
-        .sdiplomasi-back {
+        .sdiplomasi-back {{
             position: absolute;
             width: 100%;
             height: 100%;
@@ -3096,18 +3096,18 @@ def generate_newspaper_portal_html(
             text-align: center;
             box-sizing: border-box;
             overflow: hidden;
-        }
-        .sdiplomasi-front {
+        }}
+        .sdiplomasi-front {{
             background: linear-gradient(135deg, #0369a1 0%, #0284c7 60%, #0ea5e9 100%);
             color: white;
-        }
-        .sdiplomasi-back {
+        }}
+        .sdiplomasi-back {{
             background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
             color: var(--ink-dark);
             border: 1px solid #bae6fd;
             transform: rotateY(180deg);
-        }
-        .sd-category-tag {
+        }}
+        .sd-category-tag {{
             font-size: 9px;
             font-weight: 700;
             letter-spacing: 0.5px;
@@ -3118,9 +3118,9 @@ def generate_newspaper_portal_html(
             color: white;
             margin-bottom: 6px;
             flex-shrink: 0;
-        }
-        .sd-card-icon { font-size: 20px; margin-bottom: 6px; opacity: 0.65; flex-shrink: 0; }
-        .sd-question {
+        }}
+        .sd-card-icon {{ font-size: 20px; margin-bottom: 6px; opacity: 0.65; flex-shrink: 0; }}
+        .sd-question {{
             font-size: 11px;
             font-weight: 600;
             line-height: 1.4;
@@ -3128,8 +3128,8 @@ def generate_newspaper_portal_html(
             flex-grow: 1;
             display: flex;
             align-items: center;
-        }
-        .sd-answer {
+        }}
+        .sd-answer {{
             font-size: 10.5px;
             line-height: 1.45;
             color: #0c4a6e;
@@ -3137,17 +3137,17 @@ def generate_newspaper_portal_html(
             display: flex;
             align-items: center;
             padding: 0 4px;
-        }
-        .sd-flip-hint { font-size: 9px; opacity: 0.6; margin-top: 4px; flex-shrink: 0; color: rgba(255,255,255,0.75); }
-        .sd-flip-hint-back { color: #64748b; }
-        .sdiplomasi-nav {
+        }}
+        .sd-flip-hint {{ font-size: 9px; opacity: 0.6; margin-top: 4px; flex-shrink: 0; color: rgba(255,255,255,0.75); }}
+        .sd-flip-hint-back {{ color: #64748b; }}
+        .sdiplomasi-nav {{
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 6px;
             margin-bottom: 8px;
-        }
-        .sd-nav-btn {
+        }}
+        .sd-nav-btn {{
             background: var(--paper-card);
             border: 1px solid var(--border-line);
             color: var(--newspaper-blue);
@@ -3161,16 +3161,16 @@ def generate_newspaper_portal_html(
             justify-content: center;
             flex-shrink: 0;
             transition: background 0.15s;
-        }
-        .sd-nav-btn:hover { background: #e0f2fe; border-color: #0284c7; }
-        .sd-progress { font-size: 11px; font-weight: 700; color: var(--ink-muted); flex-grow: 1; text-align: center; }
-        .sdiplomasi-footer-row {
+        }}
+        .sd-nav-btn:hover {{ background: #e0f2fe; border-color: #0284c7; }}
+        .sd-progress {{ font-size: 11px; font-weight: 700; color: var(--ink-muted); flex-grow: 1; text-align: center; }}
+        .sdiplomasi-footer-row {{
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-        }
-        .sd-shuffle-btn {
+        }}
+        .sd-shuffle-btn {{
             background: none;
             border: 1px solid var(--border-line);
             color: var(--ink-muted);
@@ -3179,10 +3179,10 @@ def generate_newspaper_portal_html(
             padding: 4px 10px;
             cursor: pointer;
             transition: background 0.15s;
-        }
-        .sd-shuffle-btn:hover { background: #f0f9ff; color: #0284c7; border-color: #0284c7; }
-        .sd-full-link { font-size: 11px; color: #0284c7; text-decoration: none; font-weight: 600; }
-        .sd-full-link:hover { text-decoration: underline; }
+        }}
+        .sd-shuffle-btn:hover {{ background: #f0f9ff; color: #0284c7; border-color: #0284c7; }}
+        .sd-full-link {{ font-size: 11px; color: #0284c7; text-decoration: none; font-weight: 600; }}
+        .sd-full-link:hover {{ text-decoration: underline; }}
         /* Sidebar Prices Widget */
         .sidebar-prices-card {{
             border-left: 3px solid #059669 !important;
