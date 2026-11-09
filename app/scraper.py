@@ -1,4 +1,5 @@
-import re
+﻿import re
+import hashlib
 import html
 import logging
 from datetime import datetime, timezone, timedelta
@@ -581,6 +582,136 @@ def scrape_academic_water_publications(limit_per_query: int = 12, max_total: int
 
         except Exception as e:
             logger.warning("Academic publication dork scrape failed for query [%s]: %s", query, e)
+
+    return items
+
+
+def scrape_google_news_story(
+    story_url: str = "https://news.google.com/stories/CAAqNggKIjBDQklTSGpvSmMzUnZjbmt0TXpZd1NoRUtEd2pUcWFLcEVoSFZESFdmaWJjVTdTZ0FQAQ?ceid=GR:el&oc=3",
+    limit: int = 25,
+    timeout: int = 15
+) -> List[Dict[str, Any]]:
+    """
+    Scrapes articles from a Google News Story collection (e.g. Greece & Mediterranean groundwater/drought crisis).
+    Extracts article title, destination/read URL, publisher source, publication timestamp, and preview image.
+    """
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/128.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "el-GR,el;q=0.9,en-US;q=0.8,en;q=0.7,tr;q=0.6",
+    }
+
+    req_url = story_url
+    if "hl=" not in req_url:
+        req_url += ("&" if "?" in req_url else "?") + "hl=el&gl=GR"
+
+    items: List[Dict[str, Any]] = []
+    seen_titles = set()
+    now_dt = datetime.now(timezone.utc)
+
+    try:
+        logger.info("Google News Story taranıyor: %s", req_url)
+        resp = requests.get(req_url, headers=headers, timeout=timeout)
+        if resp.status_code != 200:
+            logger.warning("Google News story scrape HTTP status: %d", resp.status_code)
+            return []
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Find all article headline links
+        for a_tag in soup.find_all("a", href=True):
+            if len(items) >= limit:
+                break
+
+            href = a_tag["href"]
+            if not href.startswith("./read/") and not href.startswith("/read/") and not "read/CBM" in href:
+                continue
+
+            raw_title = a_tag.get_text(strip=True)
+            if len(raw_title) < 15:
+                continue
+
+            # Normalized title deduplication
+            norm_key = re.sub(r'[^a-zA-Z0-9\u0370-\u03FF]', '', raw_title.lower())
+            if norm_key in seen_titles:
+                continue
+            seen_titles.add(norm_key)
+
+            # Build full link
+            if href.startswith("."):
+                full_link = "https://news.google.com" + href[1:]
+            elif href.startswith("/"):
+                full_link = "https://news.google.com" + href
+            else:
+                full_link = href
+
+            # Extract unique GUID from read token or hash
+            guid_match = re.search(r"read/([A-Za-z0-9_-]+)", href)
+            guid_token = guid_match.group(1)[:40] if guid_match else hashlib.md5(raw_title.encode("utf-8")).hexdigest()[:20]
+            guid = f"gnews_story:{guid_token}"
+
+            # Walk up to parent container to find publisher, date, image
+            source_name = "Yunanistan Basını"
+            pub_rfc = email.utils.format_datetime(now_dt)
+            pub_ts = int(now_dt.timestamp())
+            image_url = ""
+            time_el = None
+
+            parent = a_tag.find_parent(["article", "div", "c-wiz"])
+            if parent:
+                # Source publisher name
+                source_el = parent.find(class_=lambda c: c and ("wEwyrc" in c or "vr1PYe" in c or "N0NI1d" in c))
+                if source_el:
+                    src_txt = source_el.get_text(strip=True)
+                    if src_txt:
+                        source_name = src_txt
+
+                # Published date
+                time_el = parent.find("time")
+                if time_el:
+                    dt_str = time_el.get("datetime")
+                    if dt_str:
+                        try:
+                            parsed_dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+                            pub_ts = int(parsed_dt.timestamp())
+                            pub_rfc = email.utils.format_datetime(parsed_dt)
+                        except Exception:
+                            pass
+
+                # Image
+                img_el = parent.find("img")
+                if img_el and img_el.get("src"):
+                    src = img_el["src"]
+                    if not src.endswith("circle_icon_logo.svg") and "favicon" not in src:
+                        image_url = "https://news.google.com" + src if src.startswith("/") else src
+
+            # Academic tag if it's the EAGME national groundwater research report
+            is_eagme_academic = bool("εαγμε" in raw_title.lower() or "eagme" in raw_title.lower())
+
+            items.append({
+                "guid": guid,
+                "title": raw_title,
+                "title_tr": "",
+                "link": full_link,
+                "author": source_name,
+                "source_feed": f"🇬🇷 {source_name}",
+                "description": raw_title,
+                "summary_tr": "",
+                "category_tr": "İklim & Kuraklık",
+                "is_turkey": 0,
+                "is_academic": 1 if is_eagme_academic else 0,
+                "image_url": image_url,
+                "pub_date": pub_rfc,
+                "pub_date_ts": pub_ts,
+                "raw_date_str": time_el.get_text(strip=True) if (parent and time_el) else "",
+            })
+
+    except Exception as e:
+        logger.error("Google News story tarama hatası [%s]: %s", story_url, e)
 
     return items
 

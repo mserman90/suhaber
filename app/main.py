@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app import config
 from app.storage import Storage
@@ -15,6 +16,7 @@ from app.scraper import scrape_inoreader
 from app.feed import generate_rss_2_xml, generate_atom_xml, generate_json_feed
 from app.translator import batch_translate_articles
 from app.portal import generate_newspaper_portal_html
+from app.legal_data import generate_standalone_legal_html
 
 logging.basicConfig(
     level=logging.INFO,
@@ -118,12 +120,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+static_assets_path = config.BASE_DIR / "app" / "static"
+if static_assets_path.exists():
+    app.mount("/assets", StaticFiles(directory=str(static_assets_path)), name="assets")
+
 def get_base_url(request: Request) -> str:
     if config.PUBLIC_BASE_URL:
         return config.PUBLIC_BASE_URL
     return str(request.base_url).rstrip("/")
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/index.html", response_class=HTMLResponse)
 async def index(request: Request):
     """Renders modern newspaper theme 'Su Haber Bülteni' portal."""
     base_url = get_base_url(request)
@@ -141,6 +148,54 @@ async def index(request: Request):
         atom_url=atom_url,
         json_url=json_url
     )
+    return HTMLResponse(content=html_content)
+
+@app.get("/tarim", response_class=HTMLResponse)
+@app.get("/tarim.html", response_class=HTMLResponse)
+async def tarim_portal(request: Request):
+    """Renders 'Tarım Gündemi' newspaper portal."""
+    base_url = get_base_url(request)
+    rss_url = f"{base_url}/rss_tarim.xml"
+    atom_url = f"{base_url}/atom_tarim.xml"
+    json_url = f"{base_url}/feed_tarim.json"
+    items = storage.get_items(limit=100, channel="agriculture")
+    now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
+    html_content = generate_newspaper_portal_html(
+        items=items,
+        last_updated=now_str,
+        rss_url=rss_url,
+        atom_url=atom_url,
+        json_url=json_url,
+        channel="agriculture"
+    )
+    return HTMLResponse(content=html_content)
+
+@app.get("/hayvancilik", response_class=HTMLResponse)
+@app.get("/hayvancilik.html", response_class=HTMLResponse)
+async def livestock_portal(request: Request):
+    """Renders 'Hayvancılık Gündemi' newspaper portal."""
+    base_url = get_base_url(request)
+    rss_url = f"{base_url}/rss_hayvancilik.xml"
+    atom_url = f"{base_url}/atom_hayvancilik.xml"
+    json_url = f"{base_url}/feed_hayvancilik.json"
+    items = storage.get_items(limit=100, channel="livestock")
+    now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
+    html_content = generate_newspaper_portal_html(
+        items=items,
+        last_updated=now_str,
+        rss_url=rss_url,
+        atom_url=atom_url,
+        json_url=json_url,
+        channel="livestock"
+    )
+    return HTMLResponse(content=html_content)
+
+@app.get("/yasal", response_class=HTMLResponse)
+@app.get("/yasal.html", response_class=HTMLResponse)
+async def legal_portal():
+    """Renders standalone legal & disclaimer page."""
+    now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
+    html_content = generate_standalone_legal_html(now_str)
     return HTMLResponse(content=html_content)
 
 @app.api_route("/rss.xml", methods=["GET", "HEAD"], response_class=Response)

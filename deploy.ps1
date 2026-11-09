@@ -4,8 +4,18 @@ Write-Host "==================================================" -ForegroundColor
 Write-Host " Su Haber Bülteni - GitHub Pages Dağıtım Aracı" -ForegroundColor Yellow
 Write-Host "==================================================" -ForegroundColor Cyan
 
-$gitExe = "C:\Users\murat.erman\.local\git\cmd\git.exe"
-$token = $(gh auth token).Trim()
+# Sistemdeki Git uygulamasını dinamik tespit et
+$gitExe = "git"
+if (Get-Command "git" -ErrorAction SilentlyContinue) {
+    $gitExe = (Get-Command "git").Source
+} elseif (Test-Path "C:\Users\murat.erman\.local\git\cmd\git.exe") {
+    $gitExe = "C:\Users\murat.erman\.local\git\cmd\git.exe"
+}
+
+$token = $(gh auth token 2>$null)
+if ($token) {
+    $token = $token.Trim()
+}
 
 if (-not $token) {
     Write-Host "[-] GitHub CLI oturumu bulunamadı. Lütfen 'gh auth login' yapın." -ForegroundColor Red

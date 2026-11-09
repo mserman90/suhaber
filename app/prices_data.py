@@ -1,4 +1,4 @@
-"""
+﻿"""
 app/prices_data.py
 ------------------
 Tarım ve Hayvancılık Gündemleri için Türkiye ve Diğer Ülkeler (AB, ABD, Küresel)
@@ -339,6 +339,70 @@ AGRICULTURE_PRICES: List[Dict[str, Any]] = [
         "change_en": "+1.9% (Weekly)",
         "note_tr": "Küresel fosfat kısıtları ve navlun maliyetleri ekim dönemindeki DAP bayi perakende fiyatlarını yukarıda tutmaktadır.",
         "note_en": "Global phosphate supply tightness maintains firm import parity for Turkish phosphate applications."
+    },
+    {
+        "id": "diesel-fuel",
+        "category": "inputs",
+        "name_tr": "Çiftçi Mazotu (Kırsal Motorin)",
+        "name_en": "Agricultural Diesel Fuel",
+        "unit_tr": "₺ / Litre",
+        "unit_en": "$ / Gallon",
+        "tr_price_tl": 44.85,
+        "tr_price_usd": 1.25,
+        "tr_source": "EPDK / Bayi Pompa Fiyatı",
+        "eu_price_orig": "1.58 €/Lt",
+        "eu_price_usd": 1.71,
+        "eu_price_tl": 61.30,
+        "eu_source": "AB Ortalama Tarımsal Mazot",
+        "us_price_orig": "3.55 $/gal",
+        "us_price_usd": 0.94,
+        "us_price_tl": 33.65,
+        "us_source": "US EIA On-Highway Diesel",
+        "world_price_orig": "1.15 $/Lt",
+        "world_price_usd": 1.15,
+        "world_price_tl": 41.17,
+        "world_name_tr": "Akdeniz CIF Platts Rafineri",
+        "world_name_en": "Med CIF Platts Cargo",
+        "world_source": "Platts / Argus Media",
+        "diff_vs_world_pct": "+8.9%",
+        "diff_status": "premium",
+        "trend": "up",
+        "change_tr": "+1.2% (Haftalık)",
+        "change_en": "+1.2% (Weekly)",
+        "note_tr": "Brent petrol ve döviz kuru etkisiyle tarımsal üretim maliyetlerinde mazot kalemi en yüksek girdi payını korumaktadır.",
+        "note_en": "Diesel remains the dominant operating cost driver in field tillage and autumn planting."
+    },
+    {
+        "id": "irrigation-electricity",
+        "category": "inputs",
+        "name_tr": "Tarımsal Sulama Elektriği",
+        "name_en": "Agricultural Irrigation Power",
+        "unit_tr": "₺ / kWh",
+        "unit_en": "$ / kWh",
+        "tr_price_tl": 2.95,
+        "tr_price_usd": 0.082,
+        "tr_source": "EPDK Tarımsal Sulama Tarifesi (Alçak Gerilim)",
+        "eu_price_orig": "0.19 €/kWh",
+        "eu_price_usd": 0.206,
+        "eu_price_tl": 7.37,
+        "eu_source": "Eurostat Agriculture Energy Index",
+        "us_price_orig": "0.12 $/kWh",
+        "us_price_usd": 0.12,
+        "us_price_tl": 4.30,
+        "us_source": "US EIA Industrial/Ag Electric",
+        "world_price_orig": "0.14 $/kWh",
+        "world_price_usd": 0.14,
+        "world_price_tl": 5.01,
+        "world_name_tr": "OECD Tarımsal Enerji Ortalaması",
+        "world_name_en": "OECD Agricultural Energy Benchmark",
+        "world_source": "IEA World Energy",
+        "diff_vs_world_pct": "-41.1%",
+        "diff_status": "discount",
+        "trend": "stable",
+        "change_tr": "0.0% (Sübvansiyonlu)",
+        "change_en": "0.0% (Subsidized)",
+        "note_tr": "Devlet tarımsal sulama tarifesi sübvansiyonu sayesinde elektrik birim fiyatı dünya ve AB ortalamasının oldukça altındadır.",
+        "note_en": "Regulated agricultural irrigation tariff keeps electricity costs subsidized compared to global averages."
     }
 ]
 
@@ -599,6 +663,70 @@ LIVESTOCK_PRICES: List[Dict[str, Any]] = [
         "change_en": "+1.2% (High Ratio)",
         "note_tr": "Karkas et fiyatı çok yüksek olduğu için et/yem rasyosu yüksek görünse de, canlı besilik dana alım maliyetinin aşırılığı net kârı daraltmaktadır.",
         "note_en": "Nominal beef-feed ratio is exceptionally high due to dear carcass rates, but expensive feeder calf acquisition compresses margins."
+    },
+    {
+        "id": "alfalfa-hay",
+        "category": "feed_parity",
+        "name_tr": "Kuru Yonca Otu (1. Kalite Balya)",
+        "name_en": "Alfalfa Hay (Premium Baled)",
+        "unit_tr": "₺ / Ton",
+        "unit_en": "$ / Metric Ton",
+        "tr_price_tl": 5200.0,
+        "tr_price_usd": 145.3,
+        "tr_source": "Konya - Aksaray Üretici Piyasası",
+        "eu_price_orig": "185.00 €/Ton",
+        "eu_price_usd": 200.5,
+        "eu_price_tl": 7178.0,
+        "eu_source": "İspanya / Fransa Yonca İhracatı",
+        "us_price_orig": "195.00 $/Ton",
+        "us_price_usd": 195.0,
+        "us_price_tl": 6981.0,
+        "us_source": "USDA Premium Alfalfa Hay",
+        "world_price_orig": "190.00 $/Ton",
+        "world_price_usd": 190.0,
+        "world_price_tl": 6802.0,
+        "world_name_tr": "Küresel Kaba Yem Referansı",
+        "world_name_en": "Global Forage Index",
+        "world_source": "Hay & Forage Grower",
+        "diff_vs_world_pct": "-23.5%",
+        "diff_status": "discount",
+        "trend": "stable",
+        "change_tr": "+0.8% (Haftalık)",
+        "change_en": "+0.8% (Weekly)",
+        "note_tr": "İç Anadolu sulama havzalarında son biçim yonca hasadı tamamlanmış olup üretici balya fiyatları istikrarlıdır.",
+        "note_en": "Final seasonal alfalfa cuttings in Central Anatolia maintain stable winter foraging inventory."
+    },
+    {
+        "id": "corn-silage",
+        "category": "feed_parity",
+        "name_tr": "Mısır Silajı (%30-32 Kuru Madde)",
+        "name_en": "Corn Silage (30-32% Dry Matter)",
+        "unit_tr": "₺ / Ton",
+        "unit_en": "$ / Metric Ton",
+        "tr_price_tl": 2400.0,
+        "tr_price_usd": 67.0,
+        "tr_source": "Çukurova / Ege Çiftlik Teslim",
+        "eu_price_orig": "65.00 €/Ton",
+        "eu_price_usd": 70.5,
+        "eu_price_tl": 2522.0,
+        "eu_source": "Almanya / Fransa Silaj Endeksi",
+        "us_price_orig": "68.00 $/Ton",
+        "us_price_usd": 68.0,
+        "us_price_tl": 2434.0,
+        "us_source": "USDA Corn Silage Equivalent",
+        "world_price_orig": "66.00 $/Ton",
+        "world_price_usd": 66.0,
+        "world_price_tl": 2363.0,
+        "world_name_tr": "Dünya Silaj Ortalaması",
+        "world_name_en": "Global Silage Average",
+        "world_source": "Dairy Global Silage",
+        "diff_vs_world_pct": "+1.6%",
+        "diff_status": "neutral",
+        "trend": "stable",
+        "change_tr": "0.0% (Stabil)",
+        "change_en": "0.0% (Stable)",
+        "note_tr": "Besi ve süt işletmelerinde rasyonun temelini oluşturan mısır silajı sezonluk çiftlik teslim fiyatlarında dünya paritesiyle paraleldir.",
+        "note_en": "Domestic corn silage closely mirrors European and North American farmgate benchmarks."
     },
     {
         "id": "broiler-chicken",
@@ -888,48 +1016,97 @@ def render_prices_hub_html(channel_key: str, prices: List[Dict[str, Any]]) -> st
     """
 
 def render_sidebar_prices_widget(channel_key: str) -> str:
-    """Kenar çubuğu (Sidebar) için öne çıkan piyasa fiyatları mini özet kartı üretir."""
+    """
+    Kenar çubuğu (Sidebar) için bölüm içeriğine uygun hem ÜRÜN hem de GİRDİ fiyatlarını
+    ayrı ayrı gösteren 2 zengin widget kartı üretir.
+    """
     if channel_key not in ("agriculture", "livestock"):
         return ""
 
-    prices = get_channel_prices(channel_key)[:4]
-    if not prices:
-        return ""
-
-    widget_title_tr = "🌾 Emtia Piyasaları (TR / Dünya)" if channel_key == "agriculture" else "🐄 Hayvancılık & Yem Piyasası"
-    widget_btn_tr = "Tam Karşılaştırma Tablosunu Gör →"
-
-    rows = []
-    for p in prices:
-        name = p["name_tr"].split("(")[0].strip()
-        tr_val = f"{int(p['tr_price_tl']):,} ₺".replace(",", ".") if p['tr_price_tl'] >= 100 else f"{p['tr_price_tl']:.2f} ₺"
-        diff = p.get("diff_vs_world_pct", "")
-        diff_cls = "pill-prem" if p.get("diff_status") == "premium" else "pill-disc"
+    if channel_key == "agriculture":
+        # 1. Başlıca Ürünler
+        product_items = [p for p in AGRICULTURE_PRICES if p.get("category") in ("cereals", "oilseeds", "industrial")][:4]
+        # 2. Temel Girdiler (Gübre, Mazot, Sulama Elektriği)
+        input_items = [p for p in AGRICULTURE_PRICES if p.get("category") == "inputs"]
         
-        row = f"""
-        <div class="side-price-row">
-            <div class="side-price-name">
-                <span>{html.escape(name)}</span>
-                <span class="side-price-diff {diff_cls}">{diff}</span>
+        prod_title = "🌾 Başlıca Ürün Fiyatları"
+        input_title = "🚜 Tarımsal Girdi & Maliyet"
+        parity_box = """
+            <div class="sidebar-parity-box">
+                <div class="sidebar-parity-title">⚡ Mazot / Buğday Paritesi</div>
+                <div>1 Litre Motorin almak için <strong>4.13 kg</strong> ekmeklik buğday gerekmektedir.</div>
             </div>
-            <div class="side-price-vals">
-                <span class="side-price-tr">{tr_val}</span>
-                <span class="side-price-world">${p['tr_price_usd']:.0f}</span>
-            </div>
-        </div>
         """
-        rows.append(row)
+    else:
+        # 1. Başlıca Hayvansal Ürünler
+        product_items = [p for p in LIVESTOCK_PRICES if p.get("category") in ("dairy", "meat", "poultry", "live")][:4]
+        # 2. Yem ve Kaba Yem Girdileri
+        input_items = [p for p in LIVESTOCK_PRICES if p.get("category") == "feed_parity" and "ratio" not in p.get("id", "")][:4]
+        
+        prod_title = "🐄 Hayvansal Ürün & Karkas"
+        input_title = "🌾 Yem & Besleme Girdileri"
+        parity_box = """
+            <div class="sidebar-parity-box">
+                <div class="sidebar-parity-title">⚖️ Süt / Yem Paritesi: 1.49x</div>
+                <div>1 kg çiğ süt ile <strong>1.49 kg</strong> süt yemi alınabilmekte (Hedef kârlılık eşiği: <strong>1.50x</strong>).</div>
+            </div>
+        """
 
-    rows_str = "".join(rows)
+    def _render_rows(item_list):
+        rows = []
+        for p in item_list:
+            name = p["name_tr"].split("(")[0].strip()
+            unit = p.get("unit_tr", "")
+            if p["tr_price_tl"] >= 1000:
+                tr_val = f"{int(p['tr_price_tl']):,} ₺".replace(",", ".")
+            elif p["tr_price_tl"] >= 100:
+                tr_val = f"{int(p['tr_price_tl'])} ₺"
+            else:
+                tr_val = f"{p['tr_price_tl']:.2f} ₺"
+
+            diff = p.get("diff_vs_world_pct", "")
+            diff_cls = "pill-prem" if p.get("diff_status") == "premium" else "pill-disc"
+            source = p.get("tr_source", "").split("/")[0].strip()
+
+            row = f"""
+            <div class="side-price-row">
+                <div class="side-price-name">
+                    <span class="side-item-name">{html.escape(name)}</span>
+                    <span class="side-price-source">{html.escape(source)} &bull; {html.escape(unit)}</span>
+                </div>
+                <div class="side-price-vals">
+                    <span class="side-price-tr">{tr_val}</span>
+                    <span class="side-price-diff {diff_cls}">{diff}</span>
+                </div>
+            </div>
+            """
+            rows.append(row)
+        return "".join(rows)
+
+    prod_rows_html = _render_rows(product_items)
+    input_rows_html = _render_rows(input_items)
 
     return f"""
+    <!-- 1. Bölüm Ürün Fiyatları Widget'ı -->
     <div class="sidebar-card sidebar-prices-card">
-        <h4 class="sidebar-title" id="sidePricesTitle">{widget_title_tr}</h4>
+        <h4 class="sidebar-title" id="sidePricesTitle">{prod_title}</h4>
         <div class="side-prices-list">
-            {rows_str}
+            {prod_rows_html}
         </div>
         <button type="button" class="btn-sidebar-view-prices" onclick="switchPortalMainView('prices')">
-            <span id="sidePricesBtn">{widget_btn_tr}</span>
+            <span>Tüm Ürün Fiyatlarını İncele &rarr;</span>
+        </button>
+    </div>
+
+    <!-- 2. Bölüm Girdi ve Maliyet Fiyatları Widget'ı -->
+    <div class="sidebar-card sidebar-inputs-card">
+        <h4 class="sidebar-title" style="color:#d97706;">{input_title}</h4>
+        <div class="side-prices-list">
+            {input_rows_html}
+        </div>
+        {parity_box}
+        <button type="button" class="btn-sidebar-view-inputs" onclick="switchPortalMainView('prices')">
+            <span>Girdi &amp; Parite Analizini Aç &rarr;</span>
         </button>
     </div>
     """

@@ -6,6 +6,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
+# Greece & Regional Water Crisis Story URL (Google News)
+GREECE_WATER_STORY_URL = os.getenv(
+    "GREECE_WATER_STORY_URL",
+    "https://news.google.com/stories/CAAqNggKIjBDQklTSGpvSmMzUnZjbmt0TXpZd1NoRUtEd2pUcWFLcEVoSFZESFdmaWJjVTdTZ0FQAQ?ceid=GR:el&oc=3"
+)
+
 # Inoreader Target Stream URL
 INOREADER_URL = os.getenv(
     "INOREADER_URL",

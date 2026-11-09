@@ -437,6 +437,20 @@ class Storage:
                     LIMIT ?
                 )
             """, (max_items_per_channel,))
+            # Prune livestock
+            cursor.execute("""
+                DELETE FROM items
+                WHERE channel = 'livestock'
+                  AND (is_academic != 1 AND is_turkey != 1 AND guid NOT LIKE 'academic_livestock:%' AND guid NOT LIKE 'tr_livestock:%')
+                  AND guid NOT IN (
+                    SELECT guid FROM items
+                    WHERE channel = 'livestock'
+                      AND (is_academic != 1 AND is_turkey != 1 AND guid NOT LIKE 'academic_livestock:%' AND guid NOT LIKE 'tr_livestock:%')
+                    ORDER BY pub_date_ts DESC, first_seen_ts DESC
+                    LIMIT ?
+                )
+            """, (max_items_per_channel,))
+
             # Prune agriculture
             cursor.execute("""
                 DELETE FROM items
@@ -451,6 +465,13 @@ class Storage:
                 )
             """, (max_items_per_channel,))
             conn.commit()
+
+        # Auto-vacuum & shrink database file on disk
+        try:
+            with self._get_connection() as v_conn:
+                v_conn.execute("VACUUM")
+        except Exception:
+            pass
 
     def set_meta(self, key: str, value: str):
         now_ts = int(time.time())

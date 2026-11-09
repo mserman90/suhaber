@@ -1,3 +1,4 @@
+import os
 import urllib.parse
 import requests
 import re
@@ -161,7 +162,8 @@ def translate_with_mymemory(text: str, detected_lang: str = "auto", timeout: int
     try:
         snippet = text[:400]
         sl = detected_lang if detected_lang in ["en", "de", "fr", "es", "ru", "it"] else "autodetect"
-        url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(snippet)}&langpair={sl}|tr&de=mserman90@gmail.com"
+        contact_email = os.getenv("TRANSLATOR_EMAIL", "info@suhaber.local")
+        url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(snippet)}&langpair={sl}|tr&de={contact_email}"
         resp = requests.get(url, timeout=timeout)
         if resp.status_code == 200:
             data = resp.json()

@@ -128,7 +128,7 @@ Tarayıcınızda `http://localhost:8000/` adresine giderek portala göz atabilir
 
 ```text
 ├── .github/workflows/
-│   └── cron_and_deploy.yml       # Her gün çalışan otomatik GitHub Actions CI/CD
+│   └── update_feed.yml           # Her gün çalışan otomatik GitHub Actions CI/CD
 ├── app/
 │   ├── portal.py                 # Gazete HTML/CSS/JS üretici & SEO / Schema.org motoru
 │   ├── geocoder.py               # 7-kademeli GIS konumlandırma algoritması

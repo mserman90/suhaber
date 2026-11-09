@@ -1,0 +1,20 @@
+{
+  "name": "Su, Tarım & Hayvancılık Dijital Gazetesi",
+  "short_name": "Su & Tarım",
+  "description": "Türkiye ve Dünya Su Kaynakları, Tarım, Bitkisel Üretim ve Hayvancılık Dijital Gazetesi & GIS Haritası",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b2545",
+  "theme_color": "#0b2545",
+  "orientation": "any",
+  "categories": ["news", "magazines", "utilities"],
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

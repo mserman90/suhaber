@@ -25,7 +25,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from app import config
 from app.storage import Storage
-from app.scraper import scrape_inoreader, scrape_turkey_water_news, scrape_academic_water_publications
+from app.scraper import (
+    scrape_inoreader,
+    scrape_turkey_water_news,
+    scrape_academic_water_publications,
+    scrape_google_news_story
+)
 from app.agriculture_scraper import (
     scrape_turkey_agriculture_news,
     scrape_global_agritech_news,
@@ -202,6 +207,17 @@ def main():
     dist_dir = Path(os.getenv("DIST_DIR", config.BASE_DIR / "dist"))
     dist_dir.mkdir(parents=True, exist_ok=True)
 
+    # Statik varlıkları dist/assets dizinine kopyala
+    static_src = config.BASE_DIR / "app" / "static"
+    if static_src.exists():
+        assets_dst = dist_dir / "assets"
+        shutil.copytree(static_src, assets_dst, dirs_exist_ok=True)
+        if (static_src / "manifest.json").exists():
+            shutil.copy2(static_src / "manifest.json", dist_dir / "manifest.json")
+        if (static_src / "sw.js").exists():
+            shutil.copy2(static_src / "sw.js", dist_dir / "sw.js")
+        print(f"[+] Statik varlıklar ve PWA dosyaları aktarıldı: {dist_dir}")
+
     storage = Storage(config.DB_PATH)
 
     # ==========================================
@@ -232,7 +248,12 @@ def main():
     storage.save_items(raw_water_items, default_channel="water")
     storage.save_items(turkey_water_items, default_channel="water")
     storage.save_items(academic_water_items, default_channel="water")
+    print("[*] Akdeniz & Yunanistan su krizi haberleri (Google News Story) taranıyor...")
+    story_water_items = scrape_google_news_story(config.GREECE_WATER_STORY_URL, limit=25)
+    print(f"[+] Çekilen güncel bölgesel su haberi sayısı: {len(story_water_items)}")
+
     storage.save_items(sygm_items, default_channel="water")
+    storage.save_items(story_water_items, default_channel="water")
 
     # ==========================================
     # 2. TARIM HABERLERİ TARAMA (AGRICULTURE CHANNEL)

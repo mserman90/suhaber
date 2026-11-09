@@ -37,6 +37,10 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Run Pytest Test Suite
+        run: |
+          pytest tests/ -v
+
       - name: Generate Static RSS Feed & Portal
         env:
           INOREADER_URL: "https://www.inoreader.com/stream/user/1006125058/tag/SU/view/html?cs=m"
