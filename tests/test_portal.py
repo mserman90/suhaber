@@ -83,3 +83,36 @@ def test_water_portal_routes(sample_water_items, sample_agri_items):
     assert 'SU GÜNDEMİ' in html
     assert 'href="su.html" class="channel-tab-btn active" id="tabWater"' in html
     assert 'href="index.html" class="channel-tab-btn "' in html
+
+def test_agriculture_flashcards_and_calendar(sample_agri_items):
+    """Verify Tarım Gündemi includes interactive agri flashcards and November planting calendar."""
+    html = generate_newspaper_portal_html(
+        items=sample_agri_items,
+        last_updated="10.11.2026 12:00 UTC",
+        rss_url="https://example.com/rss_tarim.xml",
+        atom_url="https://example.com/atom_tarim.xml",
+        json_url="https://example.com/feed_tarim.json",
+        channel="agriculture"
+    )
+    assert 'Akıllı Tarım &amp; Çiftçi Rehberi' in html or 'Akıllı Tarım & Çiftçi Rehberi' in html
+    assert 'Kasım Ayı Saha &amp; Ekim Takvimi' in html or 'Kasım Ayı Saha & Ekim Takvimi' in html
+    assert 'Damla sulama' in html or 'Münavebe' in html
+
+def test_livestock_flashcards_and_calendar():
+    """Verify Hayvancılık Gündemi includes livestock flashcards and shelter calendar."""
+    dummy_item = [{
+        "id": 1, "title": "Besi Danası Rasyonu", "title_tr": "Besi Danası Rasyonu",
+        "category_tr": "Besi", "source_feed": "Hayvancılık Basını", "pub_date": "10.11.2026",
+        "link": "#", "image_url": "https://example.com/cow.jpg", "is_turkey": True, "is_academic": False
+    }]
+    html = generate_newspaper_portal_html(
+        items=dummy_item,
+        last_updated="10.11.2026 12:00 UTC",
+        rss_url="https://example.com/rss_hayvancilik.xml",
+        atom_url="https://example.com/atom_hayvancilik.xml",
+        json_url="https://example.com/feed_hayvancilik.json",
+        channel="livestock"
+    )
+    assert 'Modern Besi &amp; Sürü Yönetimi' in html or 'Modern Besi & Sürü Yönetimi' in html
+    assert 'Kasım Ayı Barınak &amp; Besi Takvimi' in html or 'Kasım Ayı Barınak & Besi Takvimi' in html
+    assert 'kolostrum' in html or 'asidoz' in html

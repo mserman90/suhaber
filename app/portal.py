@@ -46,25 +46,192 @@ _WATER_DIPLOMACY_CARDS = [
     {"soru": "Transsınır sularda 'Hidrosolidarite' (Hydrosolidarity) kavramı neyi ifade eder?", "cevap": "Suyun ulusal sınırlar ve milliyetçi çıkarlar ötesinde, tüm havza paydaşlarının ortak çıkarı ve dayanışması çerçevesinde yönetilmesini ifade eder.", "kategori": "Havza Yönetimi"},
 ]
 
-def _build_diplomacy_flashcards_widget() -> str:
-    """Builds an inline flashcard widget for Su Gundemi right sidebar."""
-    import json as _json
-    total = len(_WATER_DIPLOMACY_CARDS)
-    cards_json = _json.dumps(_WATER_DIPLOMACY_CARDS, ensure_ascii=False)
+_AGRICULTURE_FLASHCARDS = [
+    {"soru": "Münavebe (Ekim Nöbeti) uygulamasında baklagillerin buğdaygil rotasyonundaki temel faydası nedir?", "cevap": "Baklagiller köklerindeki Rhizobium bakterileriyle havanın serbest azotunu toprağa bağlar; buğday ekiminde kimyasal azotlu gübre ihtiyacını %30-40 azaltır ve toprak yorgunluğunu önler.", "kategori": "Ekim Nöbeti"},
+    {"soru": "Damla sulama sistemlerinin geleneksel salma (vahşi) sulamaya kıyasla su ve gübre verimliliği avantajı nedir?", "cevap": "Su tüketiminde %40 ila %60 tasarruf sağlar. Fertigasyon (gübreli sulama) ile bitki kök bölgesine doğrudan besin ileterek gübre israfını ve yabancı ot gelişimini minimize eder.", "kategori": "Sulama & Tasarruf"},
+    {"soru": "Toprak pH değerinin 7.5 üzerine çıkması (alkali toprak) bitkilerde hangi besin elementlerinin alımını kilitler?", "cevap": "Başta Demir (Fe), Çinko (Zn), Fosfor (P) ve Mangan (Mn) olmak üzere mikro elementlerin bitki kökleri tarafından alınamaz bileşiklere dönüşmesine (bağlanmasına) yol açar.", "kategori": "Toprak & Besleme"},
+    {"soru": "Fosforlu taban gübreleri (örn. DAP veya 20-20-0) neden mutlaka tohum derinliğine yakın uygulanmalıdır?", "cevap": "Fosfor toprakta hareketsiz (mobilitesi son derece düşük) bir elementtir; yüzeye atılırsa köklere ulaşamaz. Tohumun 4-5 cm altına veya yanına gömülmelidir.", "kategori": "Gübreleme"},
+    {"soru": "İlkbahar geç donlarında meyve bahçelerinde don pervaneleri ve yağmurlama sistemi nasıl koruma sağlar?", "cevap": "Don pervaneleri üstteki sıcak hava tabakası ile zemindeki soğuk havayı karıştırır; yağmurlama sulama ise su donarken çevreye gizli ısı vererek tomurcuk sıcaklığını 0°C'de tutar.", "kategori": "Don Koruması"},
+    {"soru": "Entegre Zararlı Yönetimi (IPM) felsefesi kimyasal ilaçlamadan nasıl ayrılır?", "cevap": "Zararlıyı tamamen yok etmek yerine 'ekonomik zarar eşiği' altında tutmayı amaçlar. Önceliği kültürel önlemler, dayanıklı tohumlar, faydalı böcekler ve biyolojik tuzaklara verir.", "kategori": "Bitki Koruma"},
+    {"soru": "Doğrudan anıza ekim (No-Till Farming) tekniğinin kuraklıkla mücadeledeki kritik rolü nedir?", "cevap": "Toprağı devirmeden ekim yaparak toprak nemini buharlaşmaya karşı korur, organik maddeyi yükseltir, erozyonu engeller ve traktör yakıt tüketimini %50'ye varan oranda düşürür.", "kategori": "Akıllı Tarım"},
+    {"soru": "Sertifikalı tohum kullanımının verim ve kalite üzerine ölçümlenmiş etkisi nedir?", "cevap": "Çimlenme kabiliyeti (%95+), genetik saflık ve tohum kaynaklı hastalıklardan arındırılmış olması sayesinde verimde ortalama %15 ila %25 arasında artış sağlar.", "kategori": "Tohumculuk"},
+    {"soru": "Yaprak analizi (foliar diagnosis) toprak analizine kıyasla hangi ek faydayı sunar?", "cevap": "Toprakta var olan ancak kökler tarafından emilemeyen 'gizli açlık' durumlarını gösterir; gelişme döneminde hızlı yaprak gübresi müdahalesi yapma imkânı tanır.", "kategori": "Toprak & Besleme"},
+    {"soru": "Tarımsal kireçleme hangi tip topraklarda uygulanır ve etkisi nedir?", "cevap": "pH değeri 6.0'nın altına inmiş asidik topraklarda uygulanır. Toprak asitliğini nötralize ederek kalsiyum sağlar ve yararlı toprak mikroorganizmalarının aktivitesini artırır.", "kategori": "Toprak & Besleme"},
+    {"soru": "Mikoriza mantarlarının bitki kök gelişimine ve su stresine etkisi nasıldır?", "cevap": "Kök yüzey alanını hifleriyle 100 katına kadar genişleterek bitkinin kuraklık stresine dayanıklılığını artırır ve toprakta zor çözünen fosfatları bitkiye taşır.", "kategori": "Biyoteknoloji"},
+    {"soru": "Mısır ve pamukta 'tav suyu' ve tepe püskülü çıkarma dönemindeki su açığının riski nedir?", "cevap": "Koçan ve polen oluşumunun gerçekleştiği bu kritik evrede yaşanacak 3-4 günlük su stresi dahi dane bağlamayı aksatarak nihai rekoltede %30'a varan kayba yol açabilir.", "kategori": "Sulama & Tasarruf"}
+]
 
-    template = """
+_LIVESTOCK_FLASHCARDS = [
+    {"soru": "Yeni doğan buzağılara ilk kolostrum (ağız sütü) verilmesinde kritik zaman penceresi nedir?", "cevap": "Doğumdan sonraki ilk 2 ila 4 saat içinde verilmelidir. 24 saat sonra buzağının bağırsak bariyeri antikor geçişine tamamen kapanır ve pasif bağışıklık fırsatı kaybedilir.", "kategori": "Buzağı Sağlığı"},
+    {"soru": "Süt sığırlarında kuru dönem (dry period) süresi neden en az 45-60 gün olmalıdır?", "cevap": "Meme dokusunun rejenere olması, ineğin vücut kondisyon puanını (BCS 3.25-3.5) toparlaması ve bir sonraki laktasyonda pik süt verimine ulaşabilmesi için zorunludur.", "kategori": "Süt Verimi"},
+    {"soru": "Besi tosunlarında subakut rumen asidozunu (SARA) önlemek için rasyonda aranması gereken temel kural nedir?", "cevap": "Rasyondaki efektif lif (eNDF) oranının yeterli olması, kaba-kesif yem oranının dengelenmesi ve kaba yemin çok ince kıyılmaması gerekir (geviş getirmeyi teşvik için).", "kategori": "Besi & Rasyon"},
+    {"soru": "Mısır silajı yapımında ideal kuru madde (KM) oranı ve fermantasyon kriteri nedir?", "cevap": "Hasat anında ideal kuru madde %32-35 olmalıdır. İyi sıkıştırma ve hava sızdırmaz örtü ile pH 3.8-4.2 aralığına inerek laktik asit fermantasyonu tamamlanmalıdır.", "kategori": "Yem & Silaj"},
+    {"soru": "Süt ineklerinde mastitis riskini azaltmada sağım hijyeninin altın kuralı nedir?", "cevap": "Sağım öncesi daldırma ve kurulama, sağım sonrası ise meme ucu kanalının 30 dakika açık kalması nedeniyle antiseptik son daldırma yapılması ve hayvanın ayakta tutulmasıdır.", "kategori": "Sürü Sağlığı"},
+    {"soru": "Sığır besiciliğinde 'Kuru Madde Tüketimi' canlı ağırlığın yüzde kaçı olmalıdır?", "cevap": "Sağlıklı bir besi tosunu canlı ağırlığının ortalama %2.2 ila %2.6'sı kadar günlük kuru madde tüketmelidir.", "kategori": "Besi & Rasyon"},
+    {"soru": "Ahır içi havalandırmada amonyak birikimini ve solunum yolu hastalıklarını önlemenin göstergesi nedir?", "cevap": "Hava giriş-çıkış hızı dakikada 2-3 metre olmalı, amonyak kokusu insan burnunu rahatsız etmeyecek seviyede (10 ppm altı) tutulmalı ve hava akımı doğrudan hayvanın üzerine esmemelidir.", "kategori": "Barınak & Refah"},
+    {"soru": "Küçükbaş hayvancılıkta koç katımı öncesi 'Flushing' (ek yemleme) uygulaması ne sağlar?", "cevap": "Koç katımından 2-3 hafta önce koyunlara yüksek enerjili rasyon verilerek yumurtlama oranı ve ikizlik şansı belirgin şekilde artırılır.", "kategori": "Küçükbaş"},
+    {"soru": "Ayak banyoları (bakır sülfat / çinko sülfat) süt sürülerinde hangi hastalığa karşı birincil kalkan vazifesi görür?", "cevap": "Ökçe siğili (dijital dermatit) ve parmak arası apselerin yayılmasını engeller; topallığı ve dolayısıyla süt kaybını önler.", "kategori": "Sürü Sağlığı"},
+    {"soru": "Kanatlı kümeslerinde aydınlatma programının yumurta verimi üzerindeki etkisi nedir?", "cevap": "Yumurtlama döneminde günde 16 saat sabit aydınlatma uygulanarak hipofiz bezi uyarılır; aydınlatma süresinin aniden düşürülmesi tüy dökümüne ve yumurta kesilmesine yol açar.", "kategori": "Kanatlı"},
+    {"soru": "Yonca kuru otunun ruminant beslemesindeki yeri ve protein değeri nedir?", "cevap": "Kaba yemlerin kraliçesi kabul edilen yonca, %17-20 ham protein içeriği ve yüksek kalsiyum oranıyla hem kemik gelişimini hem de süt verimini destekler.", "kategori": "Yem & Silaj"},
+    {"soru": "Sıcaklık Stresi (THI indeksi 68+) ineklerde hangi verim kayıplarına yol açar?", "cevap": "Yem tüketimini %15-20 azaltır, süt veriminde 3-5 litreye varan düşüşe sebep olur, gebelik oranlarını zayıflatır ve asidoz riskini tetikler.", "kategori": "Sürü Yönetimi"}
+]
+
+def render_sidebar_calendar_widget(channel: str = "water") -> str:
+    """Renders a seasonal calendar widget for the right sidebar."""
+    if channel == "agriculture":
+        return """
+                <div class="sidebar-card sidebar-calendar-card">
+                    <div class="sidebar-cal-header">
+                        <span class="cal-icon">📅</span>
+                        <div>
+                            <h4 class="sidebar-title" style="margin-bottom:2px;">Kasım Ayı Saha &amp; Ekim Takvimi</h4>
+                            <span style="font-size:11px; color:var(--ink-muted);">Anadolu Tarımsal İş Takvimi</span>
+                        </div>
+                    </div>
+                    <div class="cal-task-list">
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🌾</span>
+                            <div><strong>Tahıllar:</strong> Kışlık buğday ve arpa ekimlerinin tamamlanması, çimlenme ve kök boğazı kontrolü.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🫒</span>
+                            <div><strong>Zeytincilik:</strong> Yağlık ve sofralık zeytin hasadı, zeytin sineği sonrası bakım ve bordo bulamacı.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🚜</span>
+                            <div><strong>Toprak Hazırlığı:</strong> Derin kış sürümü, hayvan gübresi ve kompoze taban gübrelemesi.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">💧</span>
+                            <div><strong>Sulama Tesisleri:</strong> Don öncesi damla sulama hatlarının boşaltılması ve pompa kış bakımı.</div>
+                        </div>
+                    </div>
+                </div>
+        """.strip()
+    elif channel == "livestock":
+        return """
+                <div class="sidebar-card sidebar-calendar-card">
+                    <div class="sidebar-cal-header">
+                        <span class="cal-icon">📅</span>
+                        <div>
+                            <h4 class="sidebar-title" style="margin-bottom:2px;">Kasım Ayı Barınak &amp; Besi Takvimi</h4>
+                            <span style="font-size:11px; color:var(--ink-muted);">Kışa Geçiş Dönemi Önlemleri</span>
+                        </div>
+                    </div>
+                    <div class="cal-task-list">
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🌬️</span>
+                            <div><strong>Barınak Yalıtımı:</strong> Ahır içi hava akımını kesip tepe havalandırmasını açık tutarak kış yalıtımı sağlama.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🐮</span>
+                            <div><strong>Buzağı Bakımı:</strong> Isı lambaları ve buzağı battaniyelerinin hazırlanması, altlıkların kuru tutulması.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🌾</span>
+                            <div><strong>Rasyon Enerji Artışı:</strong> Soğuk stresine karşı rasyondaki enerji oranının %10-15 artırılması.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🩺</span>
+                            <div><strong>Koruyucu Aşılar:</strong> Pasteurella ve enterotoksemi aşı takviminin gözden geçirilmesi.</div>
+                        </div>
+                    </div>
+                </div>
+        """.strip()
+    else:
+        return """
+                <div class="sidebar-card sidebar-calendar-card">
+                    <div class="sidebar-cal-header">
+                        <span class="cal-icon">📅</span>
+                        <div>
+                            <h4 class="sidebar-title" style="margin-bottom:2px;">2026-2027 Su Yılı &amp; Baraj Takvimi</h4>
+                            <span style="font-size:11px; color:var(--ink-muted);">Hidrolojik Dönem Takibi</span>
+                        </div>
+                    </div>
+                    <div class="cal-task-list">
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">💧</span>
+                            <div><strong>Yeni Su Yılı:</strong> 1 Ekim itibariyle başlayan 2026-2027 hidrolojik su yılı havza izlemesi.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🏔️</span>
+                            <div><strong>Kar Örtüsü:</strong> Fırat-Dicle ve Doğu Anadolu yükseklerindeki kar birikiminin izlenmesi.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">🛡️</span>
+                            <div><strong>Taşkın Kontrolü:</strong> Kış yağışları öncesi baraj savak kapakları ve mansap tahliye testleri.</div>
+                        </div>
+                        <div class="cal-task-item">
+                            <span class="cal-task-bullet">📊</span>
+                            <div><strong>Yeraltı Suları:</strong> DSİ kış dönemi akifer seviye ve statik su tablası ölçümleri.</div>
+                        </div>
+                    </div>
+                </div>
+        """.strip()
+
+def _build_flashcards_widget(channel: str = "water") -> str:
+    """Builds an inline interactive 3D flashcard widget for the right sidebar."""
+    import json as _json
+    if channel == "agriculture":
+        cards = _AGRICULTURE_FLASHCARDS
+        title = "🌾 Akıllı Tarım &amp; Çiftçi Rehberi"
+        desc = "Toprak verimliliği, damla sulama, gübreleme ve bitki koruma ipuçları"
+        default_icon = "🌾"
+        ext_link = "index.html#prices"
+        ext_text = "Emtia Fiyatları ↗"
+        icons_json = _json.dumps({
+            "Ekim Nöbeti": "🌱", "Sulama & Tasarruf": "💧", "Toprak & Besleme": "🧪",
+            "Gübreleme": "🌾", "Don Koruması": "❄️", "Bitki Koruma": "🛡️",
+            "Akıllı Tarım": "🚜", "Tohumculuk": "🌾", "Biyoteknoloji": "🔬"
+        }, ensure_ascii=False)
+        colors_json = _json.dumps({
+            "Ekim Nöbeti": "#16a34a", "Sulama & Tasarruf": "#0284c7", "Toprak & Besleme": "#ca8a04",
+            "Gübreleme": "#d97706", "Don Koruması": "#2563eb", "Bitki Koruma": "#dc2626",
+            "Akıllı Tarım": "#059669", "Tohumculuk": "#65a30d", "Biyoteknoloji": "#7c3aed"
+        }, ensure_ascii=False)
+    elif channel == "livestock":
+        cards = _LIVESTOCK_FLASHCARDS
+        title = "🐄 Modern Besi &amp; Sürü Yönetimi"
+        desc = "Sürü sağlığı, buzağı bakımı, rasyon dengesi ve modern hayvancılık pratikleri"
+        default_icon = "🐄"
+        ext_link = "hayvancilik.html#prices"
+        ext_text = "Yem Fiyatları ↗"
+        icons_json = _json.dumps({
+            "Buzağı Sağlığı": "🍼", "Süt Verimi": "🥛", "Besi & Rasyon": "🥩",
+            "Yem & Silaj": "🌾", "Sürü Sağlığı": "🩺", "Barınak & Refah": "🏠",
+            "Küçükbaş": "🐑", "Kanatlı": "🐔", "Sürü Yönetimi": "📊"
+        }, ensure_ascii=False)
+        colors_json = _json.dumps({
+            "Buzağı Sağlığı": "#0284c7", "Süt Verimi": "#0891b2", "Besi & Rasyon": "#b91c1c",
+            "Yem & Silaj": "#ca8a04", "Sürü Sağlığı": "#dc2626", "Barınak & Refah": "#475569",
+            "Küçükbaş": "#16a34a", "Kanatlı": "#d97706", "Sürü Yönetimi": "#7c3aed"
+        }, ensure_ascii=False)
+    else:
+        cards = _WATER_DIPLOMACY_CARDS
+        title = "💧 Su Diplomasisi Bilgi Kartları"
+        desc = "Sınıraşan su yönetimi ve uluslararası su hukukuna dair temel kavramlar"
+        default_icon = "💧"
+        ext_link = "https://mserman90.github.io/SuDiplomasisiBilgiKartlari/"
+        ext_text = "Tüm Kartlar ↗"
+        icons_json = _json.dumps({"Su Diplomasisi":"🌐","Havza Yönetimi":"💧","Uluslararası Hukuk":"⚖️","Çevresel Etkiler":"🌿"}, ensure_ascii=False)
+        colors_json = _json.dumps({"Su Diplomasisi":"#0ea5e9","Havza Yönetimi":"#0284c7","Uluslararası Hukuk":"#7c3aed","Çevresel Etkiler":"#059669"}, ensure_ascii=False)
+
+    total = len(cards)
+    cards_json = _json.dumps(cards, ensure_ascii=False)
+
+    template = f"""
                 <div class="sidebar-card sdiplomasi-widget-card">
                     <div class="sdiplomasi-header">
-                        <h4 class="sidebar-title" style="margin-bottom:4px;">💧 Su Diplomasisi Bilgi Kartları</h4>
-                        <span class="sdiplomasi-badge">__TOTAL__ Kart</span>
+                        <h4 class="sidebar-title" style="margin-bottom:4px;">{title}</h4>
+                        <span class="sdiplomasi-badge">{total} Kart</span>
                     </div>
-                    <p class="sdiplomasi-desc">Sınıraşan su yönetimi ve uluslararası su hukukuna dair temel kavramlar</p>
+                    <p class="sdiplomasi-desc">{desc}</p>
                     <div class="sdiplomasi-card-wrap" id="sdcardWrap">
                         <div class="sdiplomasi-card" id="sdCard" onclick="sdFlipCard()">
                             <div class="sdiplomasi-card-inner" id="sdCardInner">
                                 <div class="sdiplomasi-front">
                                     <span class="sd-category-tag" id="sdCategoryTag">Kategori</span>
-                                    <div class="sd-card-icon" id="sdIcon">💧</div>
+                                    <div class="sd-card-icon" id="sdIcon">{default_icon}</div>
                                     <p class="sd-question" id="sdQuestion">Yükleniyor...</p>
                                     <span class="sd-flip-hint">Cevap için tıklayın ↩</span>
                                 </div>
@@ -78,55 +245,61 @@ def _build_diplomacy_flashcards_widget() -> str:
                     </div>
                     <div class="sdiplomasi-nav">
                         <button class="sd-nav-btn" onclick="sdPrevCard()" title="Önceki Kart">◀</button>
-                        <span class="sd-progress" id="sdProgress">1 / __TOTAL__</span>
+                        <span class="sd-progress" id="sdProgress">1 / {total}</span>
                         <button class="sd-nav-btn" onclick="sdNextCard()" title="Sonraki Kart">▶</button>
                     </div>
                     <div class="sdiplomasi-footer-row">
                         <button class="sd-shuffle-btn" onclick="sdShuffle()" title="Kartları karıştır">🔀 Karıştır</button>
-                        <a href="https://mserman90.github.io/SuDiplomasisiBilgiKartlari/" target="_blank" rel="noopener noreferrer" class="sd-full-link">Tüm Kartlar ↗</a>
+                        <a href="{ext_link}" target="_blank" rel="noopener noreferrer" class="sd-full-link">{ext_text}</a>
                     </div>
                     <script>
-                    (function(){
-                        var SD = __CARDS_JSON__;
+                    (function(){{
+                        var SD = {cards_json};
                         var idx=0, flipped=false, deck=SD.slice();
-                        var ICONS={"Su Diplomasisi":"🌐","Havza Yönetimi":"💧","Uluslararası Hukuk":"⚖️","Çevresel Etkiler":"🌿"};
-                        var COLORS={"Su Diplomasisi":"#0ea5e9","Havza Yönetimi":"#0284c7","Uluslararası Hukuk":"#7c3aed","Çevresel Etkiler":"#059669"};
-                        function render(){
+                        var ICONS = {icons_json};
+                        var COLORS = {colors_json};
+                        var defaultIco = "{default_icon}";
+                        function render(){{
                             var c=deck[idx]; if(!c) return;
-                            var cat=c.kategori||"Su";
-                            document.getElementById("sdQuestion").textContent=c.soru;
-                            document.getElementById("sdAnswer").textContent=c.cevap;
-                            ["sdCategoryTag","sdCategoryTagBack"].forEach(function(id){
+                            var cat=c.kategori||"";
+                            var qEl=document.getElementById("sdQuestion"); if(qEl) qEl.textContent=c.soru;
+                            var aEl=document.getElementById("sdAnswer"); if(aEl) aEl.textContent=c.cevap;
+                            ["sdCategoryTag","sdCategoryTagBack"].forEach(function(id){{
                                 var el=document.getElementById(id);
-                                if(el){ el.textContent=cat; el.style.background=COLORS[cat]||"#0284c7"; }
-                            });
-                            var ico=document.getElementById("sdIcon"); if(ico) ico.textContent=ICONS[cat]||"💧";
+                                if(el){{ el.textContent=cat; el.style.background=COLORS[cat]||"#0284c7"; }}
+                            }});
+                            var ico=document.getElementById("sdIcon"); if(ico) ico.textContent=ICONS[cat]||defaultIco;
                             var pr=document.getElementById("sdProgress"); if(pr) pr.textContent=(idx+1)+" / "+deck.length;
                             flipped=false;
                             var inn=document.getElementById("sdCardInner"); if(inn) inn.style.transform="rotateY(0deg)";
-                        }
-                        window.sdFlipCard=function(){
+                        }}
+                        window.sdFlipCard=function(){{
                             var inn=document.getElementById("sdCardInner"); if(!inn) return;
                             flipped=!flipped; inn.style.transform=flipped?"rotateY(180deg)":"rotateY(0deg)";
-                        };
-                        window.sdNextCard=function(){
-                            if(flipped){ window.sdFlipCard(); setTimeout(function(){ idx=(idx+1)%deck.length; render(); },300); }
-                            else{ idx=(idx+1)%deck.length; render(); }
-                        };
-                        window.sdPrevCard=function(){
-                            if(flipped){ window.sdFlipCard(); setTimeout(function(){ idx=(idx-1+deck.length)%deck.length; render(); },300); }
-                            else{ idx=(idx-1+deck.length)%deck.length; render(); }
-                        };
-                        window.sdShuffle=function(){
-                            for(var i=deck.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=deck[i]; deck[i]=deck[j]; deck[j]=t; }
+                        }};
+                        window.sdNextCard=function(){{
+                            if(flipped){{ window.sdFlipCard(); setTimeout(function(){{ idx=(idx+1)%deck.length; render(); }},300); }}
+                            else{{ idx=(idx+1)%deck.length; render(); }}
+                        }};
+                        window.sdPrevCard=function(){{
+                            if(flipped){{ window.sdFlipCard(); setTimeout(function(){{ idx=(idx-1+deck.length)%deck.length; render(); }},300); }}
+                            else{{ idx=(idx-1+deck.length)%deck.length; render(); }}
+                        }};
+                        window.sdShuffle=function(){{
+                            for(var i=deck.length-1;i>0;i--){{ var j=Math.floor(Math.random()*(i+1)); var t=deck[i]; deck[i]=deck[j]; deck[j]=t; }}
                             idx=0; render();
-                        };
+                        }};
                         if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",render);
                         else render();
-                    })();
+                    }})();
                     </script>
-                </div>"""
-    return template.replace("__TOTAL__", str(total)).replace("__CARDS_JSON__", cards_json).strip()
+                </div>
+    """
+    return template.strip()
+
+def _build_diplomacy_flashcards_widget() -> str:
+    """Backward compatibility wrapper."""
+    return _build_flashcards_widget("water")
 
 def generate_newspaper_portal_html(
     items: List[Dict[str, Any]],
@@ -1021,7 +1194,8 @@ def generate_newspaper_portal_html(
                     </div>
                 </div>
         """.strip()
-        sidebar_diplomacy_cards_html = ""
+        sidebar_diplomacy_cards_html = _build_flashcards_widget("livestock")
+        sidebar_calendar_widget_html = render_sidebar_calendar_widget("livestock")
         sidebar_sources_html = """
                 <div class="sidebar-card">
                     <h4 class="sidebar-title">Taranan Hayvancılık Kaynakları</h4>
@@ -1089,7 +1263,8 @@ def generate_newspaper_portal_html(
                     </div>
                 </div>
         """.strip()
-        sidebar_diplomacy_cards_html = ""
+        sidebar_diplomacy_cards_html = _build_flashcards_widget("agriculture")
+        sidebar_calendar_widget_html = render_sidebar_calendar_widget("agriculture")
         sidebar_sources_html = """
                 <div class="sidebar-card">
                     <h4 class="sidebar-title">Taranan Tarımsal Kaynaklar</h4>
@@ -1153,7 +1328,8 @@ def generate_newspaper_portal_html(
                     </div>
                 </div>
         """.strip()
-        sidebar_diplomacy_cards_html = _build_diplomacy_flashcards_widget()
+        sidebar_diplomacy_cards_html = _build_flashcards_widget("water")
+        sidebar_calendar_widget_html = render_sidebar_calendar_widget("water")
         sidebar_sources_html = """
                 <div class="sidebar-card">
                     <h4 class="sidebar-title">Taranan Bilimsel Kaynaklar</h4>
@@ -1456,10 +1632,13 @@ def generate_newspaper_portal_html(
                 <!-- Commodity & Livestock Prices Widget -->
                 {sidebar_prices_widget_html}
 
-                <!-- Su Diplomasisi Bilgi Kartlari Widget (Su Gundemi only) -->
+                <!-- Seasonal Calendar Widget -->
+                {sidebar_calendar_widget_html}
+
+                <!-- Interactive Flashcards Widget -->
                 {sidebar_diplomacy_cards_html}
 
-                                <!-- Upcoming Events Widget -->
+                <!-- Upcoming Events Widget -->
                 {sidebar_events_widget_html}
 
                 <!-- Sources Card -->
