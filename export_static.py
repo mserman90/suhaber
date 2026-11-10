@@ -2,11 +2,11 @@
 """
 export_static.py
 Inoreader akışını ve açık veri kaynaklarını tarayıp 'dist/' dizinine:
-- Türkçe gazete temalı 'Su Gündemi' web portalını (dist/index.html)
-- Türkçe gazete temalı 'Tarım Gündemi' web portalını (dist/tarim.html)
+- Türkçe gazete temalı 'Tarım Gündemi' web portalını (dist/index.html & dist/tarim.html)
+- Türkçe gazete temalı 'Su Gündemi' web portalını (dist/su.html)
 - Türkçe gazete temalı 'Hayvancılık Gündemi' web portalını (dist/hayvancilik.html)
-- Su Gündemi beslemeleri: dist/rss.xml, dist/atom.xml, dist/feed.json
 - Tarım Gündemi beslemeleri: dist/rss_tarim.xml, dist/atom_tarim.xml, dist/feed_tarim.json
+- Su Gündemi beslemeleri: dist/rss.xml, dist/atom.xml, dist/feed.json
 - Hayvancılık Gündemi beslemeleri: dist/rss_hayvancilik.xml, dist/atom_hayvancilik.xml, dist/feed_hayvancilik.json
 dosyalarını üretir.
 """
@@ -143,13 +143,13 @@ Sitemap: {public_url}/sitemap.xml
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>{public_url}/yasal.html</loc>
+        <loc>{public_url}/tarim.html</loc>
         <lastmod>{today_iso}</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.5</priority>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
     </url>
     <url>
-        <loc>{public_url}/tarim.html</loc>
+        <loc>{public_url}/su.html</loc>
         <lastmod>{today_iso}</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
@@ -159,6 +159,12 @@ Sitemap: {public_url}/sitemap.xml
         <lastmod>{today_iso}</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>{public_url}/yasal.html</loc>
+        <lastmod>{today_iso}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.5</priority>
     </url>
 
     <!-- RSS & Atom Besleme Akışları -->
@@ -608,7 +614,7 @@ def main():
     rss_content = generate_rss_2_xml(
         feed_title="Su Gündemi - Su & Sulama Gazetesi",
         feed_description="Türkiye ve Dünya Su, Sulama, Çevre ve Hidroloji Araştırmaları Gazetesi",
-        feed_link=public_url,
+        feed_link=f"{public_url}/su.html",
         self_rss_url=rss_water_self,
         items=water_rss_items,
         language="tr"
@@ -620,7 +626,7 @@ def main():
     atom_content = generate_atom_xml(
         feed_title="Su Gündemi",
         feed_description="Türkiye ve Dünya Su, Sulama, Çevre ve Hidroloji Araştırmaları Gazetesi",
-        feed_link=public_url,
+        feed_link=f"{public_url}/su.html",
         self_atom_url=atom_water_self,
         items=water_rss_items
     )
@@ -631,14 +637,14 @@ def main():
     json_data = generate_json_feed(
         feed_title="Su Gündemi",
         feed_description="Türkiye ve Dünya Su, Sulama, Çevre ve Hidroloji Araştırmaları Gazetesi",
-        feed_link=public_url,
+        feed_link=f"{public_url}/su.html",
         self_json_url=json_water_self,
         items=water_rss_items
     )
     (dist_dir / "feed.json").write_text(json.dumps(json_data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'feed.json'}")
 
-    # 4. Su Portalı (index.html) - Tüm kanalların verisiyle Harita Katmanlarını destekler
+    # 4. Su Portalı (su.html) - Tüm kanalların verisiyle Harita Katmanlarını destekler
     portal_html = generate_newspaper_portal_html(
         water_items,
         now_str,
@@ -649,11 +655,12 @@ def main():
         water_count=len(water_items),
         agri_count=len(agri_items),
         livestock_count=len(livestock_items),
+        water_items=water_items,
         agri_items=agri_items,
         livestock_items=livestock_items
     )
-    (dist_dir / "index.html").write_text(portal_html, encoding="utf-8")
-    print(f"[+] Üretildi: {dist_dir / 'index.html'} ('Su Gündemi' Modern Gazete Portalı)")
+    (dist_dir / "su.html").write_text(portal_html, encoding="utf-8")
+    print(f"[+] Üretildi: {dist_dir / 'su.html'} ('Su Gündemi' Modern Gazete Portalı)")
 
     # --- B) TARIM GÜNDEMİ BESLEMELERİ & PORTALI ---
     rss_agri_self = f"{public_url}/rss_tarim.xml"
@@ -666,7 +673,7 @@ def main():
     rss_agri_content = generate_rss_2_xml(
         feed_title="Tarım Gündemi - Tarım & Bitkisel Üretim Gazetesi",
         feed_description="Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi",
-        feed_link=f"{public_url}/tarim.html",
+        feed_link=f"{public_url}/index.html",
         self_rss_url=rss_agri_self,
         items=agri_rss_items,
         language="tr"
@@ -678,7 +685,7 @@ def main():
     atom_agri_content = generate_atom_xml(
         feed_title="Tarım Gündemi",
         feed_description="Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi",
-        feed_link=f"{public_url}/tarim.html",
+        feed_link=f"{public_url}/index.html",
         self_atom_url=atom_agri_self,
         items=agri_rss_items
     )
@@ -689,14 +696,14 @@ def main():
     json_agri_data = generate_json_feed(
         feed_title="Tarım Gündemi",
         feed_description="Türkiye ve Dünya Tarım, Bitkisel Üretim, Tohumculuk ve Akıllı Tarım Gazetesi",
-        feed_link=f"{public_url}/tarim.html",
+        feed_link=f"{public_url}/index.html",
         self_json_url=json_agri_self,
         items=agri_rss_items
     )
     (dist_dir / "feed_tarim.json").write_text(json.dumps(json_agri_data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'feed_tarim.json'}")
 
-    # 4. Tarım Portalı (tarim.html)
+    # 4. Tarım Portalı (index.html & tarim.html) - Ana Sayfa
     tarim_portal_html = generate_newspaper_portal_html(
         agri_items,
         now_str,
@@ -706,10 +713,14 @@ def main():
         channel="agriculture",
         water_count=len(water_items),
         agri_count=len(agri_items),
-        livestock_count=len(livestock_items)
+        livestock_count=len(livestock_items),
+        water_items=water_items,
+        agri_items=agri_items,
+        livestock_items=livestock_items
     )
+    (dist_dir / "index.html").write_text(tarim_portal_html, encoding="utf-8")
     (dist_dir / "tarim.html").write_text(tarim_portal_html, encoding="utf-8")
-    print(f"[+] Üretildi: {dist_dir / 'tarim.html'} ('Tarım Gündemi' Modern Gazete Portalı)")
+    print(f"[+] Üretildi: {dist_dir / 'index.html'} & {dist_dir / 'tarim.html'} ('Tarım Gündemi' Ana Sayfa & Modern Gazete Portalı)")
 
     # --- C) HAYVANCILIK GÜNDEMİ BESLEMELERİ & PORTALI ---
     rss_livestock_self = f"{public_url}/rss_hayvancilik.xml"
@@ -753,7 +764,7 @@ def main():
     print(f"[+] Üretildi: {dist_dir / 'feed_hayvancilik.json'}")
 
     # 4. Hayvancılık Portalı (hayvancilik.html)
-    hayvancilik_portal_html = generate_newspaper_portal_html(
+    livestock_portal_html = generate_newspaper_portal_html(
         livestock_items,
         now_str,
         rss_livestock_self,
@@ -762,9 +773,12 @@ def main():
         channel="livestock",
         water_count=len(water_items),
         agri_count=len(agri_items),
-        livestock_count=len(livestock_items)
+        livestock_count=len(livestock_items),
+        water_items=water_items,
+        agri_items=agri_items,
+        livestock_items=livestock_items
     )
-    (dist_dir / "hayvancilik.html").write_text(hayvancilik_portal_html, encoding="utf-8")
+    (dist_dir / "hayvancilik.html").write_text(livestock_portal_html, encoding="utf-8")
     print(f"[+] Üretildi: {dist_dir / 'hayvancilik.html'} ('Hayvancılık Gündemi' Modern Gazete Portalı)")
 
     # --- D) YASAL SORUMLULUK REDDİ VE KVKK BEYANI (yasal.html) ---

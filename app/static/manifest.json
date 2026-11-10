@@ -1,7 +1,7 @@
 {
-  "name": "Su, Tarım & Hayvancılık Dijital Gazetesi",
-  "short_name": "Su & Tarım",
-  "description": "Türkiye ve Dünya Su Kaynakları, Tarım, Bitkisel Üretim ve Hayvancılık Dijital Gazetesi & GIS Haritası",
+  "name": "Tarım, Su & Hayvancılık Dijital Gazetesi",
+  "short_name": "Tarım & Su",
+  "description": "Türkiye ve Dünya Tarım, Bitkisel Üretim, Su Kaynakları ve Hayvancılık Dijital Gazetesi & GIS Haritası",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

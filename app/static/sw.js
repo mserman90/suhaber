@@ -7,6 +7,7 @@ const CACHE_NAME = 'suhaber-portal-v1';
 const STATIC_ASSETS = [
   './index.html',
   './tarim.html',
+  './su.html',
   './hayvancilik.html',
   './yasal.html',
   './assets/css/portal.css',

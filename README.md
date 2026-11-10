@@ -17,8 +17,8 @@ Aşağıdaki bağlantılardan yayındaki canlı dijital gazete portallarına do�
 
 | Kanal | Açıklama | Canlı Web Portalı | Standart RSS 2.0 Yayını |
 |---|---|:---:|:---:|
-| 💧 **Su Gündemi** | Türkiye ve Dünya Su Kaynakları, Sulama, Barajlar ve Hidroloji | [**Canlı Aç (index.html)**](https://mserman90.github.io/suhaber/index.html) | [🔗 `rss.xml`](https://mserman90.github.io/suhaber/rss.xml) |
-| 🌾 **Tarım Gündemi** | Bitkisel Üretim, Tohumculuk, Gübre, Destekler ve Akıllı Tarım | [**Canlı Aç (tarim.html)**](https://mserman90.github.io/suhaber/tarim.html) | [🔗 `rss_tarim.xml`](https://mserman90.github.io/suhaber/rss_tarim.xml) |
+| 🌾 **Tarım Gündemi (Ana Sayfa)** | Bitkisel Üretim, Tohumculuk, Gübre, Destekler ve Akıllı Tarım | [**Canlı Aç (index.html)**](https://mserman90.github.io/suhaber/index.html) | [🔗 `rss_tarim.xml`](https://mserman90.github.io/suhaber/rss_tarim.xml) |
+| 💧 **Su Gündemi** | Türkiye ve Dünya Su Kaynakları, Sulama, Barajlar ve Hidroloji | [**Canlı Aç (su.html)**](https://mserman90.github.io/suhaber/su.html) | [🔗 `rss.xml`](https://mserman90.github.io/suhaber/rss.xml) |
 | 🐄 **Hayvancılık Gündemi** | Büyükbaş & Küçükbaş Besicilik, Çiğ Süt, Yem ve Hayvan Sağlığı | [**Canlı Aç (hayvancilik.html)**](https://mserman90.github.io/suhaber/hayvancilik.html) | [🔗 `rss_hayvancilik.xml`](https://mserman90.github.io/suhaber/rss_hayvancilik.xml) |
 | 🌐 **Su Anlaşmaları Portalı** | Küresel Sınıraşan Sular ve İkili Anlaşmalar Veritabanı | [**Canlı Aç (External)**](https://mserman90.github.io/water-agreements-portal/) | — |
 | ⚖️ **Yasal & KVKK Portalı** | Yasal Sorumluluk Reddi, 6698 Sayılı KVKK ve Gizlilik Politikası | [**Canlı Aç (yasal.html)**](https://mserman90.github.io/suhaber/yasal.html) | — |
@@ -140,8 +140,9 @@ Tarayıcınızda `http://localhost:8000/` adresine giderek portala göz atabilir
 │   ├── translator.py             # Türkçe & İngilizce çeviri ve sınıflandırma
 │   └── feed.py                   # RSS 2.0, Atom 1.0 ve JSON Feed üreticileri
 ├── dist/                         # GitHub Pages'a dağıtılan statik site
-│   ├── index.html                # Su Gündemi
-│   ├── tarim.html                # Tarım Gündemi
+│   ├── index.html                # Tarım Gündemi (Ana Sayfa)
+│   ├── tarim.html                # Tarım Gündemi (Eşlenik erişim)
+│   ├── su.html                   # Su Gündemi
 │   ├── hayvancilik.html          # Hayvancılık Gündemi
 │   ├── yasal.html                # Yasal Sorumluluk Reddi ve KVKK Beyanı
 │   ├── sitemap.xml               # Google Arama Motoru Haritası

@@ -1,4 +1,4 @@
-﻿import html
+import html
 import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
@@ -134,10 +134,11 @@ def generate_newspaper_portal_html(
     rss_url: str,
     atom_url: str,
     json_url: str,
-    channel: str = "water",
+    channel: str = "agriculture",
     water_count: int = 0,
     agri_count: int = 0,
     livestock_count: int = 0,
+    water_items: Optional[List[Dict[str, Any]]] = None,
     agri_items: Optional[List[Dict[str, Any]]] = None,
     livestock_items: Optional[List[Dict[str, Any]]] = None
 ) -> str:
@@ -448,7 +449,7 @@ def generate_newspaper_portal_html(
     for it in portal_data:
         lat, lng, loc_name = geocode_article(it, it["id"])
         if lat is not None and lng is not None:
-            water_map_data.append({
+            m_entry = {
                 "id": it["id"],
                 "title": it["title_tr"],
                 "category": it["category"],
@@ -458,10 +459,58 @@ def generate_newspaper_portal_html(
                 "lat": lat,
                 "lng": lng,
                 "loc": loc_name,
-                "channel": "water"
-            })
+                "channel": channel
+            }
+            if channel == "agriculture":
+                agri_map_data.append(m_entry)
+            elif channel == "livestock":
+                livestock_map_data.append(m_entry)
+            else:
+                water_map_data.append(m_entry)
 
-    if agri_items:
+    if channel != "water" and water_items:
+        for idx, w_it in enumerate(water_items):
+            wid = 30000 + idx
+            title_tr = w_it.get("title_tr") or w_it.get("title") or ""
+            summary_tr = w_it.get("summary_tr") or ""
+            source = w_it.get("source_feed") or w_it.get("author") or "Su Basını"
+            cat = w_it.get("category_tr") or "Su Kaynakları"
+            img = w_it.get("image_url") or "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=900&q=80"
+            lat, lng, loc_name = geocode_article(w_it, wid)
+            all_articles_data.append({
+                "id": wid,
+                "title_tr": title_tr,
+                "title_en": w_it.get("title_en") or w_it.get("title") or title_tr,
+                "summary_tr": summary_tr,
+                "summary_en": w_it.get("summary_en") or "",
+                "category": cat,
+                "channel_key": "water",
+                "channel_name": "Su Gündemi",
+                "channel_name_en": "Water Agenda",
+                "slug": "su",
+                "source": source,
+                "author": w_it.get("author", "Hidroloji Muhabiri"),
+                "date": w_it.get("pub_date", today_str),
+                "link": w_it.get("link", "#"),
+                "image": img,
+                "is_turkey": w_it.get("is_turkey", False),
+                "is_academic": w_it.get("is_academic", False)
+            })
+            if lat is not None and lng is not None:
+                water_map_data.append({
+                    "id": wid,
+                    "title": title_tr,
+                    "category": cat,
+                    "date": (w_it.get("pub_date") or today_str)[:16],
+                    "source": source,
+                    "summary": summary_tr[:260],
+                    "lat": lat,
+                    "lng": lng,
+                    "loc": loc_name,
+                    "channel": "water"
+                })
+
+    if channel != "agriculture" and agri_items:
         for idx, a_it in enumerate(agri_items):
             aid = 10000 + idx
             title_tr = a_it.get("title_tr") or a_it.get("title") or ""
@@ -505,7 +554,7 @@ def generate_newspaper_portal_html(
                     "channel": "agriculture"
                 })
 
-    if livestock_items:
+    if channel != "livestock" and livestock_items:
         for idx, l_it in enumerate(livestock_items):
             lid = 20000 + idx
             title_tr = l_it.get("title_tr") or l_it.get("title") or ""
@@ -909,15 +958,15 @@ def generate_newspaper_portal_html(
     channel_tabs_html = f"""
     <div class="channel-switcher-container">
         <div class="channel-switcher-inner">
-            <a href="index.html" class="channel-tab-btn {water_active_cls}" id="tabWater" title="Su Gündemi">
-                <span class="channel-tab-icon">💧</span>
-                <span class="channel-tab-name" id="tabNameWater" data-i18n="tab_water">SU GÜNDEMİ</span>
-                {water_badge_count}
-            </a>
-            <a href="tarim.html" class="channel-tab-btn {agri_active_cls}" id="tabAgri" title="Tarım Gündemi">
+            <a href="index.html" class="channel-tab-btn {agri_active_cls}" id="tabAgri" title="Tarım Gündemi">
                 <span class="channel-tab-icon">🌾</span>
                 <span class="channel-tab-name" id="tabNameAgri" data-i18n="tab_agri">TARIM GÜNDEMİ</span>
                 {agri_badge_count}
+            </a>
+            <a href="su.html" class="channel-tab-btn {water_active_cls}" id="tabWater" title="Su Gündemi">
+                <span class="channel-tab-icon">💧</span>
+                <span class="channel-tab-name" id="tabNameWater" data-i18n="tab_water">SU GÜNDEMİ</span>
+                {water_badge_count}
             </a>
             <a href="hayvancilik.html" class="channel-tab-btn {livestock_active_cls}" id="tabLivestock" title="Hayvancılık Gündemi">
                 <span class="channel-tab-icon">🐄</span>
@@ -1138,13 +1187,13 @@ def generate_newspaper_portal_html(
         page_seo_keywords = "hayvancılık gündemi, karkas et fiyatları, çiğ süt fiyatı, büyükbaş besicilik, küçükbaş hayvancılık, yem fiyatları, et ve süt kurumu, damızlık sığır, hayvancılık destekleri, hayvan sağlığı"
         og_image = "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1200&h=630&fit=crop&q=85"
     elif is_agri:
-        canonical_url = f"{base_public_url}/tarim.html"
+        canonical_url = f"{base_public_url}/index.html"
         page_seo_title = "Tarım Gündemi | Türkiye ve Dünya Tarım, Bitkisel Üretim & Çiftçi Gazetesi"
         page_seo_desc = "Türkiye ve dünya tarım, bitkisel üretim, tohumculuk, gübre, sulama ve akıllı tarım sektörü güncel haberleri; uluslararası tarım kongreleri, buğday, mısır, pamuk ve ayçiçeği piyasa fiyatları."
         page_seo_keywords = "tarım gündemi, buğday fiyatları, gübre fiyatları, mazot gübre desteği, bitkisel üretim, akıllı tarım, çukurova tarım, konya ovası, tohumculuk, tarımsal emtia borsası, tmo alım fiyatları, tarım haberleri"
         og_image = "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1200&h=630&fit=crop&q=85"
     else:
-        canonical_url = f"{base_public_url}/index.html"
+        canonical_url = f"{base_public_url}/su.html"
         page_seo_title = "Su Gündemi | Türkiye ve Dünya Su Kaynakları, Sulama, Barajlar & GIS Atlası"
         page_seo_desc = "Türkiye ve dünya su kaynakları, baraj doluluk oranları, kuraklık haritası, tarımsal sulama ve hidro-jeolojik araştırmalar dijital gazetesi. İnteraktif GIS atlası, uluslararası su zirveleri ve canlı haber akışı."
         page_seo_keywords = "su gündemi, türkiye baraj doluluk oranları, dsi barajları, su kaynakları, kuraklık haritası, tarımsal sulama, su anlaşmaları, su stresi, su krizi, yeraltı suları, fırat dicle havzası, gis su haritası"
@@ -1157,9 +1206,9 @@ def generate_newspaper_portal_html(
                 "@type": "WebSite",
                 "@id": f"{base_public_url}/#website",
                 "url": f"{base_public_url}/",
-                "name": "Su, Tarım ve Hayvancılık Dijital Gazete Portalı",
-                "alternateName": "Water, Agriculture & Livestock Digital Newspaper",
-                "description": "Türkiye ve Dünya Su, Tarım ve Hayvancılık haberleri, interaktif GIS atlası, uluslararası zirveler ve güncel emtia fiyatları.",
+                "name": "Tarım, Su ve Hayvancılık Dijital Gazete Portalı",
+                "alternateName": "Agriculture, Water & Livestock Digital Newspaper",
+                "description": "Türkiye ve Dünya Tarım, Su ve Hayvancılık haberleri, tarımsal emtia & girdi fiyatları, interaktif GIS atlası ve uluslararası zirveler.",
                 "inLanguage": ["tr-TR", "en-US"],
                 "publisher": {
                     "@id": f"{base_public_url}/#organization"

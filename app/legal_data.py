@@ -682,12 +682,12 @@ def generate_standalone_legal_html(last_updated: str) -> str:
     <header class="legal-page-header">
         <div class="header-container">
             <a href="index.html" class="logo-title">
-                <span>🌊</span>
-                <span>Su, Tarım ve Hayvancılık Portalı</span>
+                <span>🌾</span>
+                <span>Tarım, Su ve Hayvancılık Portalı</span>
             </a>
             <div class="nav-actions">
-                <a href="index.html" class="btn-nav">💧 Su</a>
-                <a href="tarim.html" class="btn-nav">🌾 Tarım</a>
+                <a href="index.html" class="btn-nav">🌾 Tarım</a>
+                <a href="su.html" class="btn-nav">💧 Su</a>
                 <a href="hayvancilik.html" class="btn-nav">🐄 Hayvancılık</a>
                 <button type="button" class="btn-nav primary" onclick="toggleTheme()" id="themeBtn">🌓 Tema</button>
             </div>

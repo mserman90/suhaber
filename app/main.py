@@ -131,34 +131,17 @@ def get_base_url(request: Request) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 @app.get("/index.html", response_class=HTMLResponse)
-async def index(request: Request):
-    """Renders modern newspaper theme 'Su Haber Bülteni' portal."""
-    base_url = get_base_url(request)
-    rss_url = f"{base_url}/rss.xml"
-    atom_url = f"{base_url}/atom.xml"
-    json_url = f"{base_url}/feed.json"
-    
-    items = storage.get_items(limit=100)
-    now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
-
-    html_content = generate_newspaper_portal_html(
-        items=items,
-        last_updated=now_str,
-        rss_url=rss_url,
-        atom_url=atom_url,
-        json_url=json_url
-    )
-    return HTMLResponse(content=html_content)
-
 @app.get("/tarim", response_class=HTMLResponse)
 @app.get("/tarim.html", response_class=HTMLResponse)
 async def tarim_portal(request: Request):
-    """Renders 'Tarım Gündemi' newspaper portal."""
+    """Renders 'Tarım Gündemi' newspaper portal as the main homepage."""
     base_url = get_base_url(request)
     rss_url = f"{base_url}/rss_tarim.xml"
     atom_url = f"{base_url}/atom_tarim.xml"
     json_url = f"{base_url}/feed_tarim.json"
     items = storage.get_items(limit=100, channel="agriculture")
+    water_items = storage.get_items(limit=100, channel="water")
+    livestock_items = storage.get_items(limit=100, channel="livestock")
     now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
     html_content = generate_newspaper_portal_html(
         items=items,
@@ -166,7 +149,42 @@ async def tarim_portal(request: Request):
         rss_url=rss_url,
         atom_url=atom_url,
         json_url=json_url,
-        channel="agriculture"
+        channel="agriculture",
+        water_count=len(water_items),
+        agri_count=len(items),
+        livestock_count=len(livestock_items),
+        water_items=water_items,
+        agri_items=items,
+        livestock_items=livestock_items
+    )
+    return HTMLResponse(content=html_content)
+
+@app.get("/su", response_class=HTMLResponse)
+@app.get("/su.html", response_class=HTMLResponse)
+async def water_portal(request: Request):
+    """Renders modern newspaper theme 'Su Gündemi' portal."""
+    base_url = get_base_url(request)
+    rss_url = f"{base_url}/rss.xml"
+    atom_url = f"{base_url}/atom.xml"
+    json_url = f"{base_url}/feed.json"
+    items = storage.get_items(limit=100, channel="water")
+    agri_items = storage.get_items(limit=100, channel="agriculture")
+    livestock_items = storage.get_items(limit=100, channel="livestock")
+    now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
+
+    html_content = generate_newspaper_portal_html(
+        items=items,
+        last_updated=now_str,
+        rss_url=rss_url,
+        atom_url=atom_url,
+        json_url=json_url,
+        channel="water",
+        water_count=len(items),
+        agri_count=len(agri_items),
+        livestock_count=len(livestock_items),
+        water_items=items,
+        agri_items=agri_items,
+        livestock_items=livestock_items
     )
     return HTMLResponse(content=html_content)
 
@@ -179,6 +197,8 @@ async def livestock_portal(request: Request):
     atom_url = f"{base_url}/atom_hayvancilik.xml"
     json_url = f"{base_url}/feed_hayvancilik.json"
     items = storage.get_items(limit=100, channel="livestock")
+    water_items = storage.get_items(limit=100, channel="water")
+    agri_items = storage.get_items(limit=100, channel="agriculture")
     now_str = datetime.now(timezone.utc).strftime("%d.%m.%Y %H:%M UTC")
     html_content = generate_newspaper_portal_html(
         items=items,
@@ -186,7 +206,13 @@ async def livestock_portal(request: Request):
         rss_url=rss_url,
         atom_url=atom_url,
         json_url=json_url,
-        channel="livestock"
+        channel="livestock",
+        water_count=len(water_items),
+        agri_count=len(agri_items),
+        livestock_count=len(items),
+        water_items=water_items,
+        agri_items=agri_items,
+        livestock_items=items
     )
     return HTMLResponse(content=html_content)
 
