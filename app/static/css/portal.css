@@ -3709,3 +3709,236 @@
             flex-shrink: 0;
             margin-top: 1px;
         }
+
+        /* Çiftçi Girdi-Ürün Parite Hesaplayıcısı */
+        .sidebar-calc-card,
+        .hub-calc-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-line);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            box-sizing: border-box;
+        }
+        .hub-calc-card {
+            margin-top: 15px;
+            margin-bottom: 25px;
+            border-left: 4px solid #16a34a;
+        }
+        .calc-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed var(--border-line);
+        }
+        .calc-header-icon {
+            font-size: 26px;
+        }
+        .calc-card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--ink-main);
+            margin: 0 0 2px 0;
+        }
+        .calc-card-subtitle {
+            font-size: 11.5px;
+            color: var(--ink-muted);
+            margin: 0;
+            line-height: 1.4;
+        }
+        .calc-form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .calc-field-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .calc-field-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .calc-select,
+        .calc-qty-input {
+            width: 100%;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid var(--border-line);
+            border-radius: 8px;
+            background: var(--bg-input, var(--bg-card));
+            color: var(--ink-main);
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .calc-select:focus,
+        .calc-qty-input:focus {
+            border-color: #16a34a;
+        }
+        .calc-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .calc-unit-badge {
+            position: absolute;
+            right: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--ink-muted);
+            pointer-events: none;
+            background: var(--bg-card-subtle, rgba(0,0,0,0.06));
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .calc-quick-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .calc-quick-label {
+            font-size: 11px;
+            color: var(--ink-muted);
+            font-weight: 600;
+        }
+        .calc-quick-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .btn-calc-pill {
+            background: var(--bg-card-subtle, #f1f5f9);
+            border: 1px solid var(--border-line);
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--ink-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-calc-pill:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .btn-calc-pill.active {
+            background: #16a34a;
+            color: #ffffff;
+            border-color: #16a34a;
+        }
+        .calc-revenue-strip {
+            background: rgba(22, 163, 74, 0.08);
+            border: 1px solid rgba(22, 163, 74, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .rev-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ink-main);
+        }
+        .rev-val {
+            font-size: 16px;
+            font-weight: 800;
+            color: #16a34a;
+            letter-spacing: -0.3px;
+        }
+        .calc-results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .hub-calc-card .calc-results-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        .calc-result-tile {
+            background: var(--bg-card-subtle, #f8fafc);
+            border: 1px solid var(--border-line);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: transform 0.15s ease;
+        }
+        .calc-result-tile:hover {
+            transform: translateY(-2px);
+        }
+        .tile-top {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tile-icon {
+            font-size: 16px;
+        }
+        .tile-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--ink-secondary);
+        }
+        .tile-metric {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        .metric-num {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--ink-main);
+        }
+        .metric-unit {
+            font-size: 10.5px;
+            font-weight: 600;
+            color: var(--ink-muted);
+        }
+        .tile-sub {
+            font-size: 10px;
+            color: var(--ink-muted);
+        }
+        .tile-diesel .metric-num { color: #d97706; }
+        .tile-urea .metric-num { color: #16a34a; }
+        .tile-dap .metric-num { color: #0284c7; }
+        .tile-custom .metric-num { color: #7c3aed; }
+        .calc-parity-bar {
+            background: var(--bg-card-subtle, #f8fafc);
+            border-left: 3px solid #0284c7;
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--ink-muted);
+            line-height: 1.4;
+        }
+        .calc-parity-bar .parity-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        @media (max-width: 768px) {
+            .hub-calc-card .calc-results-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .calc-form-row {
+                flex-direction: column;
+            }
+        }

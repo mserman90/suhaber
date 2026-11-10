@@ -1,4 +1,4 @@
-﻿"""
+"""
 app/prices_data.py
 ------------------
 Tarım ve Hayvancılık Gündemleri için Türkiye ve Diğer Ülkeler (AB, ABD, Küresel)
@@ -987,6 +987,8 @@ def render_prices_hub_html(channel_key: str, prices: List[Dict[str, Any]]) -> st
 
     cards_grid_str = "\n".join(cards_html)
 
+    calc_hub_widget = render_parity_calculator_widget(channel_key, prefix="hub", is_sidebar=False)
+
     return f"""
     <!-- Prices Hub Column -->
     <div class="prices-hub-col" id="pricesHubCol" style="display: none;">
@@ -1001,6 +1003,9 @@ def render_prices_hub_html(channel_key: str, prices: List[Dict[str, Any]]) -> st
 
         {subtabs_bar_str}
 
+        <!-- Çiftçi Girdi-Ürün Parite Hesaplayıcısı (Geniş Hub Görünümü) -->
+        {calc_hub_widget}
+
         <div class="prices-cards-grid" id="pricesCardsGrid">
             {cards_grid_str}
         </div>
@@ -1014,6 +1019,238 @@ def render_prices_hub_html(channel_key: str, prices: List[Dict[str, Any]]) -> st
 
     </div>
     """
+
+def render_parity_calculator_widget(channel_key: str, prefix: str = "side", is_sidebar: bool = True) -> str:
+    """
+    Çiftçi Girdi-Ürün Parite Hesaplayıcısı (Interactive Mini-Calculator).
+    Ziyaretçinin ton buğday, mısır, pamuk veya litre süt, kg karkas miktarı girerek
+    kaç litre mazot, kaç çuval üre / DAP gübresi veya kaç çuval fabrika yemi
+    alabildiğini canlı olarak hesaplar.
+    """
+    default_prod = "raw-milk" if channel_key == "livestock" else "wheat-milling"
+    default_qty = "1000" if channel_key == "livestock" else "10"
+    
+    container_cls = "sidebar-card sidebar-calc-card" if is_sidebar else "hub-calc-card"
+    title_icon = "🧮"
+    title_text = "Çiftçi Girdi &amp; Parite Hesaplayıcısı"
+    subtitle_text = "Ürününüzün güncel piyasa değeriyle kaç litre mazot ve kaç çuval gübre alabildiğinizi anında görün."
+
+    options = [
+        ("wheat-milling", "🌾 Ekmeklik Buğday (10.850 ₺/Ton)"),
+        ("wheat-durum", "🌾 Makarnalık Buğday (12.200 ₺/Ton)"),
+        ("corn-maize", "🌽 Tane Mısır (8.900 ₺/Ton)"),
+        ("sunflower", "🌻 Yağlık Ayçiçeği (19.400 ₺/Ton)"),
+        ("cotton-raw", "☁️ Kütlü Pamuk (28.500 ₺/Ton)"),
+        ("raw-milk", "🥛 Çiğ İnek Sütü (14,65 ₺/Lt)"),
+        ("beef-carcass", "🥩 Dana Karkas Et (385,00 ₺/kg)")
+    ]
+
+    opt_html_list = []
+    for val, label in options:
+        sel = " selected" if val == default_prod else ""
+        opt_html_list.append(f'<option value="{val}"{sel}>{label}</option>')
+    options_html = "\n".join(opt_html_list)
+
+    html_code = f"""
+    <div class="{container_cls}" id="{prefix}CalcContainer">
+        <div class="calc-card-header">
+            <span class="calc-header-icon">{title_icon}</span>
+            <div>
+                <h4 class="calc-card-title">{title_text}</h4>
+                <p class="calc-card-subtitle">{subtitle_text}</p>
+            </div>
+        </div>
+
+        <div class="calc-body">
+            <!-- Ürün ve Miktar Girişi -->
+            <div class="calc-form-row">
+                <div class="calc-field-group">
+                    <label class="calc-field-label" for="{prefix}_prodSelect">Satılan Ürün:</label>
+                    <select id="{prefix}_prodSelect" class="calc-select" onchange="runParityCalculator('{prefix}')">
+                        {options_html}
+                    </select>
+                </div>
+                <div class="calc-field-group">
+                    <label class="calc-field-label" for="{prefix}_qtyInput">Miktar:</label>
+                    <div class="calc-input-wrap">
+                        <input type="number" id="{prefix}_qtyInput" class="calc-qty-input" value="{default_qty}" min="1" step="1" oninput="runParityCalculator('{prefix}')">
+                        <span class="calc-unit-badge" id="{prefix}_unitBadge">Ton</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hızlı Miktar Butonları -->
+            <div class="calc-quick-row">
+                <span class="calc-quick-label">Hızlı Seçim:</span>
+                <div class="calc-quick-pills" id="{prefix}_quickPills">
+                    <!-- Dinamik Haplar JS ile üretilir -->
+                </div>
+            </div>
+
+            <!-- Canlı Toplam Değer / Hasılat Şeridi -->
+            <div class="calc-revenue-strip">
+                <span class="rev-label">💰 Tahmini Brüt Hasılat:</span>
+                <span class="rev-val" id="{prefix}_totalRev">108.500 ₺</span>
+            </div>
+
+            <!-- 4'lü Girdi Alım Gücü Izgarası -->
+            <div class="calc-results-grid">
+                <!-- 1. Mazot -->
+                <div class="calc-result-tile tile-diesel">
+                    <div class="tile-top">
+                        <span class="tile-icon">⛽</span>
+                        <span class="tile-title">Çiftçi Mazotu</span>
+                    </div>
+                    <div class="tile-metric">
+                        <span class="metric-num" id="{prefix}_resDiesel">2.419</span>
+                        <span class="metric-unit">Litre</span>
+                    </div>
+                    <div class="tile-sub">44,85 ₺/Lt Pompa</div>
+                </div>
+
+                <!-- 2. Üre Gübresi -->
+                <div class="calc-result-tile tile-urea">
+                    <div class="tile-top">
+                        <span class="tile-icon">🌾</span>
+                        <span class="tile-title">Üre Gübresi (%46 N)</span>
+                    </div>
+                    <div class="tile-metric">
+                        <span class="metric-num" id="{prefix}_resUrea">133,9</span>
+                        <span class="metric-unit">Çuval (50 kg)</span>
+                    </div>
+                    <div class="tile-sub" id="{prefix}_subUrea">6,70 Ton Gübre</div>
+                </div>
+
+                <!-- 3. DAP Taban Gübresi -->
+                <div class="calc-result-tile tile-dap">
+                    <div class="tile-top">
+                        <span class="tile-icon">🧪</span>
+                        <span class="tile-title">DAP Gübresi (18-46)</span>
+                    </div>
+                    <div class="tile-metric">
+                        <span class="metric-num" id="{prefix}_resDap">88,6</span>
+                        <span class="metric-unit">Çuval (50 kg)</span>
+                    </div>
+                    <div class="tile-sub" id="{prefix}_subDap">4,43 Ton Taban Gübresi</div>
+                </div>
+
+                <!-- 4. Süt Yemi veya Sulama Elektriği -->
+                <div class="calc-result-tile tile-custom">
+                    <div class="tile-top">
+                        <span class="tile-icon" id="{prefix}_customIcon">⚡</span>
+                        <span class="tile-title" id="{prefix}_customTitle">Sulama Elektriği</span>
+                    </div>
+                    <div class="tile-metric">
+                        <span class="metric-num" id="{prefix}_resCustom">31.725</span>
+                        <span class="metric-unit" id="{prefix}_customUnit">kWh</span>
+                    </div>
+                    <div class="tile-sub" id="{prefix}_customSub">3,42 ₺/kWh Şebeke</div>
+                </div>
+            </div>
+
+            <!-- Parite Özeti ve İpucu -->
+            <div class="calc-parity-bar" id="{prefix}_parityBar">
+                <span class="parity-icon">⚖️</span>
+                <span class="parity-text" id="{prefix}_parityText">Yükleniyor...</span>
+            </div>
+        </div>
+
+        <script>
+        if (typeof runParityCalculator === 'undefined') {{
+            const PARITY_ITEMS_DB = {{
+                'wheat-milling': {{ name: 'Ekmeklik Buğday', price: 10850.0, unit: 'Ton', defaultQty: 10, pills: [1, 5, 10, 25, 50], custom: {{ title: 'Sulama Elektriği', icon: '⚡', unit: 'kWh', price: 3.42, sub: '3,42 ₺/kWh Tarımsal' }}, notes: '⚡ 1 Litre Mazot = 4,13 kg Buğday | 1 Çuval Üre = 74,7 kg Buğday' }},
+                'wheat-durum': {{ name: 'Makarnalık Buğday', price: 12200.0, unit: 'Ton', defaultQty: 10, pills: [1, 5, 10, 25, 50], custom: {{ title: 'Sulama Elektriği', icon: '⚡', unit: 'kWh', price: 3.42, sub: '3,42 ₺/kWh Tarımsal' }}, notes: '⚡ 1 Litre Mazot = 3,68 kg Makarnalık | 1 Çuval DAP = 100,4 kg Makarnalık' }},
+                'corn-maize': {{ name: 'Tane Mısır', price: 8900.0, unit: 'Ton', defaultQty: 15, pills: [5, 10, 15, 30, 60], custom: {{ title: 'Sulama Elektriği', icon: '⚡', unit: 'kWh', price: 3.42, sub: '3,42 ₺/kWh Tarımsal' }}, notes: '⚡ 1 Litre Mazot = 5,04 kg Mısır | 1 Çuval Üre = 91,0 kg Mısır' }},
+                'sunflower': {{ name: 'Yağlık Ayçiçeği', price: 19400.0, unit: 'Ton', defaultQty: 5, pills: [1, 3, 5, 10, 20], custom: {{ title: 'Sulama Elektriği', icon: '⚡', unit: 'kWh', price: 3.42, sub: '3,42 ₺/kWh Tarımsal' }}, notes: '⚡ 1 Litre Mazot = 2,31 kg Ayçiçeği | 1 Çuval DAP = 63,1 kg Ayçiçeği' }},
+                'cotton-raw': {{ name: 'Kütlü Pamuk', price: 28500.0, unit: 'Ton', defaultQty: 5, pills: [1, 3, 5, 10, 20], custom: {{ title: 'Sulama Elektriği', icon: '⚡', unit: 'kWh', price: 3.42, sub: '3,42 ₺/kWh Tarımsal' }}, notes: '⚡ 1 Litre Mazot = 1,57 kg Pamuk | 1 Çuval Üre = 28,4 kg Pamuk' }},
+                'raw-milk': {{ name: 'Çiğ İnek Sütü', price: 14.65, unit: 'Litre', defaultQty: 1000, pills: [250, 500, 1000, 2500, 5000], custom: {{ title: 'Süt Yemi (%19 HP)', icon: '🥣', unit: 'Çuval (50 kg)', price: 492.5, sub: '492,5 ₺/Çuval Fabrika' }}, notes: '⚖️ Süt/Yem Rasyosu: 1.49 kg Yem (Hedef: 1.50 kg) | 1 Lt Mazot = 3,06 Lt Süt' }},
+                'beef-carcass': {{ name: 'Dana Karkas Et', price: 385.00, unit: 'kg', defaultQty: 250, pills: [50, 100, 250, 500, 1000], custom: {{ title: 'Besi Yemi (14 HP)', icon: '🥩', unit: 'Çuval (50 kg)', price: 445.0, sub: '445,0 ₺/Çuval Fabrika' }}, notes: '⚖️ 1 kg Karkas = 8,58 Litre Mazot | 1 kg Karkas = 43,3 kg Besi Yemi' }}
+            }};
+
+            window.runParityCalculator = function(pfx) {{
+                const sel = document.getElementById(pfx + '_prodSelect');
+                const qtyInput = document.getElementById(pfx + '_qtyInput');
+                if (!sel || !qtyInput) return;
+
+                const itemKey = sel.value;
+                const item = PARITY_ITEMS_DB[itemKey] || PARITY_ITEMS_DB['wheat-milling'];
+                let qty = parseFloat(qtyInput.value) || 0;
+                if (qty < 0) qty = 0;
+
+                // Update Unit Badge
+                const unitBadge = document.getElementById(pfx + '_unitBadge');
+                if (unitBadge) unitBadge.textContent = item.unit;
+
+                // Update Quick Pills
+                const pillsWrap = document.getElementById(pfx + '_quickPills');
+                if (pillsWrap && (!pillsWrap.dataset.itemKey || pillsWrap.dataset.itemKey !== itemKey)) {{
+                    pillsWrap.dataset.itemKey = itemKey;
+                    pillsWrap.innerHTML = item.pills.map(val => 
+                        `<button type="button" class="btn-calc-pill ${{val === qty ? 'active' : ''}}" onclick="document.getElementById('${{pfx}}_qtyInput').value=${{val}}; runParityCalculator('${{pfx}}');">${{val}} ${{item.unit}}</button>`
+                    ).join('');
+                }} else if (pillsWrap) {{
+                    pillsWrap.querySelectorAll('.btn-calc-pill').forEach(btn => {{
+                        const bVal = parseFloat(btn.textContent);
+                        if (bVal === qty) btn.classList.add('active');
+                        else btn.classList.remove('active');
+                    }});
+                }}
+
+                // Calculate Revenue
+                const totalRev = qty * item.price;
+                const revEl = document.getElementById(pfx + '_totalRev');
+                if (revEl) revEl.textContent = totalRev.toLocaleString('tr-TR', {{ maximumFractionDigits: 0 }}) + ' ₺';
+
+                // Diesel
+                const dieselLt = totalRev / 44.85;
+                const dEl = document.getElementById(pfx + '_resDiesel');
+                if (dEl) dEl.textContent = dieselLt.toLocaleString('tr-TR', {{ maximumFractionDigits: 1 }});
+
+                // Urea (810 TL / 50kg çuval, 16200 TL/Ton)
+                const ureaBags = totalRev / 810.0;
+                const ureaTon = (ureaBags * 50) / 1000.0;
+                const uEl = document.getElementById(pfx + '_resUrea');
+                if (uEl) uEl.textContent = ureaBags.toLocaleString('tr-TR', {{ maximumFractionDigits: 1 }});
+                const uSub = document.getElementById(pfx + '_subUrea');
+                if (uSub) uSub.textContent = ureaTon.toLocaleString('tr-TR', {{ maximumFractionDigits: 2 }}) + ' Ton Gübre';
+
+                // DAP (1225 TL / 50kg çuval, 24500 TL/Ton)
+                const dapBags = totalRev / 1225.0;
+                const dapTon = (dapBags * 50) / 1000.0;
+                const dapEl = document.getElementById(pfx + '_resDap');
+                if (dapEl) dapEl.textContent = dapBags.toLocaleString('tr-TR', {{ maximumFractionDigits: 1 }});
+                const dapSub = document.getElementById(pfx + '_subDap');
+                if (dapSub) dapSub.textContent = dapTon.toLocaleString('tr-TR', {{ maximumFractionDigits: 2 }}) + ' Ton Taban Gübresi';
+
+                // Custom 4th Slot (Electricity or Feed)
+                const cust = item.custom;
+                const cIco = document.getElementById(pfx + '_customIcon');
+                if (cIco) cIco.textContent = cust.icon;
+                const cTitle = document.getElementById(pfx + '_customTitle');
+                if (cTitle) cTitle.textContent = cust.title;
+                const cUnit = document.getElementById(pfx + '_customUnit');
+                if (cUnit) cUnit.textContent = cust.unit;
+                const cSub = document.getElementById(pfx + '_customSub');
+                if (cSub) cSub.textContent = cust.sub;
+                const cVal = totalRev / cust.price;
+                const cEl = document.getElementById(pfx + '_resCustom');
+                if (cEl) cEl.textContent = cVal.toLocaleString('tr-TR', {{ maximumFractionDigits: 1 }});
+
+                // Parity Note
+                const pText = document.getElementById(pfx + '_parityText');
+                if (pText) pText.textContent = item.notes;
+            }};
+        }}
+        // Init on load
+        if (document.readyState === 'loading') {{
+            document.addEventListener('DOMContentLoaded', function() {{ runParityCalculator('{prefix}'); }});
+        }} else {{
+            runParityCalculator('{prefix}');
+        }}
+        </script>
+    </div>
+    """
+    return html_code.strip()
 
 def render_sidebar_prices_widget(channel_key: str) -> str:
     """
@@ -1085,6 +1322,7 @@ def render_sidebar_prices_widget(channel_key: str) -> str:
 
     prod_rows_html = _render_rows(product_items)
     input_rows_html = _render_rows(input_items)
+    calc_side_widget = render_parity_calculator_widget(channel_key, prefix="side", is_sidebar=True)
 
     return f"""
     <!-- 1. Bölüm Ürün Fiyatları Widget'ı -->
@@ -1109,4 +1347,7 @@ def render_sidebar_prices_widget(channel_key: str) -> str:
             <span>Girdi &amp; Parite Analizini Aç &rarr;</span>
         </button>
     </div>
+
+    <!-- 3. Çiftçi Girdi-Ürün Canlı Parite Hesaplayıcısı -->
+    {calc_side_widget}
     """
