@@ -717,7 +717,8 @@ def generate_newspaper_portal_html(
         source = it.get("source_feed") or it.get("author") or ("Hayvancılık Araştırma" if is_livestock else ("Tarımsal Araştırma" if is_agri else "Bilimsel Araştırma"))
         is_turkey = bool(it.get("is_turkey") or it.get("category_tr") == "Türkiye" or "🇹🇷" in source or "🌾" in source or "🐄" in source)
         is_academic = bool(it.get("is_academic") or it.get("guid", "").startswith("academic:") or it.get("guid", "").startswith("academic_agri:") or it.get("guid", "").startswith("academic_livestock:") or "🎓" in source)
-        if not img or "images.unsplash.com" in img:
+        # Only use SVG fallback when there is NO image at all; real URLs (even Unsplash) are tried first by the browser
+        if not img:
             fallback_key = "academic" if is_academic else channel
             img = PORTAL_FALLBACK_SVGS.get(fallback_key, PORTAL_FALLBACK_SVGS["water"])
         cat_raw = it.get("category_tr")
@@ -798,7 +799,10 @@ def generate_newspaper_portal_html(
             summary_tr = w_it.get("summary_tr") or ""
             source = w_it.get("source_feed") or w_it.get("author") or "Su Basını"
             cat = w_it.get("category_tr") or "Su Kaynakları"
-            img = w_it.get("image_url") or "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=900&q=80"
+            img = w_it.get("image_url") or ""
+            is_w_academic = bool(w_it.get("is_academic") or w_it.get("guid", "").startswith("academic:"))
+            if not img:
+                img = PORTAL_FALLBACK_SVGS.get("academic" if is_w_academic else "water", PORTAL_FALLBACK_SVGS["water"])
             lat, lng, loc_name = geocode_article(w_it, wid)
             all_articles_data.append({
                 "id": wid,
@@ -840,7 +844,10 @@ def generate_newspaper_portal_html(
             summary_tr = a_it.get("summary_tr") or ""
             source = a_it.get("source_feed") or a_it.get("author") or "Tarım Basını"
             cat = a_it.get("category_tr") or "Tarım & Bitkisel"
-            img = a_it.get("image_url") or "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=900&q=80"
+            img = a_it.get("image_url") or ""
+            is_a_academic = bool(a_it.get("is_academic") or a_it.get("guid", "").startswith("academic_agri:"))
+            if not img:
+                img = PORTAL_FALLBACK_SVGS.get("academic" if is_a_academic else "agriculture", PORTAL_FALLBACK_SVGS["agriculture"])
             lat, lng, loc_name = geocode_article(a_it, aid)
             
             all_articles_data.append({
@@ -884,7 +891,10 @@ def generate_newspaper_portal_html(
             summary_tr = l_it.get("summary_tr") or ""
             source = l_it.get("source_feed") or l_it.get("author") or "Hayvancılık Basını"
             cat = l_it.get("category_tr") or "Hayvancılık & Süt"
-            img = l_it.get("image_url") or "https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=900&q=80"
+            img = l_it.get("image_url") or ""
+            is_l_academic = bool(l_it.get("is_academic") or l_it.get("guid", "").startswith("academic_livestock:"))
+            if not img:
+                img = PORTAL_FALLBACK_SVGS.get("academic" if is_l_academic else "livestock", PORTAL_FALLBACK_SVGS["livestock"])
             lat, lng, loc_name = geocode_article(l_it, lid)
 
             all_articles_data.append({
