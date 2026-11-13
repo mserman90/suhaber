@@ -144,3 +144,23 @@ def test_portal_startup_preferences_modal(sample_agri_items):
     assert 'id="settingsModal"' in html
     assert 'initPortalStartupPreferences()' in html
     assert 'su_startup_prefs' in html
+
+
+def test_portal_headline_photos_and_fallback(sample_agri_items):
+    """Verify headline photos include zero-blank img tags, no-referrer policy, and SVG fallbacks."""
+    html = generate_newspaper_portal_html(
+        items=sample_agri_items,
+        last_updated="13.11.2026 10:00 UTC",
+        rss_url="https://example.com/rss.xml",
+        atom_url="https://example.com/atom.xml",
+        json_url="https://example.com/feed.json",
+        channel="agriculture"
+    )
+    assert '<meta name="referrer" content="no-referrer">' in html
+    assert 'class="hero-bg-img"' in html
+    assert 'class="sub-bg-img"' in html
+    assert 'class="card-bg-img"' in html
+    assert 'handlePortalImageError(' in html
+    assert 'PORTAL_FALLBACK_SVGS' in html
+    assert 'data:image/svg+xml' in html
+
