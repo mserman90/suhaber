@@ -25,6 +25,11 @@ def test_scrape_google_news_story_mock(monkeypatch):
         text = SAMPLE_STORY_HTML
 
     monkeypatch.setattr("requests.get", lambda *args, **kwargs: MockResponse())
+    try:
+        import app.scraper
+        monkeypatch.setattr(app.scraper.requests, "get", lambda *args, **kwargs: MockResponse())
+    except Exception:
+        pass
 
     items = scrape_google_news_story(limit=10)
     assert len(items) == 2
