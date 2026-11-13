@@ -1888,6 +1888,12 @@ def generate_newspaper_portal_html(
 
     <!-- Newspaper Footer -->
     <footer class="newspaper-footer" role="contentinfo">
+        <div class="footer-scroll-top-wrap">
+            <button type="button" class="btn-footer-scroll-top" onclick="scrollToTop()" title="Sayfanın en üstüne geri dön" aria-label="Sayfanın en üstüne geri dön">
+                <span class="scroll-icon">▲</span>
+                <span class="scroll-text" data-i18n="back_to_top">Sayfa Başına Dön</span>
+            </button>
+        </div>
         <div class="footer-inner">
             <h4 id="footerPortalName">{portal_name}</h4>
             <p id="footerSubText">{footer_sub_text}</p>
@@ -1900,6 +1906,12 @@ def generate_newspaper_portal_html(
         </div>
     </footer>
 
+    <!-- Floating Back to Top Button -->
+    <button type="button" id="floatingBackToTopBtn" class="floating-back-to-top" onclick="scrollToTop()" title="Sayfa Başına Dön" aria-label="Sayfa Başına Dön">
+        <span class="floating-arrow">▲</span>
+        <span class="floating-label" data-i18n="back_to_top_short">Başa Dön</span>
+    </button>
+
     <!-- Interactive Scripts -->
     <script>
         const articlesData = {json_portal_data};
@@ -1910,6 +1922,23 @@ def generate_newspaper_portal_html(
         let portalMap = null;
         let portalTileLayer = null;
         const mapLayers = {{}};
+
+        function scrollToTop() {{
+            window.scrollTo({{
+                top: 0,
+                behavior: 'smooth'
+            }});
+        }}
+
+        window.addEventListener('scroll', function() {{
+            const btn = document.getElementById('floatingBackToTopBtn');
+            if (!btn) return;
+            if (window.scrollY > 300) {{
+                btn.classList.add('visible');
+            }} else {{
+                btn.classList.remove('visible');
+            }}
+        }}, {{ passive: true }});
 
         function escapeMapHtml(str) {{
             if (!str) return '';
@@ -2864,6 +2893,12 @@ function toggleMapSidePanel(forceState) {{
 
             const footerLastUp = document.querySelector('[data-i18n="footer_last_update"]');
             if (footerLastUp) footerLastUp.innerText = isEn ? 'Last Updated:' : 'Son Güncelleme:';
+
+            const backToTopTexts = document.querySelectorAll('[data-i18n="back_to_top"]');
+            backToTopTexts.forEach(el => {{ el.innerText = isEn ? 'Back to Top' : 'Sayfa Başına Dön'; }});
+
+            const backToTopShort = document.querySelectorAll('[data-i18n="back_to_top_short"]');
+            backToTopShort.forEach(el => {{ el.innerText = isEn ? 'Top' : 'Başa Dön'; }});
 
             const microDisclaimer = document.getElementById('footerMicroDisclaimer');
             if (microDisclaimer) {{

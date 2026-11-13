@@ -164,3 +164,20 @@ def test_portal_headline_photos_and_fallback(sample_agri_items):
     assert 'PORTAL_FALLBACK_SVGS' in html
     assert 'data:image/svg+xml' in html
 
+
+def test_portal_back_to_top_button(sample_agri_items):
+    """Verify that both footer and floating back-to-top buttons are present with scrollToTop handler."""
+    html = generate_newspaper_portal_html(
+        items=sample_agri_items,
+        last_updated="13.11.2026 10:00 UTC",
+        rss_url="https://example.com/rss.xml",
+        atom_url="https://example.com/atom.xml",
+        json_url="https://example.com/feed.json",
+        channel="agriculture"
+    )
+    assert 'btn-footer-scroll-top' in html
+    assert 'floatingBackToTopBtn' in html
+    assert 'scrollToTop()' in html
+    assert 'data-i18n="back_to_top"' in html
+
+
