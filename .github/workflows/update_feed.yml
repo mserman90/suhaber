@@ -2,8 +2,12 @@ name: Update RSS Feed & Deploy to GitHub Pages
 
 on:
   schedule:
-    # Her sabah Türkiye saati ile tam 09:00'da (06:00 UTC) günlük manşet, tüm haberler ve emtia fiyatlarının güncellenmesi
-    - cron: "0 6 * * *"
+    # Her sabah Türkiye saati ile 09:10'da (06:10 UTC) günlük manşet, tüm haberler ve emtia fiyatlarının güncellenmesi
+    - cron: "10 6 * * *"
+    # Öğle bülteni ve güncel haber taraması (14:10 TSİ = 11:10 UTC)
+    - cron: "10 11 * * *"
+    # Akşam bülteni ve kapanış fiyatları (19:10 TSİ = 16:10 UTC)
+    - cron: "10 16 * * *"
   workflow_dispatch:
   push:
     branches:

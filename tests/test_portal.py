@@ -1,5 +1,5 @@
 import pytest
-from app.portal import generate_newspaper_portal_html
+from app.portal import generate_newspaper_portal_html, render_settings_modal_html
 
 @pytest.fixture
 def sample_agri_items():
@@ -116,3 +116,31 @@ def test_livestock_flashcards_and_calendar():
     assert 'Modern Besi &amp; Sürü Yönetimi' in html or 'Modern Besi & Sürü Yönetimi' in html
     assert 'Kasım Ayı Barınak &amp; Besi Takvimi' in html or 'Kasım Ayı Barınak & Besi Takvimi' in html
     assert 'kolostrum' in html or 'asidoz' in html
+
+def test_portal_startup_preferences_modal(sample_agri_items):
+    """Verify that settings modal and startup preferences are rendered into portal."""
+    modal_html = render_settings_modal_html()
+    assert 'id="settingsModal"' in modal_html
+    assert 'name="optStartupChannel"' in modal_html
+    assert 'value="agriculture"' in modal_html
+    assert 'value="water"' in modal_html
+    assert 'value="livestock"' in modal_html
+    assert 'name="optStartupTab"' in modal_html
+    assert 'value="news"' in modal_html
+    assert 'value="events"' in modal_html
+    assert 'value="prices"' in modal_html
+
+    # Check generated HTML contains top button and modal
+    html = generate_newspaper_portal_html(
+        items=sample_agri_items,
+        last_updated="13.11.2026 10:00 UTC",
+        rss_url="https://example.com/rss.xml",
+        atom_url="https://example.com/atom.xml",
+        json_url="https://example.com/feed.json",
+        channel="agriculture"
+    )
+    assert 'id="portalSettingsBtn"' in html
+    assert 'openPortalSettingsModal()' in html
+    assert 'id="settingsModal"' in html
+    assert 'initPortalStartupPreferences()' in html
+    assert 'su_startup_prefs' in html

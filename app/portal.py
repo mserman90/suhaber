@@ -301,6 +301,146 @@ def _build_diplomacy_flashcards_widget() -> str:
     """Backward compatibility wrapper."""
     return _build_flashcards_widget("water")
 
+def render_settings_modal_html() -> str:
+    """
+    Kullanıcının her açılışta dilediği gündemin (Tarım, Su, Hayvancılık)
+    ve dilediği sekmenin (Haberler, Zirveler, Fiyatlar & Parite) otomatik olarak
+    başlamasını sağlayan başlangıç tercihleri ayar modalı.
+    """
+    return """
+    <!-- Startup & View Preferences Settings Modal -->
+    <div class="modal-backdrop" id="settingsModal" onclick="closePortalSettingsModal(event)" role="dialog" aria-labelledby="settingsModalTitle" aria-modal="true">
+        <div class="modal-window settings-modal-window" onclick="event.stopPropagation()">
+            <div class="modal-header settings-modal-header">
+                <div class="settings-header-titles">
+                    <span class="settings-badge" data-i18n="settings_modal_badge">⚙️ PORTAL AYARLARI &bull; KİŞİSELLEŞTİRME</span>
+                    <h3 class="settings-modal-title" id="settingsModalTitle" data-i18n="settings_modal_title">Açılış Gündemi &amp; Sekme Ayarları</h3>
+                </div>
+                <button type="button" class="btn-close-modal" onclick="closePortalSettingsModal()" title="Kapat">&times;</button>
+            </div>
+            
+            <div class="modal-body settings-modal-body">
+                <p class="settings-intro-text" data-i18n="settings_intro_text">
+                    Gazeteyi her açtığınızda doğrudan en çok takip ettiğiniz gündem (Tarım, Su veya Hayvancılık) ve tercih ettiğiniz görünüm sekmesi (Haberler, Zirveler veya Fiyatlar &amp; Parite) ile başlayabilirsiniz.
+                </p>
+
+                <!-- Quick Pin Action Card -->
+                <div class="settings-quick-card">
+                    <div class="quick-card-left">
+                        <span class="quick-icon">📌</span>
+                        <div>
+                            <strong data-i18n="settings_quick_title">Şu Anki Sayfayı Başlangıç Yap</strong>
+                            <div class="quick-subtext" id="quickCurrentLabel">Bulunduğunuz gündemi ve aktif sekmeyi tek tıkla varsayılan açılış yapın.</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-quick-set" onclick="setQuickCurrentStartup()" data-i18n="settings_quick_btn">Bu Görünümü Kaydet</button>
+                </div>
+
+                <!-- Section 1: Default Channel -->
+                <div class="settings-section">
+                    <label class="settings-section-title">
+                        <span class="sec-num">1</span>
+                        <span data-i18n="settings_sec1_title">Varsayılan Açılış Gündemi (Hangi Gazete?)</span>
+                    </label>
+                    <div class="settings-options-grid" id="settingsChannelGrid">
+                        <label class="settings-option-card" data-channel="agriculture">
+                            <input type="radio" name="optStartupChannel" value="agriculture" checked onchange="updateSettingsPreview()">
+                            <div class="opt-content">
+                                <span class="opt-icon">🌾</span>
+                                <div class="opt-text">
+                                    <strong data-i18n="tab_agri">Tarım Gündemi</strong>
+                                    <span data-i18n="settings_agri_desc">Bitkisel üretim, tarımsal girdiler, TMO &amp; borsa fiyatları</span>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="settings-option-card" data-channel="water">
+                            <input type="radio" name="optStartupChannel" value="water" onchange="updateSettingsPreview()">
+                            <div class="opt-content">
+                                <span class="opt-icon">💧</span>
+                                <div class="opt-text">
+                                    <strong data-i18n="tab_water">Su Gündemi</strong>
+                                    <span data-i18n="settings_water_desc">Baraj dolulukları, sulama yatırımları, su politikaları</span>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="settings-option-card" data-channel="livestock">
+                            <input type="radio" name="optStartupChannel" value="livestock" onchange="updateSettingsPreview()">
+                            <div class="opt-content">
+                                <span class="opt-icon">🐄</span>
+                                <div class="opt-text">
+                                    <strong data-i18n="tab_livestock">Hayvancılık Gündemi</strong>
+                                    <span data-i18n="settings_livestock_desc">Besi, süt, USK çiğ süt fiyatları, yem &amp; karkas et</span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Section 2: Default Tab -->
+                <div class="settings-section">
+                    <label class="settings-section-title">
+                        <span class="sec-num">2</span>
+                        <span data-i18n="settings_sec2_title">Varsayılan Başlangıç Sekmesi (Hangi Görünüm?)</span>
+                    </label>
+                    <div class="settings-options-grid" id="settingsTabGrid">
+                        <label class="settings-option-card" data-tab="news">
+                            <input type="radio" name="optStartupTab" value="news" checked onchange="updateSettingsPreview()">
+                            <div class="opt-content">
+                                <span class="opt-icon">📰</span>
+                                <div class="opt-text">
+                                    <strong data-i18n="settings_tab_news">Güncel Haber Akışı</strong>
+                                    <span data-i18n="settings_tab_news_desc">Günün manşeti, son dakika haberleri ve detaylı bültenler</span>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="settings-option-card" data-tab="events">
+                            <input type="radio" name="optStartupTab" value="events" onchange="updateSettingsPreview()">
+                            <div class="opt-content">
+                                <span class="opt-icon">🌐</span>
+                                <div class="opt-text">
+                                    <strong data-i18n="settings_tab_events">Zirveler &amp; Kongreler</strong>
+                                    <span data-i18n="settings_tab_events_desc">Uluslararası etkinlik takvimi ve interaktif etkinlik haritası</span>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="settings-option-card" data-tab="prices">
+                            <input type="radio" name="optStartupTab" value="prices" onchange="updateSettingsPreview()">
+                            <div class="opt-content">
+                                <span class="opt-icon">📊</span>
+                                <div class="opt-text">
+                                    <strong data-i18n="settings_tab_prices">Girdi / Ürün Fiyatları &amp; Parite</strong>
+                                    <span data-i18n="settings_tab_prices_desc">Canlı borsa fiyatları ve çiftçi mazot/gübre parite hesaplayıcısı</span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Section 3: Live Preview & Status -->
+                <div class="settings-preview-box" id="settingsPreviewBox">
+                    <div class="preview-badge" data-i18n="settings_sim_badge">⚡ Açılış Simülasyonu</div>
+                    <div class="preview-desc" id="settingsPreviewText">
+                        Site her açıldığında: <strong>🌾 Tarım Gündemi</strong> sayfası açılacak ve doğrudan <strong>📰 Güncel Haber Akışı</strong> sekmesi görüntülenecektir.
+                    </div>
+                </div>
+
+                <!-- Active Saved Preference Status -->
+                <div class="settings-active-status" id="settingsActiveStatusText">
+                    <!-- Dinamik olarak JS ile doldurulur -->
+                </div>
+            </div>
+
+            <div class="modal-footer settings-modal-footer">
+                <button type="button" class="btn-settings-reset" onclick="resetPortalStartupPrefs()" data-i18n="settings_btn_reset">🔄 Varsayılana Sıfırla</button>
+                <div class="footer-action-group">
+                    <button type="button" class="btn-settings-cancel" onclick="closePortalSettingsModal()" data-i18n="settings_btn_close">Kapat</button>
+                    <button type="button" class="btn-settings-save" onclick="savePortalStartupPrefs()" data-i18n="settings_btn_save">💾 Tercihleri Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    """.strip()
+
 def generate_newspaper_portal_html(
     items: List[Dict[str, Any]],
     last_updated: str,
@@ -1473,16 +1613,56 @@ def generate_newspaper_portal_html(
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-    <!-- Theme Detection Script (Prevents flash of light theme on load) -->
+    <!-- Theme Detection & Startup Routing Script (Instant, Zero Flicker) -->
     <script>
         (function() {{
-            const saved = localStorage.getItem('su_portal_theme');
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (saved === 'dark' || (!saved && prefersDark)) {{
-                document.documentElement.setAttribute('data-theme', 'dark');
-            }} else {{
-                document.documentElement.setAttribute('data-theme', 'light');
-            }}
+            try {{
+                const saved = localStorage.getItem('su_portal_theme');
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (saved === 'dark' || (!saved && prefersDark)) {{
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }} else {{
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }}
+            }} catch (e) {{}}
+
+            try {{
+                // Startup Routing: Redirects on new session if user set a different default channel
+                const isDirectStartup = !sessionStorage.getItem('su_session_active');
+                sessionStorage.setItem('su_session_active', '1');
+
+                if (isDirectStartup) {{
+                    let targetChannel = null;
+                    let targetTab = null;
+                    const savedPrefsStr = localStorage.getItem('su_startup_prefs');
+                    if (savedPrefsStr) {{
+                        try {{
+                            const p = JSON.parse(savedPrefsStr);
+                            targetChannel = p.channel;
+                            targetTab = p.tab;
+                        }} catch (err) {{}}
+                    }}
+                    if (!targetChannel) targetChannel = localStorage.getItem('su_startup_channel');
+                    if (!targetTab) targetTab = localStorage.getItem('su_startup_tab');
+
+                    const path = window.location.pathname;
+                    const isRoot = path.endsWith('/') || path.endsWith('/index.html') || path.endsWith('/tarim.html');
+
+                    let targetPage = null;
+                    if (targetChannel === 'water' && !path.endsWith('/su.html')) {{
+                        targetPage = 'su.html';
+                    }} else if (targetChannel === 'livestock' && !path.endsWith('/hayvancilik.html')) {{
+                        targetPage = 'hayvancilik.html';
+                    }} else if (targetChannel === 'agriculture' && !isRoot) {{
+                        targetPage = 'index.html';
+                    }}
+
+                    if (targetPage) {{
+                        const hash = targetTab ? ('#' + targetTab) : (window.location.hash || '');
+                        window.location.replace(targetPage + hash);
+                    }}
+                }}
+            }} catch (e) {{}}
         }})();
     </script>
 
@@ -1512,6 +1692,11 @@ def generate_newspaper_portal_html(
                 <div class="top-search-box">
                     <input type="text" id="searchInput" placeholder="🔍 Başlıklarda ara..." oninput="filterSearch()" aria-label="Haberlerde ara">
                 </div>
+                <button type="button" id="portalSettingsBtn" class="top-settings-btn" onclick="openPortalSettingsModal()" title="Açılış &amp; Başlangıç Ayarları" aria-label="Açılış Ayarları">
+                    <span class="settings-icon">⚙️</span>
+                    <span class="settings-label" id="settingsBtnLabel" data-i18n="settings_btn">Açılış Ayarı</span>
+                    <span class="settings-badge-pill" id="settingsActivePill" style="display:none;"></span>
+                </button>
                 <button type="button" id="themeToggleBtn" class="top-theme-toggle-btn" onclick="toggleTheme()" title="Gece / Gündüz Temasını Değiştir" aria-label="Temayı Değiştir">
                     <span class="theme-icon">🌙</span>
                 </button>
@@ -1683,6 +1868,7 @@ def generate_newspaper_portal_html(
     </div>
 
     {render_legal_modal_html()}
+    {render_settings_modal_html()}
 
     <!-- Newspaper Footer -->
     <footer class="newspaper-footer" role="contentinfo">
@@ -2420,9 +2606,17 @@ function toggleMapSidePanel(forceState) {{
             if (tabA) tabA.innerText = isEn ? 'AGRICULTURE AGENDA' : 'TARIM GÜNDEMİ';
             if (tabL) tabL.innerText = isEn ? 'LIVESTOCK AGENDA' : 'HAYVANCILIK GÜNDEMİ';
 
-            // 5. Search Box Placeholder
+            // 5. Search Box Placeholder & Settings Button
             const searchEl = document.getElementById('searchInput');
             if (searchEl) searchEl.placeholder = isEn ? '🔍 Search in headlines...' : '🔍 Başlıklarda ara...';
+
+            const sBtnLabel = document.getElementById('settingsBtnLabel');
+            if (sBtnLabel) sBtnLabel.innerText = isEn ? 'Startup Setting' : 'Açılış Ayarı';
+            const sTitle = document.getElementById('settingsModalTitle');
+            if (sTitle) sTitle.innerText = isEn ? 'Startup Agenda & Tab Settings' : 'Açılış Gündemi & Sekme Ayarları';
+            const sQuick = document.getElementById('quickCurrentLabel');
+            if (sQuick) sQuick.innerText = isEn ? 'Quickly save the current agenda and active tab as default.' : 'Bulunduğunuz gündemi ve aktif sekmeyi tek tıkla varsayılan açılış yapın.';
+            if (typeof updateSettingsPreview === 'function') updateSettingsPreview();
 
             // 6. Günün Sözü (Quote of the Day)
             const qTitle = document.getElementById('dailyQuoteTitle');
@@ -2678,7 +2872,8 @@ function toggleMapSidePanel(forceState) {{
         const CHANNEL_PRICES_CONFIG = {json.dumps(CHANNEL_PRICES_METADATA.get(curr_channel_key, {}), ensure_ascii=False)};
         const PRICE_CAT_TRANSLATIONS = {json.dumps(PRICE_CATEGORIES.get(curr_channel_key, {}), ensure_ascii=False)};
 
-        function switchPortalMainView(viewMode) {{
+        function switchPortalMainView(viewMode, shouldScroll) {{
+            if (shouldScroll === undefined) shouldScroll = true;
             const tabNews = document.getElementById('tabModeNews');
             const tabEvents = document.getElementById('tabModeEvents');
             const tabPrices = document.getElementById('tabModePrices');
@@ -2708,7 +2903,7 @@ function toggleMapSidePanel(forceState) {{
                 if (pricesCol) pricesCol.style.display = 'none';
                 if (heroEl) heroEl.style.display = 'none';
                 if (subEl) subEl.style.display = 'none';
-                eventsCol.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+                if (shouldScroll && eventsCol) eventsCol.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
             }} else if (viewMode === 'prices') {{
                 if (tabNews) tabNews.classList.remove('active');
                 if (tabEvents) tabEvents.classList.remove('active');
@@ -2718,7 +2913,7 @@ function toggleMapSidePanel(forceState) {{
                 if (pricesCol) pricesCol.style.display = 'block';
                 if (heroEl) heroEl.style.display = 'none';
                 if (subEl) subEl.style.display = 'none';
-                pricesCol.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+                if (shouldScroll && pricesCol) pricesCol.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
             }} else {{
                 if (tabNews) tabNews.classList.add('active');
                 if (tabEvents) tabEvents.classList.remove('active');
@@ -2981,16 +3176,221 @@ function toggleMapSidePanel(forceState) {{
             updateThemeElements(next);
         }}
 
-        // Initialize theme button state as soon as DOM is ready
+        // Startup Preferences Engine (Default Channel & Tab Selection)
+        window.CURRENT_PORTAL_CHANNEL = '{curr_channel_key}';
+
+        function initPortalStartupPreferences() {{
+            let prefs = null;
+            try {{
+                const raw = localStorage.getItem('su_startup_prefs');
+                if (raw) prefs = JSON.parse(raw);
+            }} catch(e) {{}}
+
+            const savedChannel = (prefs && prefs.channel) || localStorage.getItem('su_startup_channel') || 'agriculture';
+            const savedTab = (prefs && prefs.tab) || localStorage.getItem('su_startup_tab') || 'news';
+
+            // Update top bar settings pill badge
+            const pill = document.getElementById('settingsActivePill');
+            if (pill) {{
+                const hasCustom = (prefs !== null) || localStorage.getItem('su_startup_channel') || localStorage.getItem('su_startup_tab');
+                if (hasCustom) {{
+                    const cIcon = (savedChannel === 'water') ? '💧' : ((savedChannel === 'livestock') ? '🐄' : '🌾');
+                    const tIcon = (savedTab === 'events') ? '🌐' : ((savedTab === 'prices') ? '📊' : '📰');
+                    pill.textContent = `${{cIcon}} ${{tIcon}}`;
+                    pill.style.display = 'inline-flex';
+                    pill.title = `Başlangıç Tercihi: ${{savedChannel}} • ${{savedTab}}`;
+                }} else {{
+                    pill.style.display = 'none';
+                }}
+            }}
+
+            // Apply default tab if no hash is present in the URL
+            const currentHash = window.location.hash ? window.location.hash.substring(1) : '';
+            if (currentHash === 'prices' || currentHash === 'events' || currentHash === 'news') {{
+                switchPortalMainView(currentHash, false);
+            }} else if (savedTab && savedTab !== 'news') {{
+                if (savedTab === 'prices' && document.getElementById('tabModePrices')) {{
+                    switchPortalMainView('prices', false);
+                }} else if (savedTab === 'events') {{
+                    switchPortalMainView('events', false);
+                }}
+            }}
+        }}
+
+        function openPortalSettingsModal() {{
+            const modal = document.getElementById('settingsModal');
+            if (!modal) return;
+
+            let prefs = null;
+            try {{
+                const raw = localStorage.getItem('su_startup_prefs');
+                if (raw) prefs = JSON.parse(raw);
+            }} catch(e) {{}}
+
+            const curChannel = window.CURRENT_PORTAL_CHANNEL || 'agriculture';
+            const savedChannel = (prefs && prefs.channel) || localStorage.getItem('su_startup_channel') || curChannel;
+            const savedTab = (prefs && prefs.tab) || localStorage.getItem('su_startup_tab') || 'news';
+
+            const chRadio = document.querySelector(`input[name="optStartupChannel"][value="${{savedChannel}}"]`);
+            if (chRadio) chRadio.checked = true;
+
+            const tabRadio = document.querySelector(`input[name="optStartupTab"][value="${{savedTab}}"]`);
+            if (tabRadio) tabRadio.checked = true;
+
+            updateSettingsPreview();
+            updateSettingsStatusDisplay(prefs);
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }}
+
+        function closePortalSettingsModal(e) {{
+            if (e && e.target && e.target.id !== 'settingsModal' && !e.target.classList.contains('btn-close-modal') && !e.target.classList.contains('btn-settings-cancel')) {{
+                return;
+            }}
+            const modal = document.getElementById('settingsModal');
+            if (modal) {{
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            }}
+        }}
+
+        function updateSettingsPreview() {{
+            const chRadio = document.querySelector('input[name="optStartupChannel"]:checked');
+            const tabRadio = document.querySelector('input[name="optStartupTab"]:checked');
+            const chVal = chRadio ? chRadio.value : 'agriculture';
+            const tabVal = tabRadio ? tabRadio.value : 'news';
+
+            const isEn = (window.currentPortalLang === 'en');
+            const chLabels = {{
+                'agriculture': isEn ? '🌾 Agriculture Agenda' : '🌾 Tarım Gündemi',
+                'water': isEn ? '💧 Water Agenda' : '💧 Su Gündemi',
+                'livestock': isEn ? '🐄 Livestock Agenda' : '🐄 Hayvancılık Gündemi'
+            }};
+            const tabLabels = {{
+                'news': isEn ? '📰 News Feed' : '📰 Güncel Haber Akışı',
+                'events': isEn ? '🌐 Summits & Conferences' : '🌐 Uluslararası Zirveler & Etkinlikler',
+                'prices': isEn ? '📊 Prices & Parity Calculator' : '📊 Girdi & Ürün Fiyatları / Canlı Parite'
+            }};
+
+            const previewText = document.getElementById('settingsPreviewText');
+            if (previewText) {{
+                previewText.innerHTML = isEn
+                    ? `Upon opening: The portal will launch with <strong>${{chLabels[chVal] || chVal}}</strong> and display the <strong>${{tabLabels[tabVal] || tabVal}}</strong> tab.`
+                    : `Site her açıldığında: Doğrudan <strong>${{chLabels[chVal] || chVal}}</strong> sayfası açılacak ve <strong>${{tabLabels[tabVal] || tabVal}}</strong> sekmesi görüntülenecektir.`;
+            }}
+
+            document.querySelectorAll('#settingsChannelGrid .settings-option-card').forEach(card => {{
+                card.classList.toggle('selected', card.getAttribute('data-channel') === chVal);
+            }});
+            document.querySelectorAll('#settingsTabGrid .settings-option-card').forEach(card => {{
+                card.classList.toggle('selected', card.getAttribute('data-tab') === tabVal);
+            }});
+        }}
+
+        function updateSettingsStatusDisplay(prefs) {{
+            const el = document.getElementById('settingsActiveStatusText');
+            if (!el) return;
+            const isEn = (window.currentPortalLang === 'en');
+            if (prefs) {{
+                const d = new Date(prefs.updatedAt || Date.now());
+                const dateStr = d.toLocaleDateString(isEn ? 'en-US' : 'tr-TR', {{ day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }});
+                el.innerHTML = isEn
+                    ? `✓ Active Preference: <strong>${{prefs.channel}} &bull; ${{prefs.tab}}</strong> <span style="opacity:0.75; font-size:11px;">(${{dateStr}})</span>`
+                    : `✓ Aktif Kayıtlı Tercih: <strong>${{prefs.channel}} &bull; ${{prefs.tab}}</strong> <span style="opacity:0.75; font-size:11px;">(${{dateStr}})</span>`;
+                el.style.display = 'block';
+            }} else {{
+                el.innerHTML = isEn
+                    ? `ℹ️ Default settings active (🌾 Agriculture Agenda &bull; 📰 News Feed).`
+                    : `ℹ️ Varsayılan ayar aktif (🌾 Tarım Gündemi &bull; 📰 Haber Akışı).`;
+                el.style.display = 'block';
+            }}
+        }}
+
+        function savePortalStartupPrefs() {{
+            const chRadio = document.querySelector('input[name="optStartupChannel"]:checked');
+            const tabRadio = document.querySelector('input[name="optStartupTab"]:checked');
+            const channel = chRadio ? chRadio.value : 'agriculture';
+            const tab = tabRadio ? tabRadio.value : 'news';
+
+            const prefs = {{
+                channel: channel,
+                tab: tab,
+                updatedAt: Date.now()
+            }};
+
+            localStorage.setItem('su_startup_prefs', JSON.stringify(prefs));
+            localStorage.setItem('su_startup_channel', channel);
+            localStorage.setItem('su_startup_tab', tab);
+
+            closePortalSettingsModal();
+            initPortalStartupPreferences();
+
+            const isEn = (window.currentPortalLang === 'en');
+            const chName = (channel === 'water') ? '💧 Su Gündemi' : ((channel === 'livestock') ? '🐄 Hayvancılık Gündemi' : '🌾 Tarım Gündemi');
+            const tabName = (tab === 'events') ? '🌐 Zirveler' : ((tab === 'prices') ? '📊 Fiyatlar' : '📰 Haberler');
+            showStartupToast(isEn ? `✅ Startup preferences saved: [${{channel}} &bull; ${{tab}}]` : `✅ Başlangıç ayarınız kaydedildi: [${{chName}} &bull; ${{tabName}}]`);
+        }}
+
+        function resetPortalStartupPrefs() {{
+            localStorage.removeItem('su_startup_prefs');
+            localStorage.removeItem('su_startup_channel');
+            localStorage.removeItem('su_startup_tab');
+
+            const chRadio = document.querySelector('input[name="optStartupChannel"][value="agriculture"]');
+            if (chRadio) chRadio.checked = true;
+            const tabRadio = document.querySelector('input[name="optStartupTab"][value="news"]');
+            if (tabRadio) tabRadio.checked = true;
+
+            updateSettingsPreview();
+            updateSettingsStatusDisplay(null);
+            initPortalStartupPreferences();
+            showStartupToast(window.currentPortalLang === 'en' ? '🔄 Startup preferences reset to default.' : '🔄 Başlangıç tercihleri varsayılana sıfırlandı.');
+        }}
+
+        function setQuickCurrentStartup() {{
+            const curChannel = window.CURRENT_PORTAL_CHANNEL || 'agriculture';
+            let curTab = 'news';
+            const tabEvents = document.getElementById('tabModeEvents');
+            const tabPrices = document.getElementById('tabModePrices');
+            if (tabEvents && tabEvents.classList.contains('active')) curTab = 'events';
+            if (tabPrices && tabPrices.classList.contains('active')) curTab = 'prices';
+
+            const chRadio = document.querySelector(`input[name="optStartupChannel"][value="${{curChannel}}"]`);
+            if (chRadio) chRadio.checked = true;
+            const tabRadio = document.querySelector(`input[name="optStartupTab"][value="${{curTab}}"]`);
+            if (tabRadio) tabRadio.checked = true;
+
+            savePortalStartupPrefs();
+        }}
+
+        function showStartupToast(message) {{
+            let toast = document.getElementById('portalToast');
+            if (!toast) {{
+                toast = document.createElement('div');
+                toast.id = 'portalToast';
+                toast.className = 'portal-toast';
+                document.body.appendChild(toast);
+            }}
+            toast.innerHTML = message;
+            toast.classList.add('show');
+            setTimeout(() => {{
+                toast.classList.remove('show');
+            }}, 3200);
+        }}
+
+        // Initialize theme and startup preferences as soon as DOM is ready
         (function initThemeUI() {{
             const current = document.documentElement.getAttribute('data-theme') || 'light';
             if (document.readyState === 'loading') {{
                 document.addEventListener('DOMContentLoaded', () => {{
                     updateThemeElements(current);
+                    initPortalStartupPreferences();
                     initPortalMap();
                 }});
             }} else {{
                 updateThemeElements(current);
+                initPortalStartupPreferences();
                 initPortalMap();
             }}
         }})();

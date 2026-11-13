@@ -421,6 +421,16 @@ class Storage:
 
                 return items_list
 
+    def count_items(self, channel: Optional[str] = None) -> int:
+        """Kayıtlı toplam haber sayısını veya belirtilen kanaldaki haber sayısını döner."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if channel:
+                cursor.execute("SELECT COUNT(*) FROM items WHERE channel = ?", (channel,))
+            else:
+                cursor.execute("SELECT COUNT(*) FROM items")
+            return cursor.fetchone()[0]
+
     def prune_items(self, max_items_per_channel: int = 350):
         with self._get_connection() as conn:
             cursor = conn.cursor()
