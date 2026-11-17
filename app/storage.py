@@ -94,38 +94,80 @@ class Storage:
                 is_academic_val = 1 if (str(is_acad).strip() in ["1", "True", "true"] or is_acad == 1) else 0
 
                 if existing:
-                    cursor.execute("""
-                        UPDATE items SET
-                            title = ?,
-                            link = ?,
-                            author = ?,
-                            source_feed = ?,
-                            description = ?,
-                            image_url = ?,
-                            raw_date_str = ?,
-                            title_tr = ?,
-                            summary_tr = ?,
-                            category_tr = ?,
-                            is_turkey = ?,
-                            is_academic = ?,
-                            channel = ?
-                        WHERE guid = ?
-                    """, (
-                        it["title"],
-                        it["link"],
-                        it.get("author", ""),
-                        it.get("source_feed", ""),
-                        it.get("description", ""),
-                        img_url,
-                        it.get("raw_date_str", ""),
-                        title_tr,
-                        summary_tr,
-                        category_tr,
-                        is_turkey_val,
-                        is_academic_val,
-                        ch_val,
-                        guid
-                    ))
+                    # Yeni haber daha taze ise pub_date ve pub_date_ts'i de güncelle
+                    new_pub_ts = it.get("pub_date_ts", 0) or 0
+                    old_pub_ts = existing["pub_date_ts"] or 0
+                    new_pub_date = it.get("pub_date", "")
+                    if new_pub_ts > old_pub_ts and new_pub_ts > 0:
+                        cursor.execute("""
+                            UPDATE items SET
+                                title = ?,
+                                link = ?,
+                                author = ?,
+                                source_feed = ?,
+                                description = ?,
+                                image_url = ?,
+                                pub_date = ?,
+                                pub_date_ts = ?,
+                                raw_date_str = ?,
+                                title_tr = ?,
+                                summary_tr = ?,
+                                category_tr = ?,
+                                is_turkey = ?,
+                                is_academic = ?,
+                                channel = ?
+                            WHERE guid = ?
+                        """, (
+                            it["title"],
+                            it["link"],
+                            it.get("author", ""),
+                            it.get("source_feed", ""),
+                            it.get("description", ""),
+                            img_url,
+                            new_pub_date,
+                            new_pub_ts,
+                            it.get("raw_date_str", ""),
+                            title_tr,
+                            summary_tr,
+                            category_tr,
+                            is_turkey_val,
+                            is_academic_val,
+                            ch_val,
+                            guid
+                        ))
+                    else:
+                        cursor.execute("""
+                            UPDATE items SET
+                                title = ?,
+                                link = ?,
+                                author = ?,
+                                source_feed = ?,
+                                description = ?,
+                                image_url = ?,
+                                raw_date_str = ?,
+                                title_tr = ?,
+                                summary_tr = ?,
+                                category_tr = ?,
+                                is_turkey = ?,
+                                is_academic = ?,
+                                channel = ?
+                            WHERE guid = ?
+                        """, (
+                            it["title"],
+                            it["link"],
+                            it.get("author", ""),
+                            it.get("source_feed", ""),
+                            it.get("description", ""),
+                            img_url,
+                            it.get("raw_date_str", ""),
+                            title_tr,
+                            summary_tr,
+                            category_tr,
+                            is_turkey_val,
+                            is_academic_val,
+                            ch_val,
+                            guid
+                        ))
                 else:
                     new_count += 1
                     pub_ts = it.get("pub_date_ts", now_ts)

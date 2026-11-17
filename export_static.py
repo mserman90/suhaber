@@ -230,17 +230,29 @@ def main():
     # 1. SU HABERLERİ TARAMA (WATER CHANNEL)
     # ==========================================
     print(f"[*] Inoreader akışı kontrol ediliyor: {config.INOREADER_URL}")
-    data = scrape_inoreader(config.INOREADER_URL)
-    raw_water_items = data.get("items", [])
-    print(f"[+] Çekilen güncel makale sayısı: {len(raw_water_items)}")
+    try:
+        data = scrape_inoreader(config.INOREADER_URL)
+        raw_water_items = data.get("items", [])
+        print(f"[+] Çekilen güncel makale sayısı: {len(raw_water_items)}")
+    except Exception as e:
+        print(f"[!] Inoreader tarama hatası: {e}")
+        raw_water_items = []
 
     print("[*] Türkiye su haberleri taranıyor...")
-    turkey_water_items = scrape_turkey_water_news(limit=25)
-    print(f"[+] Çekilen güncel Türkiye su haberi sayısı: {len(turkey_water_items)}")
+    try:
+        turkey_water_items = scrape_turkey_water_news(limit=25)
+        print(f"[+] Çekilen güncel Türkiye su haberi sayısı: {len(turkey_water_items)}")
+    except Exception as e:
+        print(f"[!] Türkiye su haberleri tarama hatası: {e}")
+        turkey_water_items = []
 
     print("[*] Yeni yayınlanan su yönetimi akademik yayınları Google Dorking ile taranıyor...")
-    academic_water_items = scrape_academic_water_publications(limit_per_query=12, max_total=40)
-    print(f"[+] Çekilen güncel akademik su yayını sayısı: {len(academic_water_items)}")
+    try:
+        academic_water_items = scrape_academic_water_publications(limit_per_query=12, max_total=40)
+        print(f"[+] Çekilen güncel akademik su yayını sayısı: {len(academic_water_items)}")
+    except Exception as e:
+        print(f"[!] Akademik su yayınları tarama hatası: {e}")
+        academic_water_items = []
 
     print("[*] Güncel basın haber takibi kontrol ediliyor...")
     try:
@@ -255,8 +267,12 @@ def main():
     storage.save_items(turkey_water_items, default_channel="water")
     storage.save_items(academic_water_items, default_channel="water")
     print("[*] Akdeniz & Yunanistan su krizi haberleri (Google News Story) taranıyor...")
-    story_water_items = scrape_google_news_story(config.GREECE_WATER_STORY_URL, limit=25)
-    print(f"[+] Çekilen güncel bölgesel su haberi sayısı: {len(story_water_items)}")
+    try:
+        story_water_items = scrape_google_news_story(config.GREECE_WATER_STORY_URL, limit=25)
+        print(f"[+] Çekilen güncel bölgesel su haberi sayısı: {len(story_water_items)}")
+    except Exception as e:
+        print(f"[!] Google News Story tarama hatası: {e}")
+        story_water_items = []
 
     storage.save_items(sygm_items, default_channel="water")
     storage.save_items(story_water_items, default_channel="water")
@@ -265,16 +281,28 @@ def main():
     # 2. TARIM HABERLERİ TARAMA (AGRICULTURE CHANNEL)
     # ==========================================
     print("[*] Türkiye tarım haberleri taranıyor...")
-    turkey_agri_items = scrape_turkey_agriculture_news(limit=25)
-    print(f"[+] Çekilen güncel Türkiye tarım haberi sayısı: {len(turkey_agri_items)}")
+    try:
+        turkey_agri_items = scrape_turkey_agriculture_news(limit=25)
+        print(f"[+] Çekilen güncel Türkiye tarım haberi sayısı: {len(turkey_agri_items)}")
+    except Exception as e:
+        print(f"[!] Türkiye tarım haberleri tarama hatası: {e}")
+        turkey_agri_items = []
 
     print("[*] Küresel akıllı tarım ve tarım teknolojileri haberleri taranıyor...")
-    global_agri_items = scrape_global_agritech_news(limit=20)
-    print(f"[+] Çekilen küresel agritech haber sayısı: {len(global_agri_items)}")
+    try:
+        global_agri_items = scrape_global_agritech_news(limit=20)
+        print(f"[+] Çekilen küresel agritech haber sayısı: {len(global_agri_items)}")
+    except Exception as e:
+        print(f"[!] Küresel agritech haberleri tarama hatası: {e}")
+        global_agri_items = []
 
     print("[*] Yeni yayınlanan hakemli tarım & agronomi akademik yayınları taranıyor...")
-    academic_agri_items = scrape_academic_agriculture_publications(limit_per_query=10, max_total=30)
-    print(f"[+] Çekilen güncel akademik tarım yayını sayısı: {len(academic_agri_items)}")
+    try:
+        academic_agri_items = scrape_academic_agriculture_publications(limit_per_query=10, max_total=30)
+        print(f"[+] Çekilen güncel akademik tarım yayını sayısı: {len(academic_agri_items)}")
+    except Exception as e:
+        print(f"[!] Akademik tarım yayınları tarama hatası: {e}")
+        academic_agri_items = []
 
     storage.save_items(turkey_agri_items, default_channel="agriculture")
     storage.save_items(global_agri_items, default_channel="agriculture")
@@ -284,16 +312,28 @@ def main():
     # 3. HAYVANCILIK HABERLERİ TARAMA (LIVESTOCK CHANNEL)
     # ==========================================
     print("[*] Türkiye hayvancılık haberleri taranıyor...")
-    turkey_livestock_items = scrape_turkey_livestock_news(limit=25)
-    print(f"[+] Çekilen güncel Türkiye hayvancılık haberi sayısı: {len(turkey_livestock_items)}")
+    try:
+        turkey_livestock_items = scrape_turkey_livestock_news(limit=25)
+        print(f"[+] Çekilen güncel Türkiye hayvancılık haberi sayısı: {len(turkey_livestock_items)}")
+    except Exception as e:
+        print(f"[!] Türkiye hayvancılık haberleri tarama hatası: {e}")
+        turkey_livestock_items = []
 
     print("[*] Küresel akıllı hayvancılık teknolojileri haberleri taranıyor...")
-    global_livestock_items = scrape_global_livestock_tech_news(limit=20)
-    print(f"[+] Çekilen küresel livestock haber sayısı: {len(global_livestock_items)}")
+    try:
+        global_livestock_items = scrape_global_livestock_tech_news(limit=20)
+        print(f"[+] Çekilen küresel livestock haber sayısı: {len(global_livestock_items)}")
+    except Exception as e:
+        print(f"[!] Küresel hayvancılık haberleri tarama hatası: {e}")
+        global_livestock_items = []
 
     print("[*] Yeni yayınlanan hakemli zootekni & veterinerlik akademik yayınları taranıyor...")
-    academic_livestock_items = scrape_academic_livestock_publications(limit_per_query=10, max_total=30)
-    print(f"[+] Çekilen güncel akademik hayvancılık yayını sayısı: {len(academic_livestock_items)}")
+    try:
+        academic_livestock_items = scrape_academic_livestock_publications(limit_per_query=10, max_total=30)
+        print(f"[+] Çekilen güncel akademik hayvancılık yayını sayısı: {len(academic_livestock_items)}")
+    except Exception as e:
+        print(f"[!] Akademik hayvancılık yayınları tarama hatası: {e}")
+        academic_livestock_items = []
 
     storage.save_items(turkey_livestock_items, default_channel="livestock")
     storage.save_items(global_livestock_items, default_channel="livestock")
@@ -790,6 +830,24 @@ def main():
     # --- E) GOOGLE SEO & SITEMAP / ROBOTS DOSYALARI ---
     generate_sitemap_and_robots(dist_dir, public_url)
 
+    # --- F) DB TOUCH: Her çalışmada DB'nin güncellendi görünmesi için meta kaydı ---
+    # Bu, GitHub Actions'ın DB değişmedi diye commit atlamasını önler ve
+    # her run'ın ne zaman çalıştığını takip etmemizi sağlar
+    run_ts = datetime.now(timezone.utc).isoformat()
+    storage.set_meta("last_export_run", run_ts)
+    total_db = storage.count_items()
+    storage.set_meta("last_export_item_count", str(total_db))
+    print(f"[+] DB meta güncellendi: last_export_run={run_ts}, toplam kayıt={total_db}")
+
+    # Özet rapor
+    print("\n" + "="*60)
+    print("TARAMA ÖZETİ:")
+    print(f"  Su kanalı DB kaydı     : {len(water_items)}")
+    print(f"  Tarım kanalı DB kaydı  : {len(agri_items)}")
+    print(f"  Hayvancılık kanalı DB  : {len(livestock_items)}")
+    print(f"  Toplam DB kaydı        : {total_db}")
+    print(f"  Çalışma zamanı         : {run_ts}")
+    print("="*60)
     print("[*] Tüm 3 kanallı gazete portalları (Su, Tarım, Hayvancılık) ve yayın akışları başarıyla tamamlandı!")
 
 if __name__ == "__main__":
