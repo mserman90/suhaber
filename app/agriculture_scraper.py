@@ -42,27 +42,38 @@ def clean_agriculture_title(raw_title: str) -> Tuple[str, str]:
     return title, publisher
 
 
-def scrape_turkey_agriculture_news(limit: int = 30) -> List[Dict[str, Any]]:
+def scrape_turkey_agriculture_news(limit: int = 35) -> List[Dict[str, Any]]:
     """
     Türkiye ulusal ve sektörel basınından güncel bitkisel üretim, hasat,
-    tohum, gübre, tarım teknolojileri ve tarımsal destek haberlerini çeker.
+    tohum, gübre, tarım teknolojileri ve tarımsal destek haberlerini çeker (son 3-7 gün).
     (Hayvancılık haberleri Hayvancılık Gündemi kanalına aittir).
     """
     import xml.etree.ElementTree as ET
 
-    query = (
-        'tarımsal üretim OR "tarım teknolojileri" OR çiftçi OR hasat OR '
-        'tohumculuk OR gübre OR "tarımsal destekler" OR seracılık OR '
-        '"akıllı tarım" OR "bitkisel üretim" OR "tarla bitkileri"'
-    )
-    url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=tr&gl=TR&ceid=TR:tr"
+    queries = [
+        # 1. Hasat, Ekim ve Çiftçi Haberleri (Son 3 gün)
+        '("çiftçi" OR "tarımsal üretim" OR "hasat" OR "buğday ekimi" OR "arpa" OR "mısır") when:3d',
+        # 2. Tarımsal Destekler, TMO ve Taban Fiyatlar (Son 3 gün)
+        '("tarımsal destek" OR "mazot gübre desteği" OR "TMO" OR "Tarım Kredi" OR "TZOB") when:3d',
+        # 3. Girdi Fiyatları, Gübre, Tohum ve Traktör (Son 3 gün)
+        '("gübre fiyatları" OR "tohumluk" OR "seracılık" OR "tarım makineleri") when:3d',
+        # 4. Tarım Teknolojileri, Akıllı Tarım ve İhracat (Son 3 gün)
+        '("akıllı tarım" OR "tarım teknolojileri" OR "tarımsal ihracat" OR "narenciye hasadı" OR "zeytin hasadı") when:3d',
+    ]
 
     items: List[Dict[str, Any]] = []
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=12)
-        if resp.status_code == 200:
+    seen_titles = set()
+    now_dt = datetime.now(timezone.utc)
+
+    for q in queries:
+        if len(items) >= limit:
+            break
+        url = f"https://news.google.com/rss/search?q={urllib.parse.quote(q)}&hl=tr&gl=TR&ceid=TR:tr"
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=12)
+            if resp.status_code != 200:
+                continue
             root = ET.fromstring(resp.text)
-            now_dt = datetime.now(timezone.utc)
 
             for it in root.findall(".//item"):
                 if len(items) >= limit:
@@ -86,6 +97,14 @@ def scrape_turkey_agriculture_news(limit: int = 30) -> List[Dict[str, Any]]:
                 clean_title, pub_from_title = clean_agriculture_title(raw_title)
                 if pub_from_title and source_name == "Türkiye Tarım Bülteni":
                     source_name = pub_from_title
+
+                if len(clean_title) < 15:
+                    continue
+
+                norm_key = re.sub(r'[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ]', '', clean_title.lower())
+                if norm_key in seen_titles:
+                    continue
+                seen_titles.add(norm_key)
 
                 # Hayvancılık haberlerini Tarım kanalına alma (Hayvancılık Gündemi'ne aittir)
                 t_lower = clean_title.lower()
@@ -129,23 +148,84 @@ def scrape_turkey_agriculture_news(limit: int = 30) -> List[Dict[str, Any]]:
                     "pub_date_ts": pub_ts,
                     "raw_date_str": pub_str,
                 })
-    except Exception as e:
-        logger.warning("Turkey agriculture news scrape failed: %s", e)
+        except Exception as e:
+            logger.warning("Turkey agriculture news scrape query failed for [%s]: %s", q, e)
+
+    # Fallback: Yeterli haber bulunamazsa 7 günlük geniş arama yap
+    if len(items) < 12:
+        fallback_query = '("tarımsal üretim" OR "çiftçi" OR "hasat" OR "tarım teknolojileri" OR "gübre" OR "tohumculuk") when:7d'
+        fallback_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(fallback_query)}&hl=tr&gl=TR&ceid=TR:tr"
+        try:
+            resp = requests.get(fallback_url, headers=HEADERS, timeout=12)
+            if resp.status_code == 200:
+                root = ET.fromstring(resp.text)
+                for it in root.findall(".//item"):
+                    if len(items) >= limit:
+                        break
+                    raw_title = it.find("title").text if it.find("title") is not None else ""
+                    clean_title, pub_from_title = clean_agriculture_title(raw_title)
+                    norm_key = re.sub(r'[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ]', '', clean_title.lower())
+                    if norm_key in seen_titles or len(clean_title) < 15:
+                        continue
+                    seen_titles.add(norm_key)
+
+                    link = it.find("link").text if it.find("link") is not None else ""
+                    pub_str = it.find("pubDate").text if it.find("pubDate") is not None else ""
+                    guid = it.find("guid").text if it.find("guid") is not None else link
+                    source_el = it.find("source")
+                    source_name = source_el.text if source_el is not None else "Türkiye Tarım Bülteni"
+                    if pub_from_title and source_name == "Türkiye Tarım Bülteni":
+                        source_name = pub_from_title
+
+                    pub_ts = int(now_dt.timestamp())
+                    pub_rfc = email.utils.format_datetime(now_dt)
+                    if pub_str:
+                        try:
+                            dt_parsed = email.utils.parsedate_to_datetime(pub_str)
+                            pub_ts = int(dt_parsed.timestamp())
+                            pub_rfc = email.utils.format_datetime(dt_parsed)
+                        except Exception:
+                            pass
+
+                    desc_el = it.find("description")
+                    raw_desc = desc_el.text if desc_el is not None else ""
+                    clean_desc = BeautifulSoup(raw_desc, "html.parser").get_text(" ", strip=True) if raw_desc else clean_title
+
+                    items.append({
+                        "guid": f"tr_agri:{guid}",
+                        "title": clean_title,
+                        "title_tr": clean_title,
+                        "link": link,
+                        "author": source_name,
+                        "source_feed": f"🌾 {source_name}",
+                        "description": clean_desc,
+                        "summary_tr": clean_desc,
+                        "category_tr": "Bitkisel Üretim",
+                        "is_turkey": 1,
+                        "is_academic": 0,
+                        "channel": "agriculture",
+                        "image_url": "",
+                        "pub_date": pub_rfc,
+                        "pub_date_ts": pub_ts,
+                        "raw_date_str": pub_str,
+                    })
+        except Exception as e:
+            logger.warning("Turkey agriculture fallback scrape failed: %s", e)
 
     return items
 
 
 def scrape_global_agritech_news(limit: int = 25) -> List[Dict[str, Any]]:
     """
-    Küresel akıllı tarım, hassas tarım, agritech ve gıda güvenliği haberlerini çeker.
+    Küresel akıllı tarım, hassas tarım, agritech ve gıda güvenliği haberlerini çeker (son 7 gün).
     (Yabancı dildeki haberler translator modülü ile tam Türkçeleştirilir).
     """
     import xml.etree.ElementTree as ET
 
     query = (
-        '"precision agriculture" OR "smart farming" OR "agritech" OR '
+        '("precision agriculture" OR "smart farming" OR "agritech" OR '
         '"agricultural technology" OR "crop yield" OR "vertical farming" OR '
-        '"sustainable agriculture"'
+        '"sustainable agriculture") when:7d'
     )
     url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=en-US&gl=US&ceid=US:en"
 

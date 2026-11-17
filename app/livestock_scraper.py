@@ -42,26 +42,37 @@ def clean_livestock_title(raw_title: str) -> Tuple[str, str]:
     return title, publisher
 
 
-def scrape_turkey_livestock_news(limit: int = 30) -> List[Dict[str, Any]]:
+def scrape_turkey_livestock_news(limit: int = 35) -> List[Dict[str, Any]]:
     """
     Türkiye ulusal ve sektörel basınından güncel hayvancılık, süt üretimi,
-    kırmızı et sektörü, besicilik, yem fiyatları, küçükbaş/büyükbaş ve hayvan sağlığı haberlerini çeker.
+    kırmızı et sektörü, besicilik, yem fiyatları, küçükbaş/büyükbaş ve hayvan sağlığı haberlerini çeker (son 3-7 gün).
     """
     import xml.etree.ElementTree as ET
 
-    query = (
-        'hayvancılık OR besicilik OR "süt üreticileri" OR "çiğ süt" OR '
-        '"kırmızı et" OR küçükbaş OR büyükbaş OR "yem fiyatları" OR '
-        '"et ve süt kurumu" OR kanatlı OR veteriner OR damızlık'
-    )
-    url = f"https://news.google.com/rss/search?q={urllib.parse.quote(query)}&hl=tr&gl=TR&ceid=TR:tr"
+    queries = [
+        # 1. Çiğ Süt, Süt Konseyi ve Mandıra (Son 3 gün)
+        '("çiğ süt" OR "süt üreticileri" OR "süt fiyatları" OR "Ulusal Süt Konseyi" OR "mandıra") when:3d',
+        # 2. Besi, Kırmızı Et, Karkas ve Kesim Fiyatları (Son 3 gün)
+        '("kırmızı et" OR "karkas kesim" OR "besicilik" OR "Et ve Süt Kurumu" OR "dana eti") when:3d',
+        # 3. Yem Fiyatları, Küçükbaş, Büyükbaş ve Hayvancılık Desteği (Son 3 gün)
+        '("yem fiyatları" OR "küçükbaş" OR "büyükbaş" OR "damızlık" OR "hayvancılık desteği") when:3d',
+        # 4. Kanatlı, Yumurta, Veteriner ve Aşı / Hayvan Sağlığı (Son 3 gün)
+        '("şap aşısı" OR "veteriner hekim" OR "kanatlı sektörü" OR "yumurta üretimi" OR "tavukçuluk") when:3d',
+    ]
 
     items: List[Dict[str, Any]] = []
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=12)
-        if resp.status_code == 200:
+    seen_titles = set()
+    now_dt = datetime.now(timezone.utc)
+
+    for q in queries:
+        if len(items) >= limit:
+            break
+        url = f"https://news.google.com/rss/search?q={urllib.parse.quote(q)}&hl=tr&gl=TR&ceid=TR:tr"
+        try:
+            resp = requests.get(url, headers=HEADERS, timeout=12)
+            if resp.status_code != 200:
+                continue
             root = ET.fromstring(resp.text)
-            now_dt = datetime.now(timezone.utc)
 
             for it in root.findall(".//item"):
                 if len(items) >= limit:
@@ -85,6 +96,14 @@ def scrape_turkey_livestock_news(limit: int = 30) -> List[Dict[str, Any]]:
                 clean_title, pub_from_title = clean_livestock_title(raw_title)
                 if pub_from_title and source_name == "Türkiye Hayvancılık Bülteni":
                     source_name = pub_from_title
+
+                if len(clean_title) < 15:
+                    continue
+
+                norm_key = re.sub(r'[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ]', '', clean_title.lower())
+                if norm_key in seen_titles:
+                    continue
+                seen_titles.add(norm_key)
 
                 pub_ts = int(now_dt.timestamp())
                 pub_rfc = email.utils.format_datetime(now_dt)
@@ -139,8 +158,77 @@ def scrape_turkey_livestock_news(limit: int = 30) -> List[Dict[str, Any]]:
                     "pub_date_ts": pub_ts,
                     "raw_date_str": pub_str,
                 })
-    except Exception as e:
-        logger.warning("Turkey livestock scrape failed: %s", e)
+        except Exception as e:
+            logger.warning("Turkey livestock scrape query failed for [%s]: %s", q, e)
+
+    # Fallback: Yeterli haber bulunamazsa 7 günlük geniş arama yap
+    if len(items) < 12:
+        fallback_query = '("hayvancılık" OR "besicilik" OR "süt üreticileri" OR "çiğ süt" OR "kırmızı et" OR "yem fiyatları") when:7d'
+        fallback_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(fallback_query)}&hl=tr&gl=TR&ceid=TR:tr"
+        try:
+            resp = requests.get(fallback_url, headers=HEADERS, timeout=12)
+            if resp.status_code == 200:
+                root = ET.fromstring(resp.text)
+                for it in root.findall(".//item"):
+                    if len(items) >= limit:
+                        break
+                    raw_title = it.find("title").text if it.find("title") is not None else ""
+                    clean_title, pub_from_title = clean_livestock_title(raw_title)
+                    norm_key = re.sub(r'[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ]', '', clean_title.lower())
+                    if norm_key in seen_titles or len(clean_title) < 15:
+                        continue
+                    seen_titles.add(norm_key)
+
+                    link = it.find("link").text if it.find("link") is not None else ""
+                    pub_str = it.find("pubDate").text if it.find("pubDate") is not None else ""
+                    guid = it.find("guid").text if it.find("guid") is not None else link
+                    source_el = it.find("source")
+                    source_name = source_el.text if source_el is not None else "Türkiye Hayvancılık Bülteni"
+                    if pub_from_title and source_name == "Türkiye Hayvancılık Bülteni":
+                        source_name = pub_from_title
+
+                    pub_ts = int(now_dt.timestamp())
+                    pub_rfc = email.utils.format_datetime(now_dt)
+                    if pub_str:
+                        try:
+                            dt_parsed = email.utils.parsedate_to_datetime(pub_str)
+                            pub_ts = int(dt_parsed.timestamp())
+                            pub_rfc = email.utils.format_datetime(dt_parsed)
+                        except Exception:
+                            pass
+
+                    desc_el = it.find("description")
+                    raw_desc = desc_el.text if desc_el is not None else ""
+                    clean_desc = BeautifulSoup(raw_desc, "html.parser").get_text(" ", strip=True) if raw_desc else clean_title
+
+                    tl = clean_title.lower()
+                    if any(k in tl for k in ["süt", "mandıra"]):
+                        cat = "Süt & Mandıra"
+                    elif any(k in tl for k in ["et", "besi", "karkas"]):
+                        cat = "Besi & Kırmızı Et"
+                    else:
+                        cat = "Hayvancılık & Besicilik"
+
+                    items.append({
+                        "guid": f"tr_livestock:{guid}",
+                        "title": clean_title,
+                        "title_tr": clean_title,
+                        "link": link,
+                        "author": source_name,
+                        "source_feed": f"🇹🇷 {source_name}",
+                        "description": clean_desc,
+                        "summary_tr": clean_desc,
+                        "category_tr": cat,
+                        "is_turkey": 1,
+                        "is_academic": 0,
+                        "channel": "livestock",
+                        "image_url": "",
+                        "pub_date": pub_rfc,
+                        "pub_date_ts": pub_ts,
+                        "raw_date_str": pub_str,
+                    })
+        except Exception as e:
+            logger.warning("Turkey livestock fallback scrape failed: %s", e)
 
     return items
 
@@ -153,8 +241,8 @@ def scrape_global_livestock_tech_news(limit: int = 25) -> List[Dict[str, Any]]:
     import xml.etree.ElementTree as ET
 
     queries = [
-        '("precision livestock" OR "dairy robotics" OR "milking robot" OR "smart cattle") when:60d',
-        '("livestock farming" OR "poultry technology" OR "animal genetics" OR "dairy farming tech") when:60d',
+        '("precision livestock" OR "dairy robotics" OR "milking robot" OR "smart cattle") when:7d',
+        '("livestock farming" OR "poultry technology" OR "animal genetics" OR "dairy farming tech") when:7d',
     ]
 
     items: List[Dict[str, Any]] = []

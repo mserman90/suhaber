@@ -272,16 +272,16 @@ def scrape_turkey_water_news(limit: int = 40) -> List[Dict[str, Any]]:
     import urllib.parse
 
     queries = [
-        # 1. Barajlar ve Doluluk Oranları (En güncel baraj seviyeleri)
-        '("baraj doluluk" OR "baraj doluluk oranları" OR "barajların doluluk" OR "baraj su seviyesi") when:7d',
-        # 2. DSİ ve Sulama Yatırımları
-        '(DSİ OR "Devlet Su İşleri") AND (sulama OR baraj OR kuraklık OR "su projesi" OR "su yönetimi") when:7d',
-        # 3. Tarımsal Sulama ve Otomasyon
-        '("tarımsal sulama" OR "sulama otomasyonu" OR "sulama kanalı" OR "damla sulama") when:7d',
-        # 4. Su Yönetimi, Su Verimliliği ve Kurul Kararları
-        '("su yönetimi" OR "su verimliliği" OR "havza su kurulu" OR "su krizi" OR "su tasarrufu") when:7d',
-        # 5. Göller, Nehirler, Yeraltı Suyu ve Kuraklık
-        '(kuraklık OR "yeraltı suyu" OR "göl su seviyesi") AND (su OR dsi OR göl OR nehir) when:7d',
+        # 1. Barajlar ve Doluluk Oranları (En güncel baraj seviyeleri - son 3 gün)
+        '("baraj doluluk" OR "baraj doluluk oranları" OR "barajların doluluk" OR "baraj su seviyesi") when:3d',
+        # 2. DSİ ve Sulama Yatırımları (Son 3 gün)
+        '(DSİ OR "Devlet Su İşleri") AND (sulama OR baraj OR kuraklık OR "su projesi" OR "su yönetimi") when:3d',
+        # 3. Tarımsal Sulama ve Otomasyon (Son 3 gün)
+        '("tarımsal sulama" OR "sulama otomasyonu" OR "sulama kanalı" OR "damla sulama") when:3d',
+        # 4. Su Yönetimi, Su Verimliliği ve Kurul Kararları (Son 3 gün)
+        '("su yönetimi" OR "su verimliliği" OR "havza su kurulu" OR "su krizi" OR "su tasarrufu") when:3d',
+        # 5. Göller, Nehirler, Yeraltı Suyu ve Kuraklık (Son 3 gün)
+        '(kuraklık OR "yeraltı suyu" OR "göl su seviyesi") AND (su OR dsi OR göl OR nehir) when:3d',
     ]
 
     headers = {

@@ -575,6 +575,16 @@ def generate_newspaper_portal_html(
             age_days = max(0.0, (now_ts - pub_ts) / 86400.0) if pub_ts > 0 else 5.0
 
             quality = 1000.0
+            # Tazelik bonusu / eskilik cezası
+            if age_days <= 2.0:
+                quality += 1500.0
+            elif age_days <= 4.0:
+                quality += 800.0
+            elif age_days > 7.0:
+                quality -= 5000.0
+            if age_days > 14.0:
+                quality -= 20000.0
+
             if any(k in title for k in ["süt", "besi", "et ve süt kurumu", "yem", "damızlık", "kırmızı et", "küçükbaş", "büyükbaş", "hayvancılık"]):
                 quality += 300.0
             if any(k in title for k in ["personel", "kadro", "voleybol", "futbol"]):
@@ -605,6 +615,16 @@ def generate_newspaper_portal_html(
             age_days = max(0.0, (now_ts - pub_ts) / 86400.0) if pub_ts > 0 else 5.0
 
             quality = 1000.0
+            # Tazelik bonusu / eskilik cezası
+            if age_days <= 2.0:
+                quality += 1500.0
+            elif age_days <= 4.0:
+                quality += 800.0
+            elif age_days > 7.0:
+                quality -= 5000.0
+            if age_days > 14.0:
+                quality -= 20000.0
+
             if any(k in title for k in ["çiftçi", "hasat", "üretim", "tohum", "gübre", "destek", "buğday", "tarım"]):
                 quality += 300.0
             if any(k in title for k in ["personel", "kadro", "voleybol", "futbol"]):
@@ -635,6 +655,16 @@ def generate_newspaper_portal_html(
             age_days = max(0.0, (now_ts - pub_ts) / 86400.0) if pub_ts > 0 else 5.0
 
             quality = 1000.0
+            # Tazelik bonusu / eskilik cezası
+            if age_days <= 2.0:
+                quality += 1500.0
+            elif age_days <= 4.0:
+                quality += 800.0
+            elif age_days > 7.0:
+                quality -= 5000.0
+            if age_days > 14.0:
+                quality -= 20000.0
+
             if any(k in title for k in ["baraj", "doluluk", "sulama", "su yönetimi", "kuraklık", "dsi", "su krizi", "su verimliliği", "göl", "akarsu"]):
                 quality += 300.0
             if any(k in title for k in ["kesinti", "ihale", "personel", "kadro", "voleybol", "futbol"]):
